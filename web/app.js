@@ -1,6 +1,10 @@
 // BetterYTS front page. Plain ES modules, no framework.
 // Everything from the API is inserted with textContent / attributes — never innerHTML.
 
+import { initChrome } from "./chrome.js";
+
+initChrome();
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -148,7 +152,15 @@ function urlFor(q, filters, extra = {}) {
 
 function showHome(on) {
 	$("#home").hidden = !on;
+	$("#hero").hidden = !on;
 	$("#results-view").hidden = on;
+	// One search form: big in the hero on the home page, compact in the navbar on results.
+	const slot = on ? $("#hero-search-slot") : $("#nav-search-slot");
+	if (form.parentElement !== slot) {
+		const hadFocus = document.activeElement === input;
+		slot.append(form);
+		if (hadFocus) input.focus();
+	}
 	document.title = on ? "BetterYTS" : `${state.q} · BetterYTS`;
 }
 
@@ -205,7 +217,7 @@ async function runSearch({ append = false } = {}) {
 		ok = true;
 	} catch (err) {
 		if (err.name === "AbortError") return;
-		if (!append) resultsEl.replaceChildren(h("div", { class: "empty" }, h("p", {}, `Search failed: ${err.message}`), h("button", { class: "btn", type: "button", onclick: () => runSearch() }, "Try again")));
+		if (!append) resultsEl.replaceChildren(h("div", { class: "empty" }, h("p", {}, `Search failed: ${err.message}`), h("button", { class: "button secondary", type: "button", onclick: () => runSearch() }, "Try again")));
 		else toast(`Couldn't load more: ${err.message}`);
 	} finally {
 		if (controller === state.controller) {
@@ -633,7 +645,7 @@ function renderSegments() {
 						h("span", { class: "seg-label" }, info.label),
 						h("span", { class: "muted" }, `${fmtTime(s.start)}–${fmtTime(s.end)}`),
 						h("span", { class: auto ? "tag on" : "tag" }, s.action === "mute" ? (auto ? "auto-mute" : "mute") : auto ? "auto-skip" : "manual"),
-						h("button", { type: "button", class: "btn tiny", onclick: () => player?.seekTo?.(s.end, true) }, "Skip"),
+						h("button", { type: "button", class: "button tiny secondary", onclick: () => player?.seekTo?.(s.end, true) }, "Skip"),
 					);
 				}),
 			),

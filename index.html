@@ -5,69 +5,139 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>BetterYTS</title>
 		<meta name="description" content="BetterYTS by FoulFoxHacks — ad-free YouTube search with SponsorBlock, DeArrow, Return YouTube Dislike and VRChat-ready links." />
-		<meta name="theme-color" content="#121014" />
+		<meta name="theme-color" content="#242526" />
 		<meta property="og:title" content="BetterYTS by FoulFoxHacks" />
-		<meta property="og:description" content="YouTube search without the junk. Ad-free results, SponsorBlock, DeArrow, dislikes, and VRChat links." />
+		<meta property="og:description" content="Ad-free YouTube search for the web and VRChat, with SponsorBlock, DeArrow and Return YouTube Dislike built in." />
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 		<link rel="stylesheet" href="/web/styles.css" />
 	</head>
 	<body>
-		<header class="topbar">
-			<a class="brand" href="/" aria-label="BetterYTS home">
-				<img src="/favicon.svg" alt="" width="32" height="32" />
-				<span class="brand-name">Better<b>YTS</b></span>
-			</a>
+		<div id="announce" class="announce" hidden>
+			<p>BetterYTS is in beta. Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+			<button type="button" class="announce-close" aria-label="Dismiss announcement">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
+			</button>
+		</div>
 
-			<form id="search-form" class="search" role="search" action="/" autocomplete="off">
-				<div class="search-box">
-					<svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l4.7 4.7-1.4 1.4-4.7-4.7A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z" /></svg>
-					<input id="q" name="q" type="search" placeholder="Search YouTube" aria-label="Search YouTube" enterkeyhint="search" spellcheck="false"
-						role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
-					<kbd class="hint" aria-hidden="true">/</kbd>
-				</div>
-				<ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
-				<button class="btn primary" type="submit">Search</button>
-			</form>
-
-			<nav class="top-actions">
-				<a class="icon-btn" href="/docs" title="API docs" aria-label="API docs">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 16.6 4 12l4.6-4.6L10 8.8 6.8 12l3.2 3.2zm6.8 0L14 15.2l3.2-3.2L14 8.8l1.4-1.4L20 12z" /></svg>
-				</a>
-				<button class="icon-btn" id="open-settings" type="button" title="Settings" aria-label="Settings">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)" /></svg>
+		<nav class="navbar" id="navbar" aria-label="Main">
+			<div class="navbar-inner">
+				<button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" /></svg>
 				</button>
-			</nav>
+				<a class="brand" href="/" aria-label="BetterYTS home">
+					<img src="/favicon.svg" alt="" width="32" height="32" />
+					<b>BetterYTS</b>
+				</a>
+				<div class="nav-links" id="nav-links">
+					<a class="nav-link" href="/" data-nav="search">Search</a>
+					<a class="nav-link" href="/docs">API Docs</a>
+					<a class="nav-link" href="/docs#redirects">VRChat</a>
+					<a class="nav-link" href="/docs#addons">Add-ons</a>
+				</div>
+				<div class="nav-right">
+					<div id="nav-search-slot" class="nav-search-slot"></div>
+					<a class="nav-link github" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">
+						GitHub
+						<svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg>
+					</a>
+					<button class="icon-btn" id="open-settings" type="button" title="Settings" aria-label="Settings">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)" /></svg>
+					</button>
+				</div>
+			</div>
+		</nav>
+
+		<header class="hero" id="hero">
+			<div class="container">
+				<h1 class="hero-title">BetterYTS</h1>
+				<p class="hero-subtitle">Ad-free YouTube search for the web and VRChat, with SponsorBlock, DeArrow and Return&nbsp;YouTube&nbsp;Dislike built&nbsp;in.</p>
+
+				<div id="hero-search-slot" class="hero-search-slot">
+					<form id="search-form" class="search" role="search" action="/" autocomplete="off">
+						<div class="search-box">
+							<svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l4.7 4.7-1.4 1.4-4.7-4.7A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z" /></svg>
+							<input id="q" name="q" type="search" placeholder="Search YouTube" aria-label="Search YouTube" enterkeyhint="search" spellcheck="false"
+								role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
+							<kbd class="hint" aria-hidden="true">/</kbd>
+						</div>
+						<ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+						<button class="button primary search-submit" type="submit">Search</button>
+					</form>
+				</div>
+
+				<div class="hero-buttons">
+					<a class="button secondary lg" href="#vrchat">Use it in VRChat 🎬</a>
+					<a class="button secondary lg" href="/docs">Read the API Docs</a>
+					<a class="button secondary lg" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">View on GitHub</a>
+				</div>
+			</div>
 		</header>
 
 		<main id="main">
 			<!-- Home -->
 			<section id="home" class="home">
-				<img class="home-logo" src="/favicon.svg" alt="" width="96" height="96" />
-				<h1>Better<b>YTS</b></h1>
-				<p class="by">by FoulFoxHacks</p>
-				<p class="tagline">YouTube search without the junk.</p>
-				<ul class="pills" aria-label="Features">
-					<li><span class="dot" style="--c: var(--ok)"></span>No ads or promoted results</li>
-					<li><span class="dot" style="--c: #00d400"></span>SponsorBlock auto-skip</li>
-					<li><span class="dot" style="--c: #1e90ff"></span>DeArrow titles &amp; thumbnails</li>
-					<li><span class="dot" style="--c: #ff4d4d"></span>Return YouTube Dislike</li>
-					<li><span class="dot" style="--c: var(--accent)"></span>Shorts hidden</li>
-					<li><span class="dot" style="--c: #b36bff"></span>VRChat-ready links</li>
-				</ul>
-
-				<div class="vrc-card">
-					<h2>Use it in VRChat</h2>
-					<p>Paste this into any world's video player. It plays the top result for your search — no menus, no ads.</p>
-					<div class="vrc-example">
-						<code id="vrc-example"><span class="origin"></span>/search?q=<i>your search here</i></code>
-						<button class="btn small" type="button" data-copy-example>Copy</button>
+				<div class="features container">
+					<div class="feature">
+						<span class="feature-icon" aria-hidden="true">
+							<svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5zm0 2.2 6 2.2V11c0 4-2.6 7.8-6 8.9-3.4-1.1-6-4.9-6-8.9V6.4zm-1 10.4-2.6-2.6L7 13.4l4 4 6-6-1.4-1.4z" /></svg>
+						</span>
+						<h3>Ad-free by Default</h3>
+						<p>Ad slots, promoted videos, Shorts shelves and "People also watched" filler are stripped on the server before results ever reach you. Every search tells you what it blocked.</p>
 					</div>
-					<p class="fine">Tip: add <code>&amp;n=2</code> for the 2nd result, or <code>&amp;maxlen=600</code> to skip anything over 10&nbsp;minutes. VRChat needs <em>Allow Untrusted URLs</em> turned on for custom domains. <a href="/docs#redirects">All options →</a></p>
+					<div class="feature">
+						<span class="feature-icon" aria-hidden="true">
+							<svg viewBox="0 0 24 24"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z" /></svg>
+						</span>
+						<h3>Community Add-ons Built In</h3>
+						<p>SponsorBlock skips sponsor reads automatically, DeArrow swaps clickbait for honest titles and thumbnails, and Return YouTube Dislike brings the dislike count back.</p>
+					</div>
+					<div class="feature">
+						<span class="feature-icon" aria-hidden="true">
+							<svg viewBox="0 0 24 24"><path d="M20 6H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4.2a2 2 0 0 0 1.7-1l1.3-2.3a1 1 0 0 1 1.6 0l1.3 2.3a2 2 0 0 0 1.7 1H20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM7.5 13.5a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm9 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" /></svg>
+						</span>
+						<h3>Made for VRChat</h3>
+						<p>One link plays the top result in any world's video player. Pick the 2nd result, skip Shorts, cap the length, or filter by date — all from the URL. Free and open source, forever.</p>
+					</div>
 				</div>
+
+				<section id="vrchat" class="band">
+					<div class="container split">
+						<div>
+							<h2>Use it in VRChat</h2>
+							<p>Paste a search link into any world's video player — ProTV, USharpVideo, iwaSync and the rest all work. The link redirects to the top YouTube result, so there are no menus and no ads.</p>
+							<div class="codeblock">
+								<div class="codeblock-title">Video player URL</div>
+								<div class="codeblock-body">
+									<code id="vrc-example"><span class="origin"></span>/search?q=<i>your search here</i></code>
+									<button class="button small secondary" type="button" data-copy-example>Copy</button>
+								</div>
+							</div>
+							<div class="admonition warning">
+								<p class="admonition-heading">⚠️ Untrusted URLs</p>
+								<p>VRChat only plays custom domains when <em>Allow Untrusted URLs</em> is on (Settings → Comfort &amp; Safety). That applies to every search service, u2b.cx included. Need a link that works with it off? Open a video here and use <b>Copy for VRChat</b>.</p>
+							</div>
+						</div>
+						<div>
+							<h3 class="table-title">Handy options</h3>
+							<table class="table">
+								<thead><tr><th>Add</th><th>What it does</th></tr></thead>
+								<tbody>
+									<tr><td><code>&amp;n=2</code></td><td>Play the 2nd result</td></tr>
+									<tr><td><code>&amp;maxlen=600</code></td><td>Nothing over 10 minutes</td></tr>
+									<tr><td><code>&amp;upload=week</code></td><td>Only this week's uploads</td></tr>
+									<tr><td><code>&amp;live=0</code></td><td>Skip live streams</td></tr>
+									<tr><td><code>&amp;shorts=1</code></td><td>Allow Shorts</td></tr>
+									<tr><td><code>&amp;sort=views</code></td><td>Most-viewed first</td></tr>
+								</tbody>
+							</table>
+							<p class="fine"><a href="/docs#redirects">All redirect options →</a></p>
+						</div>
+					</div>
+				</section>
 			</section>
 
 			<!-- Results -->
-			<section id="results-view" hidden>
+			<section id="results-view" class="container results-view" hidden>
 				<div class="filters" id="filters">
 					<label class="select"><span>Type</span>
 						<select name="type">
@@ -115,7 +185,7 @@
 
 				<div class="status-row">
 					<p id="status" class="status" aria-live="polite"></p>
-					<button class="btn small ghost" type="button" id="copy-vrc-search" title="Copy a link that plays the top result in VRChat">
+					<button class="button small secondary" type="button" id="copy-vrc-search" title="Copy a link that plays the top result in VRChat">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11z" /></svg>
 						Copy VRChat link
 					</button>
@@ -124,30 +194,53 @@
 
 				<div id="results" class="grid"></div>
 				<div id="sentinel" class="sentinel" aria-hidden="true"></div>
-				<div class="more-row"><button class="btn" type="button" id="load-more" hidden>Load more</button></div>
+				<div class="more-row"><button class="button secondary" type="button" id="load-more" hidden>Load more</button></div>
 			</section>
 		</main>
 
 		<footer class="footer">
-			<p><b>BetterYTS</b> by FoulFoxHacks · Not affiliated with YouTube or Google.</p>
-			<p>
-				Segments &amp; crowd-sourced titles from <a href="https://sponsor.ajay.app" rel="noopener" target="_blank">SponsorBlock</a> and
-				<a href="https://dearrow.ajay.app" rel="noopener" target="_blank">DeArrow</a> (CC BY-NC-SA 4.0) ·
-				Dislikes from <a href="https://returnyoutubedislike.com" rel="noopener" target="_blank">Return YouTube Dislike</a> ·
-				<a href="/docs">API</a> · <a href="https://github.com/foulfoxhacks/betteryts" rel="noopener" target="_blank">GitHub</a>
-			</p>
+			<div class="container">
+				<div class="footer-cols">
+					<div>
+						<p class="footer-title">Docs</p>
+						<ul>
+							<li><a href="/docs">API reference</a></li>
+							<li><a href="/docs#redirects">VRChat redirects</a></li>
+							<li><a href="/docs#search">Search options</a></li>
+							<li><a href="/docs#fair-use">Fair use</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Community</p>
+						<ul>
+							<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Powered by</p>
+						<ul>
+							<li><a href="https://sponsor.ajay.app" target="_blank" rel="noopener">SponsorBlock</a></li>
+							<li><a href="https://dearrow.ajay.app" target="_blank" rel="noopener">DeArrow</a></li>
+							<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
+						</ul>
+					</div>
+				</div>
+				<p class="copyright">Copyright © 2026 FoulFoxHacks. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
+			</div>
 		</footer>
 
 		<!-- Watch -->
 		<dialog id="watch" class="watch" aria-label="Video player">
 			<div class="watch-inner">
 				<button class="icon-btn watch-close" type="button" data-close-watch aria-label="Close player">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" transform="translate(1 0)" /></svg>
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
 				</button>
 				<div class="player-frame"><div id="player-slot"></div></div>
 				<div id="seg-bar" class="seg-bar" aria-hidden="true"></div>
 				<div class="watch-body">
-					<div id="full-label" class="full-label" hidden></div>
+					<div id="full-label" class="admonition info full-label" hidden></div>
 					<h2 id="watch-title"></h2>
 					<p id="watch-original" class="original" hidden></p>
 					<div class="watch-row">
@@ -160,10 +253,10 @@
 						<p class="fine">Dislikes are estimates from Return YouTube Dislike.</p>
 					</div>
 					<div class="watch-actions">
-						<a id="watch-yt" class="btn small" target="_blank" rel="noopener">Open on YouTube</a>
-						<button class="btn small" type="button" id="copy-yt">Copy link</button>
-						<button class="btn small" type="button" id="copy-vrc" title="youtube.com links work in VRChat even with untrusted URLs off">Copy for VRChat</button>
-						<button class="btn small accent" type="button" id="jump-highlight" hidden>Jump to highlight</button>
+						<a id="watch-yt" class="button small secondary" target="_blank" rel="noopener">Open on YouTube</a>
+						<button class="button small secondary" type="button" id="copy-yt">Copy link</button>
+						<button class="button small primary" type="button" id="copy-vrc" title="youtube.com links work in VRChat even with untrusted URLs off">Copy for VRChat</button>
+						<button class="button small secondary" type="button" id="jump-highlight" hidden>Jump to highlight</button>
 					</div>
 					<div id="segments" class="segments" hidden></div>
 					<details id="desc-wrap" class="desc" hidden>
@@ -180,7 +273,7 @@
 				<header>
 					<h2 id="settings-title">Settings</h2>
 					<button class="icon-btn" value="close" aria-label="Close settings">
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" transform="translate(1 0)" /></svg>
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
 					</button>
 				</header>
 				<fieldset>
@@ -213,7 +306,7 @@
 				<fieldset>
 					<legend>SponsorBlock auto-skip</legend>
 					<div id="sb-settings" class="sb-grid"></div>
-					<p class="fine">Unchecked categories still show on the timeline — you can click them to skip manually.</p>
+					<p class="fine">Unchecked categories still show on the timeline and in the segment list, where you can skip them by hand.</p>
 				</fieldset>
 			</form>
 		</dialog>
