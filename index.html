@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BetterYTS</title>
+		<meta name="description" content="BetterYTS by FoulFoxHacks — ad-free YouTube search with SponsorBlock, DeArrow, Return YouTube Dislike and VRChat-ready links." />
+		<meta name="theme-color" content="#121014" />
+		<meta property="og:title" content="BetterYTS by FoulFoxHacks" />
+		<meta property="og:description" content="YouTube search without the junk. Ad-free results, SponsorBlock, DeArrow, dislikes, and VRChat links." />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="stylesheet" href="/web/styles.css" />
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href="/" aria-label="BetterYTS home">
+				<img src="/favicon.svg" alt="" width="32" height="32" />
+				<span class="brand-name">Better<b>YTS</b></span>
+			</a>
+
+			<form id="search-form" class="search" role="search" action="/" autocomplete="off">
+				<div class="search-box">
+					<svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l4.7 4.7-1.4 1.4-4.7-4.7A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z" /></svg>
+					<input id="q" name="q" type="search" placeholder="Search YouTube" aria-label="Search YouTube" enterkeyhint="search" spellcheck="false"
+						role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions" />
+					<kbd class="hint" aria-hidden="true">/</kbd>
+				</div>
+				<ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+				<button class="btn primary" type="submit">Search</button>
+			</form>
+
+			<nav class="top-actions">
+				<a class="icon-btn" href="/docs" title="API docs" aria-label="API docs">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 16.6 4 12l4.6-4.6L10 8.8 6.8 12l3.2 3.2zm6.8 0L14 15.2l3.2-3.2L14 8.8l1.4-1.4L20 12z" /></svg>
+				</a>
+				<button class="icon-btn" id="open-settings" type="button" title="Settings" aria-label="Settings">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.4 7.4 0 0 0 1.7 1L11 21h4l.4-2.7a7.4 7.4 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)" /></svg>
+				</button>
+			</nav>
+		</header>
+
+		<main id="main">
+			<!-- Home -->
+			<section id="home" class="home">
+				<img class="home-logo" src="/favicon.svg" alt="" width="96" height="96" />
+				<h1>Better<b>YTS</b></h1>
+				<p class="by">by FoulFoxHacks</p>
+				<p class="tagline">YouTube search without the junk.</p>
+				<ul class="pills" aria-label="Features">
+					<li><span class="dot" style="--c: var(--ok)"></span>No ads or promoted results</li>
+					<li><span class="dot" style="--c: #00d400"></span>SponsorBlock auto-skip</li>
+					<li><span class="dot" style="--c: #1e90ff"></span>DeArrow titles &amp; thumbnails</li>
+					<li><span class="dot" style="--c: #ff4d4d"></span>Return YouTube Dislike</li>
+					<li><span class="dot" style="--c: var(--accent)"></span>Shorts hidden</li>
+					<li><span class="dot" style="--c: #b36bff"></span>VRChat-ready links</li>
+				</ul>
+
+				<div class="vrc-card">
+					<h2>Use it in VRChat</h2>
+					<p>Paste this into any world's video player. It plays the top result for your search — no menus, no ads.</p>
+					<div class="vrc-example">
+						<code id="vrc-example"><span class="origin"></span>/search?q=<i>your search here</i></code>
+						<button class="btn small" type="button" data-copy-example>Copy</button>
+					</div>
+					<p class="fine">Tip: add <code>&amp;n=2</code> for the 2nd result, or <code>&amp;maxlen=600</code> to skip anything over 10&nbsp;minutes. VRChat needs <em>Allow Untrusted URLs</em> turned on for custom domains. <a href="/docs#redirects">All options →</a></p>
+				</div>
+			</section>
+
+			<!-- Results -->
+			<section id="results-view" hidden>
+				<div class="filters" id="filters">
+					<label class="select"><span>Type</span>
+						<select name="type">
+							<option value="all">All</option>
+							<option value="video">Videos</option>
+							<option value="channel">Channels</option>
+							<option value="playlist">Playlists</option>
+							<option value="movie">Movies</option>
+						</select>
+					</label>
+					<label class="select"><span>Sort</span>
+						<select name="sort">
+							<option value="relevance">Relevance</option>
+							<option value="date">Upload date</option>
+							<option value="views">View count</option>
+							<option value="rating">Rating</option>
+						</select>
+					</label>
+					<label class="select"><span>Length</span>
+						<select name="duration">
+							<option value="">Any</option>
+							<option value="short">Under 4 min</option>
+							<option value="medium">4–20 min</option>
+							<option value="long">Over 20 min</option>
+						</select>
+					</label>
+					<label class="select"><span>Uploaded</span>
+						<select name="upload">
+							<option value="">Any time</option>
+							<option value="hour">Last hour</option>
+							<option value="today">Today</option>
+							<option value="week">This week</option>
+							<option value="month">This month</option>
+							<option value="year">This year</option>
+						</select>
+					</label>
+					<div class="chips" role="group" aria-label="Features">
+						<button type="button" class="chip" data-feature="live" aria-pressed="false">Live</button>
+						<button type="button" class="chip" data-feature="4k" aria-pressed="false">4K</button>
+						<button type="button" class="chip" data-feature="hd" aria-pressed="false">HD</button>
+						<button type="button" class="chip" data-feature="subtitles" aria-pressed="false">Subtitles</button>
+						<button type="button" class="chip" data-feature="cc" aria-pressed="false">Creative Commons</button>
+					</div>
+				</div>
+
+				<div class="status-row">
+					<p id="status" class="status" aria-live="polite"></p>
+					<button class="btn small ghost" type="button" id="copy-vrc-search" title="Copy a link that plays the top result in VRChat">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11z" /></svg>
+						Copy VRChat link
+					</button>
+				</div>
+				<p id="corrected" class="corrected" hidden></p>
+
+				<div id="results" class="grid"></div>
+				<div id="sentinel" class="sentinel" aria-hidden="true"></div>
+				<div class="more-row"><button class="btn" type="button" id="load-more" hidden>Load more</button></div>
+			</section>
+		</main>
+
+		<footer class="footer">
+			<p><b>BetterYTS</b> by FoulFoxHacks · Not affiliated with YouTube or Google.</p>
+			<p>
+				Segments &amp; crowd-sourced titles from <a href="https://sponsor.ajay.app" rel="noopener" target="_blank">SponsorBlock</a> and
+				<a href="https://dearrow.ajay.app" rel="noopener" target="_blank">DeArrow</a> (CC BY-NC-SA 4.0) ·
+				Dislikes from <a href="https://returnyoutubedislike.com" rel="noopener" target="_blank">Return YouTube Dislike</a> ·
+				<a href="/docs">API</a> · <a href="https://github.com/foulfoxhacks/betteryts" rel="noopener" target="_blank">GitHub</a>
+			</p>
+		</footer>
+
+		<!-- Watch -->
+		<dialog id="watch" class="watch" aria-label="Video player">
+			<div class="watch-inner">
+				<button class="icon-btn watch-close" type="button" data-close-watch aria-label="Close player">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" transform="translate(1 0)" /></svg>
+				</button>
+				<div class="player-frame"><div id="player-slot"></div></div>
+				<div id="seg-bar" class="seg-bar" aria-hidden="true"></div>
+				<div class="watch-body">
+					<div id="full-label" class="full-label" hidden></div>
+					<h2 id="watch-title"></h2>
+					<p id="watch-original" class="original" hidden></p>
+					<div class="watch-row">
+						<a id="watch-channel" class="watch-channel" target="_blank" rel="noopener"></a>
+						<span id="watch-stats" class="muted"></span>
+					</div>
+					<div id="votes" class="votes" hidden>
+						<div class="vote-nums"><span id="likes"></span><span id="dislikes"></span></div>
+						<div class="vote-bar"><span id="vote-fill"></span></div>
+						<p class="fine">Dislikes are estimates from Return YouTube Dislike.</p>
+					</div>
+					<div class="watch-actions">
+						<a id="watch-yt" class="btn small" target="_blank" rel="noopener">Open on YouTube</a>
+						<button class="btn small" type="button" id="copy-yt">Copy link</button>
+						<button class="btn small" type="button" id="copy-vrc" title="youtube.com links work in VRChat even with untrusted URLs off">Copy for VRChat</button>
+						<button class="btn small accent" type="button" id="jump-highlight" hidden>Jump to highlight</button>
+					</div>
+					<div id="segments" class="segments" hidden></div>
+					<details id="desc-wrap" class="desc" hidden>
+						<summary>Description</summary>
+						<p id="watch-desc"></p>
+					</details>
+				</div>
+			</div>
+		</dialog>
+
+		<!-- Settings -->
+		<dialog id="settings" class="settings" aria-labelledby="settings-title">
+			<form method="dialog">
+				<header>
+					<h2 id="settings-title">Settings</h2>
+					<button class="icon-btn" value="close" aria-label="Close settings">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7l-1.4-1.4L9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" transform="translate(1 0)" /></svg>
+					</button>
+				</header>
+				<fieldset>
+					<legend>Results</legend>
+					<label class="toggle"><input type="checkbox" data-setting="hideShorts" /> Hide Shorts</label>
+					<label class="toggle"><input type="checkbox" data-setting="dearrow" /> DeArrow: show community titles &amp; thumbnails</label>
+					<label class="select wide"><span>Region</span>
+						<select data-setting="region">
+							<option value="">Default (US)</option>
+							<option value="GB">United Kingdom</option>
+							<option value="CA">Canada</option>
+							<option value="AU">Australia</option>
+							<option value="DE">Germany</option>
+							<option value="FR">France</option>
+							<option value="NL">Netherlands</option>
+							<option value="ES">Spain</option>
+							<option value="BR">Brazil</option>
+							<option value="MX">Mexico</option>
+							<option value="JP">Japan</option>
+							<option value="KR">South Korea</option>
+							<option value="IN">India</option>
+						</select>
+					</label>
+				</fieldset>
+				<fieldset>
+					<legend>Player</legend>
+					<label class="toggle"><input type="checkbox" data-setting="autoplay" /> Autoplay when opening a video</label>
+					<label class="toggle"><input type="checkbox" data-setting="dislikes" /> Show likes &amp; dislikes</label>
+				</fieldset>
+				<fieldset>
+					<legend>SponsorBlock auto-skip</legend>
+					<div id="sb-settings" class="sb-grid"></div>
+					<p class="fine">Unchecked categories still show on the timeline — you can click them to skip manually.</p>
+				</fieldset>
+			</form>
+		</dialog>
+
+		<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+		<script type="module" src="/web/app.js"></script>
+	</body>
+</html>

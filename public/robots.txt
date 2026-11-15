@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /$
+Allow: /docs
+Allow: /favicon.svg
+Disallow: /

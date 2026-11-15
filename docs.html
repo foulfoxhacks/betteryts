@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BetterYTS API</title>
+		<meta name="description" content="BetterYTS API docs: ad-free YouTube search JSON, VRChat redirects, SponsorBlock, DeArrow and Return YouTube Dislike." />
+		<meta name="theme-color" content="#121014" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="stylesheet" href="/web/styles.css" />
+	</head>
+	<body>
+		<header class="topbar">
+			<a class="brand" href="/" aria-label="BetterYTS home">
+				<img src="/favicon.svg" alt="" width="32" height="32" />
+				<span class="brand-name">Better<b>YTS</b></span>
+			</a>
+			<span></span>
+			<nav class="top-actions"><a class="btn small" href="/">Search</a></nav>
+		</header>
+
+		<main class="docs">
+			<h1>BetterYTS API</h1>
+			<p class="lead">Free, keyless, CORS-enabled. Results come back with ads, promoted videos and filler shelves already stripped out.</p>
+			<ul class="toc">
+				<li><a href="#redirects">VRChat redirects</a></li>
+				<li><a href="#search">/api/search</a></li>
+				<li><a href="#video">/api/video</a></li>
+				<li><a href="#addons">Add-on endpoints</a></li>
+				<li><a href="#suggest">/api/suggest</a></li>
+				<li><a href="#fair-use">Fair use</a></li>
+			</ul>
+
+			<h2 id="redirects">VRChat &amp; media-player redirects</h2>
+			<p>Paste any of these into a video player. They answer with an HTTP <code>302</code> to the matching YouTube video, which VRChat's player then resolves.</p>
+			<pre>https://yts.foulfoxhacks.dev/search?q=lofi hip hop
+https://yts.foulfoxhacks.dev/search?=lofi hip hop        (same thing)
+https://yts.foulfoxhacks.dev/search?lofi+hip+hop         (same thing)
+https://yts.foulfoxhacks.dev/lofi hip hop                (u2b.cx-style shortcut)
+https://yts.foulfoxhacks.dev/lucky?q=lofi&amp;n=2            (2nd result, always redirects)
+https://yts.foulfoxhacks.dev/v/dQw4w9WgXcQ               (by video ID)</pre>
+			<p>Opened in a normal browser tab, <code>/search</code> shows the results page instead. Add <code>&amp;lucky</code> to force the redirect anywhere. Pasting a YouTube URL as the query redirects straight to that video.</p>
+			<table>
+				<thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
+				<tbody>
+					<tr><td><code>n</code></td><td>1</td><td>Play the nth result (1–20).</td></tr>
+					<tr><td><code>shorts</code></td><td>0</td><td>Allow Shorts to be picked.</td></tr>
+					<tr><td><code>live</code></td><td>1</td><td>Allow live streams to be picked (<code>live=0</code> skips them).</td></tr>
+					<tr><td><code>minlen</code> / <code>maxlen</code></td><td>—</td><td>Only pick videos at least / at most this many seconds long.</td></tr>
+					<tr><td><code>sort</code></td><td>relevance</td><td><code>relevance</code>, <code>date</code>, <code>views</code>, <code>rating</code></td></tr>
+					<tr><td><code>duration</code></td><td>—</td><td><code>short</code> (&lt;4 min), <code>medium</code> (4–20), <code>long</code> (&gt;20)</td></tr>
+					<tr><td><code>upload</code></td><td>—</td><td><code>hour</code>, <code>today</code>, <code>week</code>, <code>month</code>, <code>year</code></td></tr>
+					<tr><td><code>features</code></td><td>—</td><td>Comma list: <code>hd</code>, <code>4k</code>, <code>live</code>, <code>subtitles</code>, <code>cc</code>, <code>hdr</code>, <code>360</code>, <code>vr180</code>, <code>3d</code></td></tr>
+					<tr><td><code>to</code></td><td>watch</td><td>Redirect target: <code>watch</code> (youtube.com), <code>youtu.be</code>, <code>embed</code> (youtube-nocookie), <code>music</code></td></tr>
+					<tr><td><code>hl</code> / <code>gl</code></td><td>en / US</td><td>Language and region of the search.</td></tr>
+				</tbody>
+			</table>
+			<p class="fine">VRChat only plays URLs from its trusted list unless <em>Allow Untrusted URLs</em> is on in Comfort &amp; Safety settings. That applies to every custom search domain, including u2b.cx.</p>
+
+			<h2 id="search">GET /api/search</h2>
+			<pre>GET /api/search?q=minecraft+music&amp;type=video&amp;sort=views</pre>
+			<table>
+				<thead><tr><th>Param</th><th>Values</th></tr></thead>
+				<tbody>
+					<tr><td><code>q</code></td><td>Search text (max 200 chars). <code>?=</code> and bare <code>?term</code> also work.</td></tr>
+					<tr><td><code>type</code></td><td><code>all</code> (default), <code>video</code>, <code>channel</code>, <code>playlist</code>, <code>movie</code></td></tr>
+					<tr><td><code>sort</code>, <code>duration</code>, <code>upload</code>, <code>features</code></td><td>Same as the redirect options above.</td></tr>
+					<tr><td><code>shorts</code></td><td><code>1</code> (default) keeps Shorts mixed into results, <code>0</code> removes them.</td></tr>
+					<tr><td><code>shelves</code></td><td><code>0</code> (default) drops "People also watched", Shorts shelves and similar filler; <code>1</code> keeps them, tagged with <code>shelf</code>.</td></tr>
+					<tr><td><code>dearrow</code></td><td><code>1</code> attaches DeArrow titles and thumbnails to each video as <code>branding</code>.</td></tr>
+					<tr><td><code>page</code></td><td>The <code>next</code> token from a previous response.</td></tr>
+					<tr><td><code>hl</code>, <code>gl</code></td><td>Language and region.</td></tr>
+				</tbody>
+			</table>
+			<pre>{
+  "query": "minecraft music",
+  "correctedQuery": null,
+  "estimatedResults": 1830000,
+  "count": 20,
+  "results": [
+    {
+      "type": "video",            // video | short | channel | playlist | mix
+      "id": "qq-RGFyaq0U",
+      "url": "https://www.youtube.com/watch?v=qq-RGFyaq0U",
+      "title": "…",
+      "thumbnail": "https://i.ytimg.com/vi/…/hq720.jpg",
+      "duration": "1:02:51", "durationSeconds": 3771,
+      "views": "12,345,678 views", "viewCount": 12345678,
+      "published": "2 years ago",
+      "description": "…",
+      "channel": { "name": "…", "id": "UC…", "url": "…", "handle": "@…", "verified": true, "avatar": "…" },
+      "badges": ["4K"], "live": false, "upcoming": false, "isShort": false
+    }
+  ],
+  "next": "EpEDEg9taW5lY3JhZnQ…",     // pass back as ?page=
+  "blocked": { "ads": 2, "shorts": 0, "shelfItems": 9 }
+}</pre>
+
+			<h2 id="video">GET /api/video/{id}</h2>
+			<p>Everything about one video in a single call, with the community add-ons merged in.</p>
+			<pre>{
+  "id": "dQw4w9WgXcQ",
+  "title": "…", "author": "…", "channelId": "UC…", "channelUrl": "…",
+  "lengthSeconds": 213, "viewCount": 1837613210,
+  "description": "…", "keywords": ["…"], "publishDate": "2009-10-24T23:57:33-07:00", "category": "Music",
+  "embed": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+  "sponsorblock": [ { "category": "sponsor", "action": "skip", "start": 12.5, "end": 41.0, "uuid": "…", "votes": 12, "locked": false } ],
+  "votes": { "likes": 18000000, "dislikes": 240000, "rating": 4.9, "viewCount": 1837613210, "deleted": false },
+  "dearrow": { "title": "…", "thumbnail": "https://dearrow-thumb.ajay.app/…", "thumbnailTime": 42.1 }
+}</pre>
+
+			<h2 id="addons">Add-on endpoints</h2>
+			<h3>GET /api/segments/{id}?categories=sponsor,intro</h3>
+			<p>SponsorBlock segments. Looked up with SponsorBlock's hash-prefix API, so SponsorBlock never sees exactly which video you asked about. Categories: <code>sponsor</code>, <code>selfpromo</code>, <code>exclusive_access</code>, <code>interaction</code>, <code>intro</code>, <code>outro</code>, <code>preview</code>, <code>hook</code>, <code>filler</code>, <code>music_offtopic</code>, <code>poi_highlight</code>, <code>chapter</code>.</p>
+			<h3>GET /api/dislikes/{id}</h3>
+			<p>Likes and estimated dislikes from Return YouTube Dislike.</p>
+			<h3>GET /api/branding/{id} · GET /api/branding?ids=a,b,c</h3>
+			<p>DeArrow's community title and thumbnail (or <code>null</code>). The batch form takes up to 30 IDs and returns an object keyed by ID.</p>
+
+			<h2 id="suggest">GET /api/suggest?q=</h2>
+			<p>Autocomplete suggestions as a plain JSON array of strings.</p>
+
+			<h2 id="fair-use">Fair use &amp; credits</h2>
+			<ul>
+				<li>Responses are edge-cached for 5–30 minutes. Please cache on your side too, and don't hammer the API.</li>
+				<li>SponsorBlock and DeArrow data is © their contributors under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank">CC BY-NC-SA 4.0</a> — non-commercial, with attribution.</li>
+				<li>Dislike counts are estimates from <a href="https://returnyoutubedislike.com" rel="noopener" target="_blank">Return YouTube Dislike</a>.</li>
+				<li>BetterYTS is not affiliated with YouTube or Google. Source: <a href="https://github.com/foulfoxhacks/betteryts" rel="noopener" target="_blank">github.com/foulfoxhacks/betteryts</a>.</li>
+			</ul>
+		</main>
+
+		<footer class="footer">
+			<p><b>BetterYTS</b> by FoulFoxHacks · Not affiliated with YouTube or Google.</p>
+		</footer>
+	</body>
+</html>

@@ -1,0 +1,25 @@
+{
+	"name": "betteryts",
+	"version": "1.0.0",
+	"description": "BetterYTS by FoulFoxHacks — ad-free YouTube search API and front page with SponsorBlock, DeArrow, Return YouTube Dislike and VRChat redirects. Runs on Cloudflare Workers.",
+	"license": "MIT",
+	"private": true,
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/foulfoxhacks/betteryts.git"
+	},
+	"scripts": {
+		"dev": "cf dev",
+		"build": "cf build",
+		"deploy": "cf deploy",
+		"test": "node --test \"test/*.test.ts\"",
+		"typecheck": "cf workers types && tsc"
+	},
+	"devDependencies": {
+		"@cloudflare/vite-plugin": "beta",
+		"cf": "^1.0.0-beta.32",
+		"typescript": "^7.0.2",
+		"vite": "^8.3.0"
+	}
+}
