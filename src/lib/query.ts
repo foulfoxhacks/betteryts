@@ -41,7 +41,9 @@ export function queryFromSearchParams(url: URL): string {
 	}
 	// Bare form: "?lofi+hip+hop" or "?lofi+hip+hop&n=2" — a key with no value that isn't an option.
 	for (const [key, value] of params) {
-		if (value === "" && key.trim() && !OPTION_KEYS.has(key.toLowerCase())) return cleanQuery(key);
+		const k = key.toLowerCase();
+		// "?q=" (empty) is an empty search, not a search for the letter "q".
+		if (value === "" && key.trim() && !OPTION_KEYS.has(k) && !QUERY_KEYS.includes(k)) return cleanQuery(key);
 	}
 	return "";
 }

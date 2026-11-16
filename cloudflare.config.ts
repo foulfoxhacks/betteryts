@@ -1,4 +1,4 @@
-import { bindings, defineConfig } from "cf/config";
+import { bindings, defineConfig, exports } from "cf/config";
 import * as entrypoint from "./src/index.ts" with { type: "cf-worker" };
 
 export default defineConfig({
@@ -16,8 +16,16 @@ export default defineConfig({
 			runWorkerFirst: ["/"],
 		},
 		domains: ["yts.foulfoxhacks.dev"],
+		exports: {
+			// In-world search URL pool (docs/vrchat-protocol.md).
+			VrcPool: exports.durableObject({ storage: "sqlite" }),
+		},
 		env: {
 			ASSETS: bindings.assets(),
+			VRC_POOL: bindings.durableObject({ worker: "betteryts", exportName: "VrcPool" }),
+			// Composites in-world thumbnail sheets without spending Worker CPU.
+			// dev.remote: the local Images stub can't composite (draw), so dev uses the real service.
+			IMAGES: bindings.images({ dev: { remote: true } }),
 			// Bump if YouTube ever starts rejecting the WEB client version.
 			YT_CLIENT_VERSION: bindings.text("2.20251114.01.00"),
 			DEFAULT_HL: bindings.text("en"),

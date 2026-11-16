@@ -19,6 +19,9 @@ import {
 	videoIdFromQuery,
 } from "./lib/query.ts";
 import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
+import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
+
+export { VrcPool } from "./vrc/pool.ts";
 import type { ClientOptions, Item, SearchFilters, VideoItem } from "./lib/types.ts";
 
 const VERSION = "1.0.0";
@@ -257,7 +260,7 @@ function apiIndex(origin: string): Response {
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
 	"api", "assets", "brand", "docs", "sitemap", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
-	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web",
+	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web", "vrc",
 ]);
 
 async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
@@ -307,6 +310,13 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 		return json(await branding(id), 200, 900);
 	}
 	if (path.startsWith("/api/")) return errorJson("Unknown endpoint. See /api", 404);
+
+	// ---- In-world search for VRChat (docs/vrchat-protocol.md) ----
+	if (path === "/vrc/info") return vrcInfo(url.origin);
+	if (path === "/vrc/search") return vrcSearch(url, env, ctx, clientOptions(url));
+	const slotMatch = /^\/vrc\/p\/(\d{1,6})$/.exec(path);
+	if (slotMatch) return vrcSlot(slotMatch[1], env, ctx, url.origin, clientOptions(url).clientVersion);
+	if (path.startsWith("/vrc/")) return text("BetterYTS: unknown /vrc endpoint. See /docs#vrchat-world\n", 404);
 
 	// ---- Redirect endpoints ----
 	if (path === "/search" || path === "/results" || path.startsWith("/search/")) {

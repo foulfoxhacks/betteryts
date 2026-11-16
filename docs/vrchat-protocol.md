@@ -51,7 +51,7 @@ The world loads that URL with `VRCStringDownloader`. The response is JSON
   "ok": true,
   "query": "lofi hip hop",
   "count": 12,
-  "sheet": { "slot": 4120, "cols": 4, "rows": 3, "cellW": 256, "cellH": 144, "width": 1024, "height": 432 },
+  "sheet": { "slot": 4120, "cols": 4, "rows": 3, "cellW": 320, "cellH": 180, "width": 1280, "height": 540 },
   "next": 4121,
   "results": [
     {

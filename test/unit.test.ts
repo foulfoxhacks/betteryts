@@ -159,3 +159,29 @@ test("SEO: plain home is untouched, search/watch URLs get noindex + descriptive 
 	assert.equal(frontPageMeta(u("/?v=dQw4w9WgXcQ"))?.robots, "noindex, follow");
 	assert.ok((frontPageMeta(u(`/?q=${"x".repeat(500)}`))?.title.length ?? 0) < 200);
 });
+
+test("vrc: playable filter and 12-per-page pagination across YouTube pages", async () => {
+	const { playable, paginate } = await import("../src/vrc/handlers.ts");
+	const v = (id: string, extra: object = {}) => ({ type: "video", id, title: id, isShort: false, upcoming: false, live: false, durationSeconds: 200, ...extra }) as never;
+	const items = [
+		v("a"), v("short", { isShort: true }), v("up", { upcoming: true }), v("shelf", { shelf: "People also watched" }),
+		v("live", { live: true }), v("long", { durationSeconds: 5000 }),
+		...Array.from({ length: 14 }, (_, i) => v(`n${i}`)),
+	];
+	const ok = playable(items, { live: false, minlen: 0, maxlen: 600 });
+	assert.ok(!ok.some((x: { id: string }) => ["short", "up", "shelf", "live", "long"].includes(x.id)));
+	assert.equal(ok.length, 15);
+	const base = { q: "x", live: true, minlen: 0, maxlen: 0, hl: "en", gl: "US", token: null, offset: 0 };
+	const p1 = paginate(ok, base, "YT2");
+	assert.equal(p1.shown.length, 12);
+	assert.deepEqual(p1.next, { ...base, offset: 12 });
+	const p2 = paginate(ok, p1.next!, "YT2");
+	assert.equal(p2.shown.length, 3);
+	assert.deepEqual(p2.next, { ...base, token: "YT2", offset: 0 });
+	assert.equal(paginate(ok.slice(0, 5), base, null).next, null);
+});
+
+test("query: empty q= is an empty search, not the letter q", () => {
+	assert.equal(queryFromSearchParams(u("/vrc/search?q=")), "");
+	assert.equal(queryFromSearchParams(u("/search?query=")), "");
+});
