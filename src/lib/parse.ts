@@ -204,6 +204,13 @@ function parseLockup(l: J): Item | null {
 	const badgeText = badge ? text(badge.text) : "";
 	const ctype: string = l?.contentType ?? "";
 	if (ctype.includes("VIDEO")) {
+		// Metadata rows vary: search/playlists show [channel] [views, date]; channel pages only [views, date].
+		const views = parts.find((p) => /views?|watching|No views/i.test(p)) ?? null;
+		const published = parts.find((p) => /ago|Streamed|Premiered|Scheduled/i.test(p)) ?? null;
+		const channelName = parts.find((p) => p !== views && p !== published && !/^d[d,.]*s*[KMB]?s/.test(p)) ?? null;
+		const live = /LIVE/i.test(badgeText) || (views !== null && /watching/i.test(views));
+		const byline = findKey(l?.metadata, "avatarStackViewModel") ?? findKey(l?.metadata, "decoratedAvatarViewModel");
+		const browse = findKey(byline, "browseEndpoint");
 		return {
 			type: "video",
 			id,
@@ -212,13 +219,22 @@ function parseLockup(l: J): Item | null {
 			thumbnail: thumbnail ?? `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
 			duration: badgeText || null,
 			durationSeconds: parseDuration(badgeText),
-			views: parts.find((p) => /view|watching/i.test(p)) ?? null,
-			viewCount: null,
-			published: parts.find((p) => /ago|Streamed|Premiered/i.test(p)) ?? null,
+			views,
+			viewCount: parseCount(views),
+			published,
 			description: null,
-			channel: parts[0] ? { name: parts[0], id: null, url: null, handle: null, verified: false, avatar: null } : null,
+			channel: channelName
+				? {
+						name: channelName,
+						id: browse?.browseId ?? null,
+						url: absUrl(browse?.canonicalBaseUrl) ?? (browse?.browseId ? `https://www.youtube.com/channel/${browse.browseId}` : null),
+						handle: browse?.canonicalBaseUrl?.startsWith("/@") ? decodeURIComponent(browse.canonicalBaseUrl.slice(1)) : null,
+						verified: false,
+						avatar: bestThumb(findKey(byline, "sources")),
+					}
+				: null,
 			badges: [],
-			live: /LIVE/i.test(badgeText),
+			live,
 			upcoming: false,
 			isShort: false,
 		};
@@ -266,6 +282,7 @@ function parseReelItem(r: J): VideoItem | null {
 export function parseSearchResponse(data: J): ParsedSearch {
 	const out: ParsedSearch = { results: [], next: null, estimatedResults: null, correctedQuery: null, blocked: { ads: 0 } };
 	const seen = new Set<string>();
+	let viewModelNext = false;
 	const est = Number.parseInt(data?.estimatedResults ?? "", 10);
 	if (Number.isFinite(est)) out.estimatedResults = est;
 
@@ -321,6 +338,16 @@ export function parseSearchResponse(data: J): ParsedSearch {
 				case "continuationItemRenderer": {
 					const token = (value as J)?.continuationEndpoint?.continuationCommand?.token;
 					if (token) out.next = token;
+					break;
+				}
+				case "continuationItemViewModel": {
+					// Newer format (playlists): token nested inside an innertube command. The first one
+					// (right after the list items) loads more items; a later section-level one loads suggestions.
+					const token = findKey(value, "continuationCommand")?.token ?? findKey((value as J)?.continuationCommand, "token");
+					if (typeof token === "string" && !viewModelNext) {
+						viewModelNext = true;
+						out.next = token;
+					}
 					break;
 				}
 				case "showingResultsForRenderer":

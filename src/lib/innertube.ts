@@ -96,7 +96,7 @@ function innertubeHeaders(o: ClientOptions): HeadersInit {
 	};
 }
 
-async function innertube(endpoint: string, body: object, o: ClientOptions): Promise<J> {
+export async function innertube(endpoint: string, body: object, o: ClientOptions): Promise<J> {
 	const res = await fetch(`${YT}/youtubei/v1/${endpoint}?prettyPrint=false`, {
 		method: "POST",
 		headers: innertubeHeaders(o),

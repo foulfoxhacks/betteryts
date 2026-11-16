@@ -185,3 +185,27 @@ test("query: empty q= is an empty search, not the letter q", () => {
 	assert.equal(queryFromSearchParams(u("/vrc/search?q=")), "");
 	assert.equal(queryFromSearchParams(u("/search?query=")), "");
 });
+
+test("browse: playlist and channel references", async () => {
+	const { playlistIdFrom, channelRefFrom } = await import("../src/lib/browse.ts");
+	assert.equal(playlistIdFrom("https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI"), "PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI");
+	assert.equal(playlistIdFrom("https://youtube.com/watch?v=x&list=PLabcdefghij&index=2"), "PLabcdefghij");
+	assert.equal(playlistIdFrom("nope"), null);
+	assert.equal(channelRefFrom("@LofiGirl"), "@LofiGirl");
+	assert.equal(channelRefFrom("https://www.youtube.com/@LofiGirl/videos"), "@LofiGirl");
+	assert.equal(channelRefFrom("https://www.youtube.com/channel/UCSJ4gkVC6NrvII8umztf0Ow"), "UCSJ4gkVC6NrvII8umztf0Ow");
+	assert.equal(channelRefFrom("not a channel"), null);
+});
+
+test("protv: tokenized playlist escapes prefix symbols and multi-line titles", async () => {
+	const { toProTVPlaylist } = await import("../src/lib/protv.ts");
+	const v = (id: string, title: string, extra: object = {}) =>
+		({ type: "video", id, title, duration: "3:33", views: "1 view", live: false, channel: { name: "Fox" }, ...extra }) as never;
+	const out = toProTVPlaylist("My list", [v("aaaaaaaaaaa", "@not a url"), v("bbbbbbbbbbb", "line one\nline two", { channel: { name: "#chan" } })]);
+	const lines = out.split("\n");
+	assert.equal(lines[0], "My list");
+	assert.equal(lines.filter((l: string) => l.startsWith("@")).length, 2);
+	assert.ok(lines.includes("~@not a url"));
+	assert.ok(lines.includes("~line one line two"));
+	assert.ok(lines.some((l: string) => l === "​#chan · 3:33 · 1 view"));
+});

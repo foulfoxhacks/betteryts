@@ -18,6 +18,8 @@ import {
 	queryFromSearchParams,
 	videoIdFromQuery,
 } from "./lib/query.ts";
+import { CHANNEL_TABS, channel, type ChannelTab, channelRefFrom, playlist, playlistIdFrom } from "./lib/browse.ts";
+import { toProTVPlaylist } from "./lib/protv.ts";
 import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
 import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 
@@ -223,6 +225,64 @@ async function apiBrandingBatch(url: URL, ctx: ExecutionContext): Promise<Respon
 	});
 }
 
+async function apiPlaylist(id: string, url: URL, ctx: ExecutionContext): Promise<Response> {
+	const listId = playlistIdFrom(id);
+	if (!listId) return errorJson("Invalid playlist ID", 400);
+	const page = url.searchParams.get("page") || undefined;
+	if (page && page.length > 4096) return errorJson("Invalid page token", 400);
+	const opts = clientOptions(url);
+	return cached(`playlist/${listId}?${opts.hl}|${opts.gl}|${page ?? ""}`, ctx, async () => json(await playlist(listId, opts, page), 200, page ? 1800 : 900));
+}
+
+async function apiChannel(ref: string, url: URL, ctx: ExecutionContext): Promise<Response> {
+	const channelRef = channelRefFrom(ref);
+	if (!channelRef) return errorJson("Use a channel ID (UC…) or @handle", 400);
+	const tabParam = url.searchParams.get("tab") ?? "videos";
+	const tab = (tabParam in CHANNEL_TABS ? tabParam : "videos") as ChannelTab;
+	const page = url.searchParams.get("page") || undefined;
+	if (page && page.length > 4096) return errorJson("Invalid page token", 400);
+	const opts = clientOptions(url);
+	return cached(`channel/${channelRef}/${tab}?${opts.hl}|${opts.gl}|${page ?? ""}`, ctx, async () => json(await channel(channelRef, tab, opts, page), 200, page ? 1800 : 900));
+}
+
+/** ProTV tokenized playlist from a YouTube search (?q=) or playlist (?list=). */
+async function vrcProTVPlaylist(url: URL, ctx: ExecutionContext): Promise<Response> {
+	const n = intParam(url, "n", 50, 1, 500);
+	const listId = url.searchParams.get("list") ? playlistIdFrom(url.searchParams.get("list") ?? "") : null;
+	const q = listId ? "" : queryFromSearchParams(url);
+	if (!listId && !q) return text("BetterYTS: add ?q=your+search or ?list=PLAYLIST_ID\n", 400);
+	const opts = clientOptions(url);
+	return cached(`protv?${listId ?? q}|${n}|${opts.hl}|${opts.gl}`, ctx, async () => {
+		const videos: VideoItem[] = [];
+		let header = "";
+		let next: string | undefined;
+		for (let pageNo = 0; pageNo < 10 && videos.length < n; pageNo++) {
+			if (listId) {
+				const p = await playlist(listId, opts, next);
+				if (!header) header = p.title ?? "YouTube playlist";
+				videos.push(...p.results.filter(isVideo).filter((v) => !v.upcoming));
+				next = p.next ?? undefined;
+			} else {
+				const r = await search(q, { type: "video" }, opts, next);
+				if (!header) header = `BetterYTS: ${q}`;
+				videos.push(...r.results.filter(isVideo).filter((v) => !v.isShort && !v.upcoming && !v.shelf));
+				next = r.next ?? undefined;
+			}
+			if (!next) break;
+		}
+		const seen = new Set<string>();
+		const unique = videos.filter((v) => !seen.has(v.id) && seen.add(v.id)).slice(0, n);
+		return new Response(toProTVPlaylist(header, unique), {
+			headers: {
+				...CORS_HEADERS,
+				"Content-Type": "text/plain; charset=utf-8",
+				"Content-Disposition": 'inline; filename="betteryts.playlist"',
+				"Cache-Control": "public, max-age=3600, s-maxage=3600",
+			},
+		});
+	});
+}
+
 function apiIndex(origin: string): Response {
 	return json(
 		{
@@ -241,6 +301,10 @@ function apiIndex(origin: string): Response {
 				"GET /api/segments/{id}": "SponsorBlock segments (categories=sponsor,intro,…)",
 				"GET /api/dislikes/{id}": "Return YouTube Dislike votes",
 				"GET /api/branding/{id}": "DeArrow title/thumbnail (or /api/branding?ids=a,b,c)",
+				"GET /api/playlist/{id}": "A YouTube playlist's videos (paginate with ?page=)",
+				"GET /api/channel/{id|@handle}": "A channel's details and videos. tab=videos|live|shorts|playlists, page=",
+				"GET /vrc/protv.playlist?q=|list=": "ProTV playlist file from a search or playlist (n=1..500)",
+				"GET /vrc/search?q=": "In-world search for VRChat (see docs/vrchat-protocol.md)",
 			},
 			credits: {
 				sponsorblock: "https://sponsor.ajay.app — CC BY-NC-SA 4.0",
@@ -309,9 +373,17 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 		}
 		return json(await branding(id), 200, 900);
 	}
+
+	const browseMatch = /^\/api\/(playlist|channel)\/([^/]+)$/.exec(path);
+	if (browseMatch) {
+		const ref = decodeURIComponent(browseMatch[2]);
+		return browseMatch[1] === "playlist" ? apiPlaylist(ref, url, ctx) : apiChannel(ref, url, ctx);
+	}
+
 	if (path.startsWith("/api/")) return errorJson("Unknown endpoint. See /api", 404);
 
 	// ---- In-world search for VRChat (docs/vrchat-protocol.md) ----
+	if (path === "/vrc/protv.playlist") return vrcProTVPlaylist(url, ctx);
 	if (path === "/vrc/info") return vrcInfo(url.origin);
 	if (path === "/vrc/search") return vrcSearch(url, env, ctx, clientOptions(url));
 	const slotMatch = /^\/vrc\/p\/(\d{1,6})$/.exec(path);
