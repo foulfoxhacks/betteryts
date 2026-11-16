@@ -24,6 +24,41 @@ import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
 import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 
 export { VrcPool } from "./vrc/pool.ts";
+export { Room } from "./rooms/room.ts";
+
+import { currentPosition, newRoomCode, ROOM_CODE_RE } from "./rooms/protocol.ts";
+import type { Room } from "./rooms/room.ts";
+
+function roomStub(code: string) {
+	return (env.ROOMS as unknown as DurableObjectNamespace<Room>).getByName(code);
+}
+
+/** /api/rooms/new, /api/rooms/{code}, /api/rooms/{code}/ws */
+async function apiRooms(req: Request, path: string): Promise<Response> {
+	if (path === "/api/rooms/new") return json({ code: newRoomCode() });
+	const m = /^\/api\/rooms\/([A-Za-z0-9]{6})(\/ws)?$/.exec(path);
+	if (!m) return errorJson("Unknown room endpoint", 404);
+	const code = m[1].toUpperCase();
+	if (!ROOM_CODE_RE.test(code)) return errorJson("Invalid room code", 400);
+	const stub = roomStub(code);
+	if (m[2]) {
+		if (req.headers.get("Upgrade") !== "websocket") return errorJson("Expected a WebSocket upgrade", 426);
+		return stub.fetch(req);
+	}
+	const snap = await stub.snapshot();
+	return json({ code, ...snap });
+}
+
+/** /room/{code}: VRChat & media players → 302 to what's playing now; browsers → the room page. */
+async function roomFollow(req: Request, code: string, url: URL): Promise<Response> {
+	code = code.toUpperCase();
+	if (!ROOM_CODE_RE.test(code)) return text("BetterYTS: invalid room code\n", 404);
+	if (isBrowserNavigation(req)) return redirect(`/?room=${code}`, 0);
+	const { state } = await roomStub(code).snapshot();
+	if (!state.video) return text("BetterYTS: nothing is playing in this room yet\n", 404);
+	const t = Math.floor(currentPosition(state));
+	return redirect(`https://www.youtube.com/watch?v=${state.video.id}${t > 5 ? `&t=${t}s` : ""}`, 0);
+}
 import type { ClientOptions, Item, SearchFilters, VideoItem } from "./lib/types.ts";
 
 const VERSION = "1.0.0";
@@ -305,6 +340,10 @@ function apiIndex(origin: string): Response {
 				"GET /api/channel/{id|@handle}": "A channel's details and videos. tab=videos|live|shorts|playlists, page=",
 				"GET /vrc/protv.playlist?q=|list=": "ProTV playlist file from a search or playlist (n=1..500)",
 				"GET /vrc/search?q=": "In-world search for VRChat (see docs/vrchat-protocol.md)",
+				"GET /api/rooms/new": "Create a watch-party room code",
+				"GET /api/rooms/{code}": "Room state (what's playing, position, queue, members)",
+				"WS /api/rooms/{code}/ws": "Join a room: synced playback and shared queue",
+				"GET /room/{code}": "VRChat players: 302 to what the room is playing right now",
 			},
 			credits: {
 				sponsorblock: "https://sponsor.ajay.app — CC BY-NC-SA 4.0",
@@ -324,7 +363,7 @@ function apiIndex(origin: string): Response {
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
 	"api", "assets", "brand", "docs", "sitemap", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
-	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web", "vrc",
+	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web", "vrc", "room",
 ]);
 
 async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
@@ -380,7 +419,11 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 		return browseMatch[1] === "playlist" ? apiPlaylist(ref, url, ctx) : apiChannel(ref, url, ctx);
 	}
 
+	if (path.startsWith("/api/rooms/")) return apiRooms(req, path);
 	if (path.startsWith("/api/")) return errorJson("Unknown endpoint. See /api", 404);
+
+	const roomMatch = /^\/room\/([A-Za-z0-9]{6})$/.exec(path);
+	if (roomMatch) return roomFollow(req, roomMatch[1], url);
 
 	// ---- In-world search for VRChat (docs/vrchat-protocol.md) ----
 	if (path === "/vrc/protv.playlist") return vrcProTVPlaylist(url, ctx);

@@ -19,10 +19,13 @@ export default defineConfig({
 		exports: {
 			// In-world search URL pool (docs/vrchat-protocol.md).
 			VrcPool: exports.durableObject({ storage: "sqlite" }),
+			// Watch-party rooms (one object per room code, hibernating WebSockets).
+			Room: exports.durableObject({ storage: "sqlite" }),
 		},
 		env: {
 			ASSETS: bindings.assets(),
 			VRC_POOL: bindings.durableObject({ worker: "betteryts", exportName: "VrcPool" }),
+			ROOMS: bindings.durableObject({ worker: "betteryts", exportName: "Room" }),
 			// Composites in-world thumbnail sheets without spending Worker CPU.
 			// dev.remote: the local Images stub can't composite (draw), so dev uses the real service.
 			IMAGES: bindings.images({ dev: { remote: true } }),

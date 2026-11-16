@@ -209,3 +209,34 @@ test("protv: tokenized playlist escapes prefix symbols and multi-line titles", a
 	assert.ok(lines.includes("~line one line two"));
 	assert.ok(lines.some((l: string) => l === "​#chan · 3:33 · 1 view"));
 });
+
+test("rooms: state machine for load, play/pause/seek, queue and end-of-video", async () => {
+	const { applyMessage, emptyState, currentPosition, cleanVideo, newRoomCode, ROOM_CODE_RE } = await import("../src/rooms/protocol.ts");
+	const a = { id: "aaaaaaaaaaa", title: "A" };
+	const b = { id: "bbbbbbbbbbb", title: "B" };
+	let s = emptyState();
+	assert.equal(applyMessage(s, { t: "play", position: 3 }, 0), null, "nothing to play yet");
+	s = applyMessage(s, { t: "queue_add", video: a }, 1000)!; // first add starts playing
+	assert.equal(s.video?.id, "aaaaaaaaaaa");
+	assert.equal(s.playing, true);
+	s = applyMessage(s, { t: "queue_add", video: b }, 1000)!;
+	assert.equal(s.queue.length, 1);
+	assert.equal(currentPosition(s, 11000), 10);
+	s = applyMessage(s, { t: "pause", position: 42 }, 2000)!;
+	assert.equal(currentPosition(s, 99999), 42);
+	s = applyMessage(s, { t: "seek", position: 100 }, 3000)!;
+	assert.equal(s.position, 100);
+	assert.equal(applyMessage(s, { t: "ended", id: "bbbbbbbbbbb" }, 4000), null, "stale end report ignored");
+	const rev = s.rev;
+	s = applyMessage(s, { t: "ended", id: "aaaaaaaaaaa" }, 4000)!;
+	assert.equal(s.video?.id, "bbbbbbbbbbb");
+	assert.equal(s.queue.length, 0);
+	assert.equal(s.rev, rev + 1);
+	s = applyMessage(s, { t: "next" }, 5000)!;
+	assert.equal(s.video, null);
+	assert.equal(s.playing, false);
+	assert.equal(cleanVideo({ id: "bad", title: "x" }), null);
+	assert.equal(cleanVideo({ id: "aaaaaaaaaaa", title: "x".repeat(500) })?.title.length, 200);
+	assert.equal(applyMessage(s, { t: "seek", position: Number.NaN } as never), null);
+	for (let i = 0; i < 20; i++) assert.match(newRoomCode(), ROOM_CODE_RE);
+});
