@@ -117,6 +117,12 @@
 						</ul>
 					</li>
 					<li><a href="#suggest">/api/suggest</a></li>
+					<li><a href="#playlist">/api/playlist/{id}</a></li>
+					<li><a href="#channel">/api/channel/{id}</a></li>
+					<li class="group">VRChat worlds</li>
+					<li><a href="#vrchat-world">In-world search</a></li>
+					<li><a href="#protv">ProTV playlists</a></li>
+					<li><a href="#rooms">Watch-party rooms</a></li>
 					<li class="group">More</li>
 					<li><a href="#errors">Errors &amp; caching</a></li>
 					<li><a href="#fair-use">Fair use &amp; credits</a></li>
@@ -227,6 +233,45 @@ https://yts.foulfoxhacks.dev/v/dQw4w9WgXcQ               # by video ID</code></p
 
 				<h2 id="suggest"><span class="method">GET</span>/api/suggest</h2>
 				<p>Autocomplete suggestions for <code>?q=</code>, as a plain JSON array of strings.</p>
+
+				<h2 id="playlist"><span class="method">GET</span>/api/playlist/{id}</h2>
+				<p>A YouTube playlist's title, owner, counts and videos (100 per page; pass <code>next</code> back as <code>?page=</code>). Accepts IDs or full playlist URLs.</p>
+				<pre><code>GET /api/playlist/PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI
+{ "id": "PL…", "title": "…", "owner": "…", "videoCount": "182 videos", "views": "…", "results": [ … ], "next": "…" }</code></pre>
+
+				<h2 id="channel"><span class="method">GET</span>/api/channel/{id}</h2>
+				<p>A channel by ID (<code>UC…</code>) or <code>@handle</code>: title, handle, avatar, banner, subscribers, and one tab of content. <code>tab</code> is <code>videos</code> (default), <code>live</code>, <code>shorts</code> or <code>playlists</code>; paginate with <code>page</code>.</p>
+				<pre><code>GET /api/channel/@LofiGirl?tab=live</code></pre>
+
+				<h2 id="vrchat-world">In-world search for VRChat</h2>
+				<p>The <code>/vrc/*</code> endpoints power the <b>BetterYTS In-World Search</b> prefab (VCC listing: <code>https://vpm.foulfoxhacks.dev/index.json</code>). Udon can't build URLs at runtime, so worlds bake a pool of <code>/vrc/p/{slot}</code> URLs and the server hands out slots for each result, a thumbnail sheet, and the next page.</p>
+				<table class="table">
+					<thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
+					<tbody>
+						<tr><td><code>GET /vrc/info</code></td><td>Protocol version, pool size and URL pattern.</td></tr>
+						<tr><td><code>GET /vrc/search?q=</code></td><td>12 playable videos with pool slots, a sheet slot and a next-page slot (VRCJson-friendly).</td></tr>
+						<tr><td><code>GET /vrc/p/{slot}</code></td><td>A video (302 to YouTube), the thumbnail sheet (JPEG, served directly), or the next page (JSON).</td></tr>
+					</tbody>
+				</table>
+				<p>Full contract: <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-protocol.md" target="_blank" rel="noopener">docs/vrchat-protocol.md</a>.</p>
+
+				<h3 id="protv"><span class="method">GET</span>/vrc/protv.playlist</h3>
+				<p>A <a href="https://protv.dev/guides/playlist" target="_blank" rel="noopener">ProTV playlist file</a> built from a YouTube search (<code>?q=</code>) or playlist (<code>?list=</code>), up to <code>n</code> entries (1–500, default 50). In a ProTV Playlist, set <em>Media Entries</em> to <b>Remote URL</b>, paste the link, then click <b>Download</b> and <b>Import</b>.</p>
+				<pre><code>https://yts.foulfoxhacks.dev/vrc/protv.playlist?q=lofi%20hip%20hop&amp;n=50
+https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI&amp;n=200</code></pre>
+
+				<h2 id="rooms">Watch-party rooms</h2>
+				<p>Rooms keep everyone on the same video and timestamp with a shared queue. Create or join one from the site's <a href="/?view=library&amp;tab=party">Library › Watch party</a>, or with the API:</p>
+				<table class="table">
+					<thead><tr><th>Endpoint</th><th>What it does</th></tr></thead>
+					<tbody>
+						<tr><td><code>GET /api/rooms/new</code></td><td>Returns a new 6-character room code.</td></tr>
+						<tr><td><code>GET /api/rooms/{code}</code></td><td>Current video, playback position, queue and member count.</td></tr>
+						<tr><td><code>WS /api/rooms/{code}/ws</code></td><td>Join. Send <code>load</code>, <code>play</code>, <code>pause</code>, <code>seek</code>, <code>next</code>, <code>ended</code>, <code>queue_add</code>, <code>queue_remove</code>; receive <code>state</code> and <code>members</code>.</td></tr>
+						<tr><td><code>GET /room/{code}</code></td><td>For VRChat players: 302 to what the room is playing right now, at the current time.</td></tr>
+					</tbody>
+				</table>
+				<p class="fine">Rooms are deleted after 24 hours without anyone connected. Up to 50 people per room.</p>
 
 				<h2 id="errors">Errors &amp; caching</h2>
 				<p>Errors use normal HTTP status codes and a JSON body:</p>

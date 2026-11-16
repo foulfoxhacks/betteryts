@@ -19,6 +19,10 @@ Key facts:
 - [Search API](https://yts.foulfoxhacks.dev/docs#search): `GET /api/search?q=` ad-free JSON results with pagination
 - [Video API](https://yts.foulfoxhacks.dev/docs#video): `GET /api/video/{id}` details with SponsorBlock, Return YouTube Dislike and DeArrow merged in
 - [Add-on endpoints](https://yts.foulfoxhacks.dev/docs#addons): `/api/segments/{id}`, `/api/dislikes/{id}`, `/api/branding/{id}`
+- [Playlists and channels](https://yts.foulfoxhacks.dev/docs#playlist): `/api/playlist/{id}`, `/api/channel/{id or @handle}`
+- [In-world search for VRChat](https://yts.foulfoxhacks.dev/docs#vrchat-world): `/vrc/*` URL-pool protocol and ProTV playlist export
+- [Watch-party rooms](https://yts.foulfoxhacks.dev/docs#rooms): synced playback and a VRChat follow link (`/room/{code}`)
+- [VCC listing](https://vpm.foulfoxhacks.dev): VRChat packages (in-world search panel, ProTV adapter, editor tools)
 
 ## Site
 

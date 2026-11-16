@@ -38,7 +38,30 @@ Paste that into a VRChat video player and it plays the top result. Open it in a 
 | `GET /api/segments/{id}` | SponsorBlock segments (uses the privacy-preserving hash-prefix API) |
 | `GET /api/dislikes/{id}` | Return YouTube Dislike votes |
 | `GET /api/branding/{id}` / `?ids=a,b,c` | DeArrow titles and thumbnails |
-| `GET /api/suggest?q=…` | Autocomplete |
+| `GET /api/suggest?q=…` | Autocomplete (`format=opensearch` for browser search bars) |
+| `GET /api/playlist/{id}` | A YouTube playlist's videos, paginated |
+| `GET /api/channel/{id or @handle}?tab=videos\|live\|shorts\|playlists` | Channel details and videos |
+| `GET /api/rooms/new`, `/api/rooms/{code}`, `WS /api/rooms/{code}/ws` | Watch-party rooms (synced playback, shared queue) |
+| `GET /room/{code}` | VRChat players: 302 to what the room is playing now |
+| `GET /vrc/search?q=`, `/vrc/p/{slot}`, `/vrc/info` | In-world search for the VRChat packages ([protocol](docs/vrchat-protocol.md)) |
+| `GET /vrc/protv.playlist?q=…` or `?list=…` | ProTV playlist file from a search or YouTube playlist |
+
+### On the website
+
+- **Library** (stored in your browser): queue with autoplay-next, favorites, watch history, your own playlists with share links and ProTV export.
+- **Channel and playlist pages**, ad-free, with "Play all", "Shuffle" and "Add all to queue".
+- **Chapters** from the description (or SponsorBlock's community chapters), shown on the timeline and searchable. Optional captions.
+- **Watch parties**: everyone sees the same video at the same time, with a shared queue and a VRChat follow link.
+
+### VRChat packages
+
+The [FoulFoxHacks VCC listing](https://vpm.foulfoxhacks.dev) ships an in-world search panel, a ProTV adapter and editor tools.
+Source: [foulfoxhacks/betteryts-vrchat](https://github.com/foulfoxhacks/betteryts-vrchat).
+
+### Captions
+
+YouTube now requires an attestation token for captions and transcripts, which server-side code can't produce. BetterYTS
+doesn't fake it: the player can show YouTube's own captions, and chapters are used for in-video search instead.
 
 Redirect options: `n`, `shorts`, `live`, `minlen`, `maxlen`, `sort`, `duration`, `upload`, `features`, `to` (`watch` · `youtu.be` · `embed` · `music`), `hl`, `gl`.
 Full reference: [`/docs`](https://yts.foulfoxhacks.dev/docs) (source in [`docs.html`](docs.html)).

@@ -121,6 +121,7 @@
 				</a>
 				<div class="nav-links" id="nav-links">
 					<a class="nav-link" href="/" data-nav="search">Search</a>
+					<a class="nav-link" href="/?view=library" data-nav="library" data-internal>Library</a>
 					<a class="nav-link" href="/docs">API Docs</a>
 					<a class="nav-link" href="/docs#redirects">VRChat</a>
 					<a class="nav-link" href="/docs#addons">Add-ons</a>
@@ -302,6 +303,62 @@
 				<div id="sentinel" class="sentinel" aria-hidden="true"></div>
 				<div class="more-row"><button class="button secondary" type="button" id="load-more" hidden>Load more</button></div>
 			</section>
+
+			<!-- Library: queue, favorites, history, playlists, watch party (stored in this browser) -->
+			<section id="library-view" class="container page-view" hidden>
+				<p class="eyebrow">Stored only in this browser</p>
+				<h1 class="page-title">Your library</h1>
+				<div class="tabs" role="tablist" aria-label="Library sections">
+					<button type="button" role="tab" class="tab" data-lib-tab="queue">Queue</button>
+					<button type="button" role="tab" class="tab" data-lib-tab="favorites">Favorites</button>
+					<button type="button" role="tab" class="tab" data-lib-tab="history">History</button>
+					<button type="button" role="tab" class="tab" data-lib-tab="playlists">Playlists</button>
+					<button type="button" role="tab" class="tab" data-lib-tab="party">Watch party</button>
+				</div>
+				<div id="library-body" class="library-body"></div>
+			</section>
+
+			<!-- Channel page -->
+			<section id="channel-view" class="page-view" hidden>
+				<div id="ch-banner" class="channel-banner"></div>
+				<div class="container">
+					<div class="channel-head">
+						<img id="ch-avatar" class="channel-head-avatar" alt="" width="96" height="96" hidden />
+						<div class="channel-head-text">
+							<h1 id="ch-title" class="page-title"></h1>
+							<p id="ch-meta" class="muted"></p>
+							<p id="ch-desc" class="desc-snippet"></p>
+						</div>
+						<a id="ch-yt" class="button small secondary" target="_blank" rel="noopener">Open on YouTube</a>
+					</div>
+					<div class="tabs" role="tablist" aria-label="Channel sections">
+						<button type="button" role="tab" class="tab" data-ch-tab="videos">Videos</button>
+						<button type="button" role="tab" class="tab" data-ch-tab="live">Live</button>
+						<button type="button" role="tab" class="tab" data-ch-tab="shorts">Shorts</button>
+						<button type="button" role="tab" class="tab" data-ch-tab="playlists">Playlists</button>
+					</div>
+					<div id="ch-results" class="grid"></div>
+					<div class="more-row"><button class="button secondary" type="button" id="ch-more" hidden>Load more</button></div>
+				</div>
+			</section>
+
+			<!-- YouTube playlist page -->
+			<section id="playlist-view" class="container page-view" hidden>
+				<p class="eyebrow">YouTube playlist</p>
+				<h1 id="pl-title" class="page-title"></h1>
+				<p id="pl-meta" class="muted"></p>
+				<p id="pl-desc" class="desc-snippet"></p>
+				<div class="watch-actions">
+					<button class="button small primary" type="button" id="pl-play">▶ Play all</button>
+					<button class="button small secondary" type="button" id="pl-shuffle">Shuffle</button>
+					<button class="button small secondary" type="button" id="pl-queue">+ Add all to queue</button>
+					<button class="button small secondary" type="button" id="pl-save">Save to my playlists</button>
+					<button class="button small secondary" type="button" id="pl-protv" title="Paste into a ProTV Playlist's Remote URL import">Copy ProTV playlist link</button>
+					<a class="button small secondary" id="pl-yt" target="_blank" rel="noopener">Open on YouTube</a>
+				</div>
+				<div id="pl-results" class="grid"></div>
+				<div class="more-row"><button class="button secondary" type="button" id="pl-more" hidden>Load more</button></div>
+			</section>
 		</main>
 
 		<footer class="footer">
@@ -353,8 +410,26 @@
 				<button class="icon-btn watch-close" type="button" data-close-watch aria-label="Close player">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
 				</button>
-				<div class="player-frame"><div id="player-slot"></div></div>
+				<div class="player-frame"><div id="player-slot"></div><div id="player-empty" class="player-empty" hidden></div></div>
 				<div id="seg-bar" class="seg-bar" aria-hidden="true"></div>
+				<div id="room-bar" class="room-bar" hidden>
+					<div class="room-info">
+						<span class="room-live" aria-hidden="true"></span>
+						<b>Watch party</b> <code id="room-code"></code>
+						<span id="room-members" class="muted"></span>
+						<span id="room-status" class="muted"></span>
+					</div>
+					<div class="room-actions">
+						<button class="button tiny secondary" type="button" id="room-invite">Copy invite link</button>
+						<button class="button tiny secondary" type="button" id="room-vrc" title="Paste into a VRChat video player: plays what the room is playing now">Copy VRChat link</button>
+						<button class="button tiny secondary" type="button" id="room-leave">Leave</button>
+					</div>
+					<form id="room-add" class="room-add" autocomplete="off">
+						<input id="room-add-q" type="search" placeholder="Search to add videos to the party" aria-label="Search to add videos to the party" />
+						<button class="button tiny primary" type="submit">Search</button>
+					</form>
+					<ul id="room-add-results" class="room-add-results" hidden></ul>
+				</div>
 				<div class="watch-body">
 					<div id="full-label" class="admonition info full-label" hidden></div>
 					<h2 id="watch-title"></h2>
@@ -373,6 +448,26 @@
 						<button class="button small secondary" type="button" id="copy-yt">Copy link</button>
 						<button class="button small primary" type="button" id="copy-vrc" title="youtube.com links work in VRChat even with untrusted URLs off">Copy for VRChat</button>
 						<button class="button small secondary" type="button" id="jump-highlight" hidden>Jump to highlight</button>
+					</div>
+					<div class="watch-actions library-actions">
+						<button class="button small secondary" type="button" id="fav-btn" aria-pressed="false">♡ Favorite</button>
+						<button class="button small secondary" type="button" id="queue-btn">+ Queue</button>
+						<button class="button small secondary" type="button" id="save-btn" aria-expanded="false" aria-controls="save-menu">Save to playlist</button>
+						<button class="button small secondary" type="button" id="party-btn">Start watch party</button>
+					</div>
+					<form id="save-menu" class="save-menu" hidden autocomplete="off">
+						<label class="select"><span>Playlist</span><select id="save-select"></select></label>
+						<input id="save-new" type="text" maxlength="80" placeholder="…or name a new playlist" aria-label="New playlist name" />
+						<button class="button small primary" type="submit">Save</button>
+					</form>
+					<div id="upnext" class="side-panel" hidden>
+						<h3>Up next <span id="upnext-count" class="muted"></span></h3>
+						<ol id="upnext-list" class="upnext-list"></ol>
+					</div>
+					<div id="chapters" class="side-panel" hidden>
+						<h3>Chapters <span id="chapters-source" class="muted"></span></h3>
+						<input id="chapters-search" type="search" placeholder="Search chapters and description" aria-label="Search chapters and description" />
+						<ol id="chapters-list" class="chapters-list"></ol>
 					</div>
 					<div id="segments" class="segments" hidden></div>
 					<details id="desc-wrap" class="desc" hidden>
@@ -418,6 +513,9 @@
 					<legend>Player</legend>
 					<label class="toggle"><input type="checkbox" data-setting="autoplay" /> Autoplay when opening a video</label>
 					<label class="toggle"><input type="checkbox" data-setting="dislikes" /> Show likes &amp; dislikes</label>
+					<label class="toggle"><input type="checkbox" data-setting="captions" /> Turn on captions when available</label>
+					<label class="toggle"><input type="checkbox" data-setting="autoNext" /> Play the next video in your queue automatically</label>
+					<label class="select wide"><span>Watch-party name</span><input data-setting="partyName" type="text" maxlength="32" placeholder="Guest" /></label>
 				</fieldset>
 				<fieldset>
 					<legend>SponsorBlock auto-skip</legend>
