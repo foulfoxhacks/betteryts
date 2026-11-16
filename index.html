@@ -3,12 +3,103 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>BetterYTS</title>
+		<title>BetterYTS — Ad-free YouTube Search for the Web &amp; VRChat</title>
 		<meta name="description" content="BetterYTS by FoulFoxHacks — ad-free YouTube search with SponsorBlock, DeArrow, Return YouTube Dislike and VRChat-ready links." />
+		<meta name="keywords" content="BetterYTS, YouTube search, ad-free YouTube, VRChat YouTube search, VRChat video player, ProTV, u2b.cx alternative, SponsorBlock, DeArrow, Return YouTube Dislike, YouTube API, FoulFoxHacks, akasammythepuppy" />
+		<meta name="author" content="Sammy The Femboy Puppy (FoulFoxHacks)" />
+		<meta name="publisher" content="FoulFoxHacks" />
+		<meta name="creator" content="Sammy The Femboy Puppy" />
+		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+		<link rel="canonical" href="https://yts.foulfoxhacks.dev/" />
+		<link rel="author" href="https://akasammythepuppy.me" />
+		<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+		<link rel="search" type="application/opensearchdescription+xml" title="BetterYTS" href="/opensearch.xml" />
+
+		<link rel="icon" href="/favicon.ico" sizes="any" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16x16.png" />
+		<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="theme-color" content="#242526" />
+		<meta name="application-name" content="BetterYTS" />
+		<meta name="apple-mobile-web-app-title" content="BetterYTS" />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="BetterYTS" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://yts.foulfoxhacks.dev/" />
 		<meta property="og:title" content="BetterYTS by FoulFoxHacks" />
 		<meta property="og:description" content="Ad-free YouTube search for the web and VRChat, with SponsorBlock, DeArrow and Return YouTube Dislike built in." />
-		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<meta property="og:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="BetterYTS — ad-free YouTube search for the web and VRChat, with Sammy The Femboy Puppy" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="BetterYTS by FoulFoxHacks" />
+		<meta name="twitter:description" content="Ad-free YouTube search for the web and VRChat, with SponsorBlock, DeArrow and Return YouTube Dislike built in." />
+		<meta name="twitter:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<meta name="twitter:image:alt" content="BetterYTS — ad-free YouTube search for the web and VRChat, with Sammy The Femboy Puppy" />
+
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@graph": [
+					{
+						"@type": "WebSite",
+						"@id": "https://yts.foulfoxhacks.dev/#website",
+						"url": "https://yts.foulfoxhacks.dev/",
+						"name": "BetterYTS",
+						"alternateName": "BetterYTS by FoulFoxHacks",
+						"description": "Ad-free YouTube search for the web and VRChat, with SponsorBlock, DeArrow and Return YouTube Dislike built in.",
+						"inLanguage": "en",
+						"publisher": { "@id": "https://yts.foulfoxhacks.dev/#org" },
+						"author": { "@id": "https://akasammythepuppy.me/#person" },
+						"potentialAction": {
+							"@type": "SearchAction",
+							"target": { "@type": "EntryPoint", "urlTemplate": "https://yts.foulfoxhacks.dev/?q={search_term_string}" },
+							"query-input": "required name=search_term_string"
+						}
+					},
+					{
+						"@type": "WebApplication",
+						"@id": "https://yts.foulfoxhacks.dev/#app",
+						"name": "BetterYTS",
+						"url": "https://yts.foulfoxhacks.dev/",
+						"applicationCategory": "MultimediaApplication",
+						"operatingSystem": "Any",
+						"browserRequirements": "Requires JavaScript",
+						"isAccessibleForFree": true,
+						"offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+						"featureList": ["Ad-free YouTube search results", "SponsorBlock auto-skip", "DeArrow titles and thumbnails", "Return YouTube Dislike counts", "VRChat video player redirects", "Free JSON API"],
+						"screenshot": "https://yts.foulfoxhacks.dev/brand/og-image.png",
+						"image": "https://yts.foulfoxhacks.dev/brand/logo-256.png",
+						"author": { "@id": "https://akasammythepuppy.me/#person" },
+						"publisher": { "@id": "https://yts.foulfoxhacks.dev/#org" },
+						"codeRepository": "https://github.com/foulfoxhacks/betteryts"
+					},
+					{
+						"@type": "Organization",
+						"@id": "https://yts.foulfoxhacks.dev/#org",
+						"name": "FoulFoxHacks",
+						"url": "https://akasammythepuppy.me",
+						"logo": { "@type": "ImageObject", "url": "https://yts.foulfoxhacks.dev/brand/logo-256.png", "width": 256, "height": 256 },
+						"founder": { "@id": "https://akasammythepuppy.me/#person" },
+						"sameAs": ["https://github.com/foulfoxhacks"]
+					},
+					{
+						"@type": "Person",
+						"@id": "https://akasammythepuppy.me/#person",
+						"name": "Sammy The Femboy Puppy",
+						"alternateName": ["akasammythepuppy", "FoulFoxHacks"],
+						"url": "https://akasammythepuppy.me",
+						"image": "https://yts.foulfoxhacks.dev/brand/logo-256.png",
+						"sameAs": ["https://github.com/foulfoxhacks"]
+					}
+				]
+			}
+		</script>
 		<link rel="stylesheet" href="/web/styles.css" />
 	</head>
 	<body>
@@ -25,7 +116,7 @@
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" /></svg>
 				</button>
 				<a class="brand" href="/" aria-label="BetterYTS home">
-					<img src="/favicon.svg" alt="" width="32" height="32" />
+					<img src="/brand/logo-64.png" alt="BetterYTS logo — Sammy The Femboy Puppy" width="32" height="32" />
 					<b>BetterYTS</b>
 				</a>
 				<div class="nav-links" id="nav-links">
@@ -134,6 +225,21 @@
 						</div>
 					</div>
 				</section>
+
+				<section id="creator" class="creator container" aria-labelledby="creator-title">
+					<img class="creator-art" src="/brand/sammy-art.webp" width="275" height="358" loading="lazy" decoding="async"
+						alt="Illustration of Sammy The Femboy Puppy, an orange-and-cream canine with a red mane, over the title “Sammy The Femboy Puppy” and the handle akasammythepuppy" />
+					<div>
+						<p class="eyebrow">Made by</p>
+						<h2 id="creator-title">Sammy The Femboy Puppy</h2>
+						<p>BetterYTS is published, developed and managed by FoulFoxHacks. It's free, open source, and built for the VRChat community: no accounts, no cookies, no ads.</p>
+						<div class="creator-links">
+							<a class="button primary" href="https://akasammythepuppy.me" target="_blank" rel="noopener author">akasammythepuppy.me</a>
+							<a class="button secondary" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">Source on GitHub</a>
+							<a class="button secondary" href="/sitemap">Site map</a>
+						</div>
+					</div>
+				</section>
 			</section>
 
 			<!-- Results -->
@@ -213,6 +319,7 @@
 					<div>
 						<p class="footer-title">Community</p>
 						<ul>
+							<li><a href="https://akasammythepuppy.me" target="_blank" rel="noopener author">Creator: akasammythepuppy</a></li>
 							<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
 							<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
 							<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
@@ -226,8 +333,17 @@
 							<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
 						</ul>
 					</div>
+					<div>
+						<p class="footer-title">Site</p>
+						<ul>
+							<li><a href="/sitemap">Site map</a></li>
+							<li><a href="/sitemap.xml">sitemap.xml</a></li>
+							<li><a href="/robots.txt">robots.txt</a></li>
+							<li><a href="/llms.txt">llms.txt</a></li>
+						</ul>
+					</div>
 				</div>
-				<p class="copyright">Copyright © 2026 FoulFoxHacks. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
+				<p class="copyright">Copyright © 2026 FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
 			</div>
 		</footer>
 

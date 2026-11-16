@@ -7,8 +7,8 @@ export default defineConfig({
 		client: {
 			build: {
 				rollupOptions: {
-					// Two static pages: the search front page and the API docs.
-					input: { main: "index.html", docs: "docs.html" },
+					// Static pages: search front page, API docs, visual site map.
+					input: { main: "index.html", docs: "docs.html", sitemap: "sitemap.html" },
 				},
 			},
 		},

@@ -11,9 +11,13 @@ export default defineConfig({
 		assets: {
 			htmlHandling: "auto-trailing-slash",
 			notFoundHandling: "none",
+			// The front page goes through the Worker so search URLs (/?q=…) get their own
+			// <title>, canonical and noindex tags. Every other asset is served directly.
+			runWorkerFirst: ["/"],
 		},
 		domains: ["yts.foulfoxhacks.dev"],
 		env: {
+			ASSETS: bindings.assets(),
 			// Bump if YouTube ever starts rejecting the WEB client version.
 			YT_CLIENT_VERSION: bindings.text("2.20251114.01.00"),
 			DEFAULT_HL: bindings.text("en"),

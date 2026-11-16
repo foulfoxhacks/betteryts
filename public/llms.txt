@@ -1,0 +1,32 @@
+# BetterYTS
+
+> BetterYTS by FoulFoxHacks is a free, open-source, ad-free YouTube search service for the web and VRChat. It strips ads, promoted videos and filler shelves from YouTube search results, adds SponsorBlock segments, DeArrow titles and thumbnails and Return YouTube Dislike counts, and gives VRChat video players (ProTV, USharpVideo, iwaSync and others) search links that redirect to the top result.
+
+Published, developed and managed by FoulFoxHacks (Sammy The Femboy Puppy, https://akasammythepuppy.me). Not affiliated with YouTube or Google. Runs on Cloudflare Workers. Source: https://github.com/foulfoxhacks/betteryts (MIT).
+
+Key facts:
+
+- `https://yts.foulfoxhacks.dev/search?q=QUERY` redirects VRChat and other media players (302) to the top YouTube video. In a browser it shows the results page. `/QUERY` is a shortcut, u2b.cx-style.
+- Redirect options: `n` (nth result), `shorts`, `live`, `minlen`, `maxlen`, `sort`, `duration`, `upload`, `features`, `to`, `hl`, `gl`.
+- VRChat only plays custom domains when "Allow Untrusted URLs" is enabled.
+- The JSON API is free, keyless and CORS-enabled. Please cache responses and avoid heavy automated use.
+- SponsorBlock and DeArrow data is CC BY-NC-SA 4.0 (non-commercial, with attribution).
+
+## Docs
+
+- [API docs](https://yts.foulfoxhacks.dev/docs): every endpoint, parameter and response shape
+- [VRChat redirects](https://yts.foulfoxhacks.dev/docs#redirects): URL forms and options for video players
+- [Search API](https://yts.foulfoxhacks.dev/docs#search): `GET /api/search?q=` ad-free JSON results with pagination
+- [Video API](https://yts.foulfoxhacks.dev/docs#video): `GET /api/video/{id}` details with SponsorBlock, Return YouTube Dislike and DeArrow merged in
+- [Add-on endpoints](https://yts.foulfoxhacks.dev/docs#addons): `/api/segments/{id}`, `/api/dislikes/{id}`, `/api/branding/{id}`
+
+## Site
+
+- [Home and search](https://yts.foulfoxhacks.dev/): the web front page
+- [Site map](https://yts.foulfoxhacks.dev/sitemap): human-readable map of every page and endpoint
+- [README](https://github.com/foulfoxhacks/betteryts/blob/main/README.md): self-hosting and project layout
+
+## Optional
+
+- [Creator](https://akasammythepuppy.me): Sammy The Femboy Puppy
+- [Report an issue](https://github.com/foulfoxhacks/betteryts/issues)

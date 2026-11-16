@@ -161,7 +161,7 @@ function showHome(on) {
 		slot.append(form);
 		if (hadFocus) input.focus();
 	}
-	document.title = on ? "BetterYTS" : `${state.q} · BetterYTS`;
+	document.title = on ? "BetterYTS — Ad-free YouTube Search for the Web & VRChat" : `“${state.q}” — YouTube search without ads · BetterYTS`;
 }
 
 async function runSearch({ append = false } = {}) {
@@ -273,13 +273,13 @@ function videoCard(v) {
 		h(
 			"a",
 			{ class: "thumb", href, onclick: (e) => openFromCard(e, v), "aria-label": v.title },
-			h("img", { src: v.thumbnail, alt: "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer" }),
+			h("img", { src: v.thumbnail, alt: `Thumbnail: ${v.title}`, loading: "lazy", decoding: "async", referrerpolicy: "no-referrer" }),
 			badge,
 		),
 		h(
 			"div",
 			{ class: "meta" },
-			ch?.avatar ? h("img", { class: "avatar", src: safeUrl(ch.avatar), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }) : h("span", { class: "avatar ph" }),
+			ch?.avatar ? h("img", { class: "avatar", src: safeUrl(ch.avatar), alt: `${ch.name} channel avatar`, loading: "lazy", referrerpolicy: "no-referrer" }) : h("span", { class: "avatar ph" }),
 			h(
 				"div",
 				{ class: "meta-text" },
@@ -297,7 +297,7 @@ function channelCard(c) {
 	return h(
 		"article",
 		{ class: "card channel" },
-		h("a", { class: "channel-avatar", href: safeUrl(c.url), target: "_blank", rel: "noopener" }, c.thumbnail ? h("img", { src: safeUrl(c.thumbnail), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }) : ""),
+		h("a", { class: "channel-avatar", href: safeUrl(c.url), target: "_blank", rel: "noopener" }, c.thumbnail ? h("img", { src: safeUrl(c.thumbnail), alt: `${c.title} channel avatar`, loading: "lazy", referrerpolicy: "no-referrer" }) : ""),
 		h(
 			"div",
 			{ class: "meta-text" },
@@ -317,7 +317,7 @@ function playlistCard(p) {
 		h(
 			"a",
 			{ class: "thumb stack", href, onclick: (e) => p.firstVideoId && openFromCard(e, { id: p.firstVideoId, title: p.title, list: p.id }) },
-			p.thumbnail ? h("img", { src: safeUrl(p.thumbnail), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }) : "",
+			p.thumbnail ? h("img", { src: safeUrl(p.thumbnail), alt: `Playlist thumbnail: ${p.title}`, loading: "lazy", referrerpolicy: "no-referrer" }) : "",
 			h("span", { class: "badge list" }, p.type === "mix" ? "MIX" : p.videoCount || "PLAYLIST"),
 		),
 		h(

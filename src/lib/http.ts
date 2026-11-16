@@ -5,6 +5,8 @@ export const CORS_HEADERS: Record<string, string> = {
 	"Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
 	"Access-Control-Allow-Headers": "Content-Type",
 	"Access-Control-Max-Age": "86400",
+	// API responses and redirects are crawlable but never belong in a search index.
+	"X-Robots-Tag": "noindex",
 };
 
 export function json(data: unknown, status = 200, maxAge = 0): Response {

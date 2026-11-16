@@ -3,10 +3,66 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>BetterYTS API</title>
-		<meta name="description" content="BetterYTS API docs: ad-free YouTube search JSON, VRChat redirects, SponsorBlock, DeArrow and Return YouTube Dislike." />
+		<title>BetterYTS API Docs — YouTube Search JSON &amp; VRChat Redirects</title>
+		<meta name="description" content="BetterYTS API docs: ad-free YouTube search JSON, VRChat video player redirects, SponsorBlock, DeArrow and Return YouTube Dislike endpoints." />
+		<meta name="keywords" content="BetterYTS API, YouTube search API, VRChat YouTube redirect, u2b.cx alternative, SponsorBlock API, DeArrow API, Return YouTube Dislike API, free YouTube JSON API" />
+		<meta name="author" content="Sammy The Femboy Puppy (FoulFoxHacks)" />
+		<meta name="publisher" content="FoulFoxHacks" />
+		<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+		<link rel="canonical" href="https://yts.foulfoxhacks.dev/docs" />
+		<link rel="author" href="https://akasammythepuppy.me" />
+		<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+		<link rel="search" type="application/opensearchdescription+xml" title="BetterYTS" href="/opensearch.xml" />
+		<link rel="icon" href="/favicon.ico" sizes="any" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16x16.png" />
+		<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
 		<meta name="theme-color" content="#242526" />
-		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<meta property="og:type" content="article" />
+		<meta property="og:site_name" content="BetterYTS" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://yts.foulfoxhacks.dev/docs" />
+		<meta property="og:title" content="BetterYTS API Docs" />
+		<meta property="og:description" content="Free, keyless YouTube search API with ads stripped out, plus VRChat redirects, SponsorBlock, DeArrow and Return YouTube Dislike." />
+		<meta property="og:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="BetterYTS — ad-free YouTube search for the web and VRChat, with Sammy The Femboy Puppy" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="BetterYTS API Docs" />
+		<meta name="twitter:description" content="Free, keyless YouTube search API with ads stripped out, plus VRChat redirects, SponsorBlock, DeArrow and Return YouTube Dislike." />
+		<meta name="twitter:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@graph": [
+					{
+						"@type": "TechArticle",
+						"@id": "https://yts.foulfoxhacks.dev/docs#article",
+						"headline": "BetterYTS API Docs",
+						"description": "Ad-free YouTube search JSON, VRChat video player redirects, SponsorBlock, DeArrow and Return YouTube Dislike endpoints.",
+						"url": "https://yts.foulfoxhacks.dev/docs",
+						"inLanguage": "en",
+						"image": "https://yts.foulfoxhacks.dev/brand/og-image.png",
+						"dateModified": "2026-11-15",
+						"author": { "@type": "Person", "@id": "https://akasammythepuppy.me/#person", "name": "Sammy The Femboy Puppy", "url": "https://akasammythepuppy.me" },
+						"publisher": { "@type": "Organization", "@id": "https://yts.foulfoxhacks.dev/#org", "name": "FoulFoxHacks", "logo": { "@type": "ImageObject", "url": "https://yts.foulfoxhacks.dev/brand/logo-256.png" } },
+						"isPartOf": { "@id": "https://yts.foulfoxhacks.dev/#website" },
+						"about": { "@type": "WebAPI", "name": "BetterYTS API", "documentation": "https://yts.foulfoxhacks.dev/docs", "provider": { "@id": "https://yts.foulfoxhacks.dev/#org" } }
+					},
+					{
+						"@type": "BreadcrumbList",
+						"itemListElement": [
+							{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://yts.foulfoxhacks.dev/" },
+							{ "@type": "ListItem", "position": 2, "name": "API Docs", "item": "https://yts.foulfoxhacks.dev/docs" }
+						]
+					}
+				]
+			}
+		</script>
 		<link rel="stylesheet" href="/web/styles.css" />
 	</head>
 	<body>
@@ -23,7 +79,7 @@
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" /></svg>
 				</button>
 				<a class="brand" href="/" aria-label="BetterYTS home">
-					<img src="/favicon.svg" alt="" width="32" height="32" />
+					<img src="/brand/logo-64.png" alt="BetterYTS logo — Sammy The Femboy Puppy" width="32" height="32" />
 					<b>BetterYTS</b>
 				</a>
 				<div class="nav-links" id="nav-links">
@@ -64,6 +120,7 @@
 					<li class="group">More</li>
 					<li><a href="#errors">Errors &amp; caching</a></li>
 					<li><a href="#fair-use">Fair use &amp; credits</a></li>
+					<li><a href="/sitemap">Site map →</a></li>
 				</ul>
 			</aside>
 
@@ -206,6 +263,7 @@ https://yts.foulfoxhacks.dev/v/dQw4w9WgXcQ               # by video ID</code></p
 					<div>
 						<p class="footer-title">Community</p>
 						<ul>
+							<li><a href="https://akasammythepuppy.me" target="_blank" rel="noopener author">Creator: akasammythepuppy</a></li>
 							<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
 							<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
 							<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
@@ -219,8 +277,17 @@ https://yts.foulfoxhacks.dev/v/dQw4w9WgXcQ               # by video ID</code></p
 							<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
 						</ul>
 					</div>
+					<div>
+						<p class="footer-title">Site</p>
+						<ul>
+							<li><a href="/sitemap">Site map</a></li>
+							<li><a href="/sitemap.xml">sitemap.xml</a></li>
+							<li><a href="/robots.txt">robots.txt</a></li>
+							<li><a href="/llms.txt">llms.txt</a></li>
+						</ul>
+					</div>
 				</div>
-				<p class="copyright">Copyright © 2026 FoulFoxHacks. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
+				<p class="copyright">Copyright © 2026 FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
 			</div>
 		</footer>
 

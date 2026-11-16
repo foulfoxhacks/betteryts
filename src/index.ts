@@ -18,6 +18,7 @@ import {
 	queryFromSearchParams,
 	videoIdFromQuery,
 } from "./lib/query.ts";
+import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
 import type { ClientOptions, Item, SearchFilters, VideoItem } from "./lib/types.ts";
 
 const VERSION = "1.0.0";
@@ -254,7 +255,10 @@ function apiIndex(origin: string): Response {
 // ---------------------------------------------------------------------------------------------
 
 /** First path segments the u2b-style catch-all must never treat as a search. */
-const RESERVED = new Set(["api", "assets", "docs", "favicon.ico", "robots.txt", "_headers", "index.html", "docs.html"]);
+const RESERVED = new Set([
+	"api", "assets", "brand", "docs", "sitemap", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
+	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web",
+]);
 
 async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	const url = new URL(req.url);
@@ -263,17 +267,27 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 	if (req.method !== "GET" && req.method !== "HEAD") return errorJson("Method not allowed", 405);
 
+	// ---- Front page (routed here first so search URLs get their own SEO tags) ----
+	if (path === "/") {
+		const page = await env.ASSETS.fetch(new Request(new URL("/", url.origin), req));
+		const meta = frontPageMeta(url);
+		return meta && page.ok && (page.headers.get("Content-Type") ?? "").includes("text/html") ? rewriteFrontPage(page, meta) : page;
+	}
+
 	// ---- JSON API ----
 	if (path === "/api" || path === "/api/") return apiIndex(url.origin);
 	if (path === "/api/health") return json({ ok: true, version: VERSION });
 	if (path === "/api/search") return apiSearch(url, ctx);
 	if (path === "/api/suggest") {
 		const q = queryFromSearchParams(url);
-		if (!q) return json([], 200, 3600);
+		// format=opensearch → ["query", ["s1", "s2"]] for browser search-bar suggestions
+		const openSearch = url.searchParams.get("format") === "opensearch";
+		if (!q) return json(openSearch ? ["", []] : [], 200, 3600);
 		const opts = clientOptions(url);
-		return cached(`suggest?${opts.hl}|${opts.gl}|${q.toLowerCase()}`, ctx, async () =>
-			json(await suggestions(q, opts.hl, opts.gl), 200, 3600),
-		);
+		return cached(`suggest?${opts.hl}|${opts.gl}|${+openSearch}|${q.toLowerCase()}`, ctx, async () => {
+			const list = await suggestions(q, opts.hl, opts.gl);
+			return json(openSearch ? [q, list] : list, 200, 3600);
+		});
 	}
 	if (path === "/api/branding") return apiBrandingBatch(url, ctx);
 

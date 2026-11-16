@@ -57,6 +57,17 @@ Browsers send `Sec-Fetch-Dest: document` on page loads. yt-dlp (which VRChat use
 
 VRChat only plays links from its trusted list unless **Allow Untrusted URLs** is on (Settings → Comfort & Safety). That applies to every custom search domain, u2b.cx included. If you want a link that works with that setting off, use the player's **Copy for VRChat** button. It gives you a plain `youtube.com` link.
 
+## SEO & crawlability
+
+- Every page has a canonical URL, a description, keywords, author/publisher, Open Graph + Twitter cards (`public/brand/og-image.png`) and Schema.org JSON-LD. The home page declares a `SearchAction`, so search engines can offer a sitelinks search box.
+- Search and watch URLs (`/?q=…`, `/?v=…`) are rewritten by the Worker with their own `<title>` and `noindex, follow`, so thin result pages never compete with the home page.
+- API responses and redirects send `X-Robots-Tag: noindex`, and so do build assets and icons (see `public/_headers`).
+- [`robots.txt`](public/robots.txt) allows search and social crawlers, blocks dedicated AI-training crawlers, and publishes Content Signals (`search=yes, ai-train=no`).
+- [`sitemap.xml`](public/sitemap.xml) is for search engines, [`/sitemap`](sitemap.html) is the visual map for people, and [`llms.txt`](public/llms.txt) is a plain-language summary for AI tools.
+- [`opensearch.xml`](public/opensearch.xml) lets browsers add BetterYTS as a search engine, with live suggestions.
+
+Brand images (favicons, app icons, OG card) are generated from Sammy's art in `public/brand/`.
+
 ## Project layout
 
 ```

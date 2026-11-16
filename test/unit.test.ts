@@ -147,3 +147,15 @@ test("DeArrow: picks trusted community title and cleans markers", () => {
 	assert.match(b.thumbnail ?? "", /videoID=dQw4w9WgXcQ&time=42.5$/);
 	assert.deepEqual(pickBranding("x", {}), { title: null, thumbnail: null, thumbnailTime: null });
 });
+
+test("SEO: plain home is untouched, search/watch URLs get noindex + descriptive titles", async () => {
+	const { frontPageMeta } = await import("../src/lib/seo.ts");
+	assert.equal(frontPageMeta(u("/")), null);
+	assert.equal(frontPageMeta(u("/?utm_source=x")), null);
+	const s = frontPageMeta(u("/?q=lofi+hip+hop"));
+	assert.equal(s?.robots, "noindex, follow");
+	assert.equal(s?.title, "“lofi hip hop” — YouTube search without ads · BetterYTS");
+	assert.match(s?.description ?? "", /search\?q=lofi%20hip%20hop/);
+	assert.equal(frontPageMeta(u("/?v=dQw4w9WgXcQ"))?.robots, "noindex, follow");
+	assert.ok((frontPageMeta(u(`/?q=${"x".repeat(500)}`))?.title.length ?? 0) < 200);
+});
