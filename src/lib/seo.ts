@@ -18,13 +18,13 @@ export function frontPageMeta(url: URL): PageMeta | null {
 	const robots = "noindex, follow";
 	if (q) {
 		return {
-			title: `“${q}” — YouTube search without ads · BetterYTS`,
+			title: `“${q}” — YouTube search without ads · BetterYTS by FoulFoxHacks`,
 			description: `Ad-free YouTube results for “${q}”, with SponsorBlock, DeArrow and Return YouTube Dislike built in. Paste ${SITE}/search?q=${encodeURIComponent(q)} into a VRChat video player to play the top result.`,
 			robots,
 		};
 	}
 	return {
-		title: "Watch on BetterYTS — ad-free YouTube with SponsorBlock",
+		title: "Watch on BetterYTS by FoulFoxHacks — ad-free YouTube with SponsorBlock",
 		description: "Watch YouTube with SponsorBlock auto-skip, DeArrow titles and Return YouTube Dislike on BetterYTS.",
 		robots,
 	};

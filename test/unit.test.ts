@@ -154,7 +154,7 @@ test("SEO: plain home is untouched, search/watch URLs get noindex + descriptive 
 	assert.equal(frontPageMeta(u("/?utm_source=x")), null);
 	const s = frontPageMeta(u("/?q=lofi+hip+hop"));
 	assert.equal(s?.robots, "noindex, follow");
-	assert.equal(s?.title, "“lofi hip hop” — YouTube search without ads · BetterYTS");
+	assert.equal(s?.title, "“lofi hip hop” — YouTube search without ads · BetterYTS by FoulFoxHacks");
 	assert.match(s?.description ?? "", /search\?q=lofi%20hip%20hop/);
 	assert.equal(frontPageMeta(u("/?v=dQw4w9WgXcQ"))?.robots, "noindex, follow");
 	assert.ok((frontPageMeta(u(`/?q=${"x".repeat(500)}`))?.title.length ?? 0) < 200);

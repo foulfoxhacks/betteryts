@@ -161,7 +161,7 @@ function showHome(on) {
 		slot.append(form);
 		if (hadFocus) input.focus();
 	}
-	document.title = on ? "BetterYTS — Ad-free YouTube Search for the Web & VRChat" : `“${state.q}” — YouTube search without ads · BetterYTS`;
+	document.title = on ? "BetterYTS by FoulFoxHacks — Ad-free YouTube Search for the Web & VRChat" : `“${state.q}” — YouTube search without ads · BetterYTS by FoulFoxHacks`;
 }
 
 async function runSearch({ append = false } = {}) {
