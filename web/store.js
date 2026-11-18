@@ -1,12 +1,13 @@
-// Library: queue, favorites, watch history and saved playlists. Stored in this browser only.
+// Library: queue, favorites, watch history, saved playlists and channel subscriptions. Stored in this browser only.
 
 const KEY = "betteryts.library.v1";
 const MAX_HISTORY = 300;
 const MAX_QUEUE = 300;
 const MAX_PLAYLISTS = 100;
 const MAX_PLAYLIST_ITEMS = 500;
+const MAX_SUBSCRIPTIONS = 200;
 
-const empty = () => ({ favorites: [], history: [], playlists: [], queue: [] });
+const empty = () => ({ favorites: [], history: [], playlists: [], queue: [], subscriptions: [] });
 
 function load() {
 	try {
@@ -17,6 +18,7 @@ function load() {
 			history: Array.isArray(raw.history) ? raw.history : [],
 			playlists: Array.isArray(raw.playlists) ? raw.playlists : [],
 			queue: Array.isArray(raw.queue) ? raw.queue : [],
+			subscriptions: Array.isArray(raw.subscriptions) ? raw.subscriptions.filter((c) => c && typeof c.id === "string") : [],
 		};
 	} catch {
 		return empty();
@@ -105,6 +107,27 @@ export const store = {
 		data.queue = [];
 		save();
 	},
+
+	// Subscriptions (channel IDs, "UC…", plus enough to draw them without a request)
+	isSubscribed: (id) => !!id && data.subscriptions.some((c) => c.id === id),
+	toggleSubscription(ch) {
+		if (!ch?.id) return false;
+		if (store.isSubscribed(ch.id)) {
+			data.subscriptions = data.subscriptions.filter((c) => c.id !== ch.id);
+			save();
+			return false;
+		}
+		if (data.subscriptions.length >= MAX_SUBSCRIPTIONS) return false;
+		const entry = { id: ch.id, title: String(ch.title || ch.handle || ch.id).slice(0, 100), handle: ch.handle || null, avatar: ch.avatar || null, at: Date.now() };
+		data.subscriptions = [entry, ...data.subscriptions];
+		save();
+		return true;
+	},
+	unsubscribe(id) {
+		data.subscriptions = data.subscriptions.filter((c) => c.id !== id);
+		save();
+	},
+	subscriptionLimit: MAX_SUBSCRIPTIONS,
 
 	// Playlists
 	playlist: (id) => data.playlists.find((p) => p.id === id) || null,

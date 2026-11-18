@@ -240,3 +240,94 @@ test("rooms: state machine for load, play/pause/seek, queue and end-of-video", a
 	assert.equal(applyMessage(s, { t: "seek", position: Number.NaN } as never), null);
 	for (let i = 0; i < 20; i++) assert.match(newRoomCode(), ROOM_CODE_RE);
 });
+
+test("rooms: host keys and host-only lock", async () => {
+	const { applyMessage, emptyState, mayControl, newHostKey, sameKey, HOST_KEY_RE } = await import("../src/rooms/protocol.ts");
+	const key = newHostKey();
+	assert.match(key, HOST_KEY_RE);
+	assert.notEqual(key, newHostKey());
+	assert.ok(sameKey(key, key));
+	assert.ok(!sameKey(key, newHostKey()));
+	assert.ok(!sameKey(key, key.slice(1)));
+
+	let s = emptyState();
+	const load = { t: "load", video: { id: "aaaaaaaaaaa", title: "A" } } as const;
+	const lock = { t: "lock", locked: true } as const;
+	assert.ok(mayControl(s, load, false), "unlocked rooms are open to everyone");
+	assert.ok(!mayControl(s, lock, false), "only hosts may lock");
+	assert.ok(mayControl(s, lock, true));
+	s = applyMessage(s, lock, 0)!;
+	assert.equal(s.locked, true);
+	assert.equal(applyMessage(s, lock, 0), null, "locking twice changes nothing");
+	assert.ok(!mayControl(s, load, false), "guests can't control a locked room");
+	assert.ok(!mayControl(s, { t: "seek", position: 5 }, false));
+	assert.ok(!mayControl(s, { t: "queue_remove", index: 0 }, false));
+	assert.ok(mayControl(s, load, true), "hosts still can");
+	assert.ok(mayControl(s, { t: "ended", id: "aaaaaaaaaaa" }, false), "anyone may report the end of a video");
+	assert.ok(mayControl(s, { t: "hello", name: "x" }, false));
+	s = applyMessage(s, { t: "lock", locked: false }, 0)!;
+	assert.equal(s.locked, false);
+	// Rooms saved before hosts existed have no `locked` field and stay open.
+	const legacy = { ...emptyState(), locked: undefined };
+	assert.ok(mayControl(legacy, load, false));
+});
+
+test("subscriptions: relative dates, merged feed and bounded concurrency", async () => {
+	const { ageSeconds, mergeFeed, mapLimit } = await import("../web/feed.js");
+	assert.equal(ageSeconds("3 days ago"), 3 * 86400);
+	assert.equal(ageSeconds("Streamed 2 weeks ago"), 2 * 604800);
+	assert.equal(ageSeconds("1 year ago"), 31557600);
+	assert.equal(ageSeconds(null), Number.POSITIVE_INFINITY);
+	assert.ok(ageSeconds("5 hours ago") < ageSeconds("1 day ago"));
+
+	const vid = (id: string, published: string, extra = {}) => ({ type: "video", id, title: id, published, channel: null, ...extra });
+	const a = { name: "A", id: "UCa" };
+	const b = { name: "B", id: "UCb" };
+	const feed = mergeFeed([
+		{ channel: a, results: [vid("a1aaaaaaaaa", "2 hours ago"), vid("a2aaaaaaaaa", "3 days ago"), vid("a3aaaaaaaaa", "", { upcoming: true })] },
+		{ channel: b, results: [vid("b1bbbbbbbbb", "1 day ago"), { type: "short", id: "s1sssssssss" }, vid("a1aaaaaaaaa", "2 hours ago")] },
+	]);
+	assert.deepEqual(feed.map((v: { id: string }) => v.id), ["a1aaaaaaaaa", "b1bbbbbbbbb", "a2aaaaaaaaa"], "newest first, no shorts/upcoming/duplicates");
+	assert.equal(feed[1].channel.name, "B", "channel filled in from the page");
+	assert.equal(mergeFeed([{ channel: a, results: Array.from({ length: 10 }, (_, i) => vid(`x${i}xxxxxxxxx`, `${i} days ago`)) }], 4).length, 4);
+
+	let inFlight = 0;
+	let peak = 0;
+	const out = await mapLimit([1, 2, 3, 4, 5, 6], 2, async (n: number) => {
+		peak = Math.max(peak, ++inFlight);
+		await new Promise((r) => setTimeout(r, 5));
+		inFlight--;
+		if (n === 3) throw new Error("boom");
+		return n * 10;
+	});
+	assert.equal(peak, 2);
+	assert.deepEqual(out, [10, 20, null, 40, 50, 60]);
+});
+
+test("parser: lockup metadata rows on channel pages vs search", async () => {
+	const { parseSearchResponse } = await import("../src/lib/parse.ts");
+	const part = (content: string) => ({ text: { content } });
+	const lockup = (id: string, rows: string[][]) => ({
+		lockupViewModel: {
+			contentId: id,
+			contentType: "LOCKUP_CONTENT_TYPE_VIDEO",
+			metadata: { lockupMetadataViewModel: { title: { content: `t-${id}` }, metadata: { contentMetadataViewModel: { metadataRows: rows.map((r) => ({ metadataParts: r.map(part) })) } } } },
+		},
+	});
+	const data = {
+		contents: {
+			richGridRenderer: {
+				contents: [
+					{ richItemRenderer: { content: lockup("aaaaaaaaaaa", [["148K views", "2 weeks ago"]]) } },
+					{ richItemRenderer: { content: lockup("bbbbbbbbbbb", [["Lofi Girl"], ["1.2M views", "Streamed 3 days ago"]]) } },
+				],
+			},
+		},
+	};
+	const [channelPage, search] = parseSearchResponse(data).results as Array<{ views: string; published: string; channel: { name: string } | null }>;
+	assert.equal(channelPage.views, "148K views");
+	assert.equal(channelPage.published, "2 weeks ago");
+	assert.equal(channelPage.channel, null, "a views row is not a channel name");
+	assert.equal(search.channel?.name, "Lofi Girl");
+	assert.equal(search.published, "Streamed 3 days ago");
+});

@@ -4,7 +4,8 @@
 import { bestChapters, toSeconds } from "./chapters.js";
 import { initChrome } from "./chrome.js";
 import { $, $$, api, copy, fmtCount, fmtTime, h, isVideoId, minVideo, safeUrl, toast } from "./lib.js";
-import { RoomClient } from "./room.js";
+import { mapLimit, mergeFeed } from "./feed.js";
+import { hostKeys, RoomClient } from "./room.js";
 import { store } from "./store.js";
 
 initChrome();
@@ -361,8 +362,7 @@ function addToQueue(v) {
 	const video = minVideo(v);
 	if (!video) return;
 	if (room) {
-		room.send({ t: "queue_add", video: { id: video.id, title: video.title } });
-		toast("Added to the watch party");
+		if (partySend({ t: "queue_add", video: { id: video.id, title: video.title } })) toast("Added to the watch party");
 		return;
 	}
 	store.enqueue(video);
@@ -504,7 +504,9 @@ function renderLibrary() {
 	const d = store.get();
 	const empty = (msg) => h("div", { class: "empty" }, h("p", {}, msg));
 
-	if (libTab === "queue") {
+	if (libTab === "subs") {
+		renderSubscriptions(d.subscriptions);
+	} else if (libTab === "queue") {
 		libBody.replaceChildren(
 			h("div", { class: "lib-actions" }, h("button", { type: "button", class: "button small primary", onclick: () => playList(d.queue), disabled: !d.queue.length }, "▶ Play queue"), h("button", { type: "button", class: "button small secondary", onclick: () => store.clearQueue(), disabled: !d.queue.length }, "Clear")),
 			d.queue.length
@@ -574,11 +576,104 @@ function renderLibrary() {
 	}
 }
 
+// ---------- Subscriptions: followed channels' latest uploads, merged. No Google account. ----------
+
+const FEED_TTL = 10 * 60 * 1000;
+let subsFeed = { key: "", at: 0, items: null, failed: 0 };
+let subsLoading = null;
+let subsLoadingKey = "";
+
+function renderSubscriptions(subs, { refresh = false } = {}) {
+	if (!subs.length) {
+		libBody.replaceChildren(
+			h("div", { class: "empty" }, h("p", {}, "You're not subscribed to any channels yet."), h("p", { class: "muted" }, "Open a channel and tap Subscribe. Subscriptions stay in this browser: no Google account needed.")),
+		);
+		return;
+	}
+	const chips = h(
+		"div",
+		{ class: "sub-chips" },
+		subs.map((c) =>
+			h(
+				"span",
+				{ class: "sub-chip" },
+				h("a", { href: `/?channel=${encodeURIComponent(c.id)}`, "data-internal": true }, safeUrl(c.avatar) ? h("img", { src: safeUrl(c.avatar), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }) : null, c.title),
+				h("button", { type: "button", class: "sub-chip-x", title: `Unsubscribe from ${c.title}`, "aria-label": `Unsubscribe from ${c.title}`, onclick: () => store.unsubscribe(c.id) }, "✕"),
+			),
+		),
+	);
+	const grid = h("div", { class: "grid" });
+	const status = h("p", { class: "muted sub-status" });
+	libBody.replaceChildren(
+		h(
+			"div",
+			{ class: "lib-actions" },
+			h("button", { type: "button", class: "button small primary", onclick: () => playList((subsFeed.items || []).map(minVideo).filter(Boolean)) }, "▶ Play latest"),
+			h("button", { type: "button", class: "button small secondary", onclick: () => renderSubscriptions(store.get().subscriptions, { refresh: true }) }, "Refresh"),
+			h("span", { class: "muted" }, `${subs.length} channel${subs.length === 1 ? "" : "s"}`),
+		),
+		chips,
+		status,
+		grid,
+	);
+	const key = subs.map((c) => c.id).sort().join(",");
+	const fresh = subsFeed.key === key && subsFeed.items && Date.now() - subsFeed.at < FEED_TTL;
+	if (fresh && !refresh) return drawFeed(grid, status);
+	grid.replaceChildren(...skeletons(8));
+	status.textContent = "Loading the latest uploads…";
+	// A re-render while loading (e.g. a ♡ tap) reuses the request already in flight.
+	if (refresh || !subsLoading || subsLoadingKey !== key) {
+		subsLoadingKey = key;
+		subsLoading = loadFeed(subs, key).finally(() => {
+			if (subsLoadingKey === key) subsLoadingKey = "";
+		});
+	}
+	const run = subsLoading;
+	run.then(() => {
+		// Still looking at the same tab and the same set of channels?
+		if (run !== subsLoading || libTab !== "subs" || !grid.isConnected) return;
+		drawFeed(grid, status);
+	});
+}
+
+async function loadFeed(subs, key) {
+	const pages = await mapLimit(subs, 4, async (c) => {
+		const d = await api(`/api/channel/${encodeURIComponent(c.id)}`, { tab: "videos", gl: settings.region });
+		return { channel: { name: d.title || c.title, id: c.id, handle: d.handle || c.handle, avatar: d.avatar || c.avatar, url: null, verified: false }, results: d.results || [] };
+	});
+	subsFeed = { key, at: Date.now(), items: mergeFeed(pages.filter(Boolean), 60), failed: pages.filter((p) => !p).length };
+}
+
+function drawFeed(grid, status) {
+	const items = subsFeed.items || [];
+	grid.replaceChildren(...items.map((v) => videoCard(v)));
+	status.textContent = [
+		items.length ? "Newest uploads first (YouTube only gives approximate dates)." : "No recent uploads from these channels.",
+		subsFeed.failed ? `${subsFeed.failed} channel${subsFeed.failed === 1 ? "" : "s"} couldn't be loaded.` : "",
+	]
+		.filter(Boolean)
+		.join(" ");
+	if (settings.dearrow) applyDeArrow(items);
+}
+
+function updateSubButton() {
+	const btn = $("#ch-sub");
+	const ch = chState.channel;
+	btn.hidden = !ch?.id;
+	if (!ch?.id) return;
+	const on = store.isSubscribed(ch.id);
+	btn.textContent = on ? "✓ Subscribed" : "+ Subscribe";
+	btn.classList.toggle("primary", !on);
+	btn.classList.toggle("secondary", on);
+	btn.setAttribute("aria-pressed", String(on));
+}
+
 for (const t of $$("[data-lib-tab]")) t.addEventListener("click", () => navigate(withParams({ view: "library", tab: t.dataset.libTab, ids: null, name: null }), { replace: true }));
 store.onChange(() => {
 	if (currentView === "library" && params().get("view") === "library") renderLibrary();
 	updateWatchLibraryButtons();
 	renderUpNext();
+	updateSubButton();
 });
 
 async function renderShared(name, ids) {
@@ -611,7 +706,7 @@ async function renderShared(name, ids) {
 // Channel & playlist pages
 // ---------------------------------------------------------------------------------------------
 
-const chState = { key: "", ref: "", tab: "videos", next: null, loading: false };
+const chState = { key: "", ref: "", tab: "videos", next: null, loading: false, channel: null };
 
 async function loadChannel(ref, tab, append = false) {
 	if (chState.loading) return;
@@ -619,6 +714,8 @@ async function loadChannel(ref, tab, append = false) {
 	$("#ch-more").hidden = true;
 	if (!append) {
 		chState.next = null;
+		chState.channel = null;
+		updateSubButton();
 		$("#ch-results").replaceChildren(...skeletons(8));
 		for (const t of $$("[data-ch-tab]")) t.setAttribute("aria-selected", String(t.dataset.chTab === tab));
 	}
@@ -634,6 +731,8 @@ async function loadChannel(ref, tab, append = false) {
 			$("#ch-banner").style.backgroundImage = safeUrl(d.banner) ? `url("${d.banner.replace(/"/g, "")}")` : "";
 			$("#ch-banner").hidden = !safeUrl(d.banner);
 			$("#ch-yt").href = safeUrl(d.url) || "#";
+			chState.channel = d.id ? { id: d.id, title: d.title || ref, handle: d.handle, avatar: safeUrl(d.avatar) } : null;
+			updateSubButton();
 			showView("channel", d.title || ref);
 			$("#ch-results").replaceChildren();
 		}
@@ -651,6 +750,16 @@ async function loadChannel(ref, tab, append = false) {
 }
 for (const t of $$("[data-ch-tab]")) t.addEventListener("click", () => navigate(withParams({ tab: t.dataset.chTab }), { replace: true }));
 $("#ch-more").addEventListener("click", () => loadChannel(chState.ref, chState.tab, true));
+$("#ch-sub").addEventListener("click", () => {
+	const ch = chState.channel;
+	if (!ch?.id) return;
+	const before = store.isSubscribed(ch.id);
+	const on = store.toggleSubscription(ch);
+	if (!before && !on) toast(`You can follow up to ${store.subscriptionLimit} channels`);
+	else if (on) toast(`Subscribed to ${ch.title}`, { label: "View feed", run: () => navigate("/?view=library&tab=subs") });
+	else toast(`Unsubscribed from ${ch.title}`);
+});
+
 
 const plState = { key: "", id: "", next: null, loading: false, items: [], title: "" };
 
@@ -734,7 +843,7 @@ function openFromCard(e, item) {
 	if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; // let new-tab clicks through
 	e.preventDefault();
 	if (room) {
-		room.send({ t: "load", video: { id: item.id, title: item.title } });
+		partySend({ t: "load", video: { id: item.id, title: item.title } });
 		return;
 	}
 	history.pushState({ watch: true }, "", withParams(item.list ? { v: item.id, list: item.list } : { v: item.id }));
@@ -836,9 +945,9 @@ function onPlayerState(e) {
 	if (room) {
 		if (performance.now() < suppressUntil) return;
 		const t = player.getCurrentTime?.() || 0;
-		if (e.data === YTS.PLAYING && !roomState?.playing) room.send({ t: "play", position: t });
-		else if (e.data === YTS.PAUSED && roomState?.playing) room.send({ t: "pause", position: t });
-		else if (e.data === YTS.ENDED) room.send({ t: "ended", id: current.id });
+		if (e.data === YTS.ENDED) room.send({ t: "ended", id: current.id });
+		else if (e.data === YTS.PLAYING && !roomState?.playing) partySend({ t: "play", position: t }, { quiet: true });
+		else if (e.data === YTS.PAUSED && roomState?.playing) partySend({ t: "pause", position: t }, { quiet: true });
 		return;
 	}
 	if (e.data === YTS.ENDED && settings.autoNext && !params().get("list")) playNextInQueue();
@@ -985,7 +1094,7 @@ function skipLoop() {
 	// Watch party: detect seeks the user made in the YouTube controls and share them.
 	if (room && roomState?.video?.id === current.id && now > suppressUntil) {
 		const expected = lastTick.t + (player.getPlayerState?.() === window.YT?.PlayerState?.PLAYING ? (now - lastTick.wall) / 1000 : 0);
-		if (Math.abs(t - expected) > 2.5) room.send({ t: "seek", position: t });
+		if (Math.abs(t - expected) > 2.5) partySend({ t: "seek", position: t }, { quiet: true });
 	}
 	lastTick = { t, wall: now };
 	updateActiveChapter(t);
@@ -1106,7 +1215,7 @@ function renderUpNext() {
 				{},
 				h("span", { class: "upnext-title" }, v.title),
 				room
-					? h("button", { type: "button", class: "button tiny secondary", "aria-label": "Remove from party queue", onclick: () => room.send({ t: "queue_remove", index: i }) }, "✕")
+					? h("button", { type: "button", class: "button tiny secondary", "aria-label": "Remove from party queue", onclick: () => partySend({ t: "queue_remove", index: i }) }, "✕")
 					: [
 							h("button", { type: "button", class: "button tiny secondary", "aria-label": "Play now", onclick: () => (store.removeFromQueue(i), history.replaceState({ watch: true }, "", withParams({ v: v.id })), openWatch(v.id, v)) }, "▶"),
 							h("button", { type: "button", class: "button tiny secondary", "aria-label": "Remove from queue", onclick: () => store.removeFromQueue(i) }, "✕"),
@@ -1121,7 +1230,9 @@ function renderUpNext() {
 async function startParty() {
 	let code;
 	try {
-		({ code } = await api("/api/rooms/new"));
+		let hostKey;
+		({ code, hostKey } = await api("/api/rooms/new"));
+		if (hostKey) hostKeys.set(code, hostKey);
 	} catch (err) {
 		toast(`Couldn't create a room: ${err.message}`);
 		return;
@@ -1148,8 +1259,15 @@ function openRoom(code) {
 			}
 			applyRoomState(s);
 			renderUpNext();
+			renderRoomRole();
 		},
-		onMembers: (m) => ($("#room-members").textContent = `· ${m.count} watching${m.names?.length ? `: ${m.names.slice(0, 6).join(", ")}${m.names.length > 6 ? "…" : ""}` : ""}`),
+		onMembers: (m) => {
+			const names = m.names?.length ? `: ${m.names.slice(0, 6).join(", ")}${m.names.length > 6 ? "…" : ""}` : "";
+			const hosts = m.hosts?.length ? ` · host: ${m.hosts.slice(0, 2).join(", ")}` : "";
+			$("#room-members").textContent = `· ${m.count} watching${names}${hosts}`;
+		},
+		onRole: () => renderRoomRole(),
+		onDenied: (reason) => toast(reason === "not_host" ? "Only the host can change that" : "The host has locked this room"),
 		onStatus: (s) => ($("#room-status").textContent = s === "connected" ? "" : s === "full" ? "· room is full" : `· ${s}…`),
 	});
 	room.name = settings.partyName || "Guest";
@@ -1210,6 +1328,36 @@ function applyRoomState(s, { force = false } = {}) {
 	}
 }
 
+/**
+ * Sends a playback/queue change to the room. In a host-locked room, guests can't: their player is
+ * put back in sync instead. Returns whether the message was sent.
+ */
+function partySend(msg, { quiet = false } = {}) {
+	if (!room) return false;
+	if (room.canControl(roomState)) {
+		room.send(msg);
+		return true;
+	}
+	if (!quiet) toast("The host has locked this room");
+	if (roomState) applyRoomState(roomState, { force: true });
+	return false;
+}
+
+function renderRoomRole() {
+	if (!room) return;
+	const locked = !!roomState?.locked;
+	const lockBtn = $("#room-lock");
+	lockBtn.hidden = !room.isHost;
+	lockBtn.textContent = locked ? "🔒 Host only" : "🔓 Everyone can control";
+	lockBtn.setAttribute("aria-pressed", String(locked));
+	lockBtn.title = locked ? "Only hosts can control playback and the queue. Click to let everyone control it." : "Everyone can control playback and the queue. Click to make it host-only.";
+	$("#room-role").textContent = room.isHost ? "· you're the host" : locked ? "· host controls playback" : "";
+	const guestLocked = locked && !room.isHost;
+	$("#room-add").hidden = guestLocked;
+	if (guestLocked) $("#room-add-results").hidden = true;
+}
+$("#room-lock").addEventListener("click", () => room?.isHost && room.send({ t: "lock", locked: !roomState?.locked }));
+
 function leaveRoom() {
 	room?.close();
 	room = null;
@@ -1237,8 +1385,8 @@ $("#room-add").addEventListener("submit", async (e) => {
 					{},
 					h("img", { src: safeUrl(v.thumbnail), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }),
 					h("span", { class: "upnext-title" }, v.title, h("small", { class: "muted" }, ` ${[v.channel?.name, v.live ? "LIVE" : v.duration].filter(Boolean).join(" · ")}`)),
-					h("button", { type: "button", class: "button tiny primary", onclick: () => (room?.send({ t: "queue_add", video: { id: v.id, title: v.title } }), toast(roomState?.video ? "Added to the party queue" : "Playing now")) }, "+ Add"),
-					h("button", { type: "button", class: "button tiny secondary", onclick: () => room?.send({ t: "load", video: { id: v.id, title: v.title } }) }, "Play now"),
+					h("button", { type: "button", class: "button tiny primary", onclick: () => partySend({ t: "queue_add", video: { id: v.id, title: v.title } }) && toast(roomState?.video ? "Added to the party queue" : "Playing now") }, "+ Add"),
+					h("button", { type: "button", class: "button tiny secondary", onclick: () => partySend({ t: "load", video: { id: v.id, title: v.title } }) }, "Play now"),
 				),
 			),
 		);
@@ -1345,7 +1493,7 @@ function syncFromUrl() {
 
 	// ---- Page behind the player ----
 	if (view === "library") {
-		libTab = ["queue", "favorites", "history", "playlists", "party"].includes(p.get("tab")) ? p.get("tab") : "queue";
+		libTab = ["subs", "queue", "favorites", "history", "playlists", "party"].includes(p.get("tab")) ? p.get("tab") : "queue";
 		showView("library", "Your library");
 		renderLibrary();
 	} else if (view === "shared") {

@@ -104,7 +104,7 @@
 	</head>
 	<body>
 		<div id="announce" class="announce" hidden>
-			<p>BetterYTS is in beta. Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+			<p><b>Beta</b> Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
 			<button type="button" class="announce-close" aria-label="Dismiss announcement">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
 			</button>
@@ -309,6 +309,7 @@
 				<p class="eyebrow">Stored only in this browser</p>
 				<h1 class="page-title">Your library</h1>
 				<div class="tabs" role="tablist" aria-label="Library sections">
+					<button type="button" role="tab" class="tab" data-lib-tab="subs">Subscriptions</button>
 					<button type="button" role="tab" class="tab" data-lib-tab="queue">Queue</button>
 					<button type="button" role="tab" class="tab" data-lib-tab="favorites">Favorites</button>
 					<button type="button" role="tab" class="tab" data-lib-tab="history">History</button>
@@ -329,6 +330,7 @@
 							<p id="ch-meta" class="muted"></p>
 							<p id="ch-desc" class="desc-snippet"></p>
 						</div>
+						<button id="ch-sub" class="button small primary" type="button" aria-pressed="false" hidden>+ Subscribe</button>
 						<a id="ch-yt" class="button small secondary" target="_blank" rel="noopener">Open on YouTube</a>
 					</div>
 					<div class="tabs" role="tablist" aria-label="Channel sections">
@@ -417,11 +419,13 @@
 						<span class="room-live" aria-hidden="true"></span>
 						<b>Watch party</b> <code id="room-code"></code>
 						<span id="room-members" class="muted"></span>
+						<span id="room-role" class="muted"></span>
 						<span id="room-status" class="muted"></span>
 					</div>
 					<div class="room-actions">
 						<button class="button tiny secondary" type="button" id="room-invite">Copy invite link</button>
 						<button class="button tiny secondary" type="button" id="room-vrc" title="Paste into a VRChat video player: plays what the room is playing now">Copy VRChat link</button>
+						<button class="button tiny secondary" type="button" id="room-lock" aria-pressed="false" hidden>🔓 Everyone can control</button>
 						<button class="button tiny secondary" type="button" id="room-leave">Leave</button>
 					</div>
 					<form id="room-add" class="room-add" autocomplete="off">

@@ -7,20 +7,40 @@ import {
 	type ClientMessage,
 	currentPosition,
 	emptyState,
+	HOST_KEY_RE,
+	mayControl,
 	MAX_MEMBERS,
 	MAX_MESSAGE_BYTES,
 	ROOM_TTL_MS,
 	type RoomState,
+	sameKey,
 } from "./protocol.ts";
+
+interface Member {
+	name: string;
+	host: boolean;
+}
 
 export class Room extends DurableObject<Env> {
 	private state: RoomState = emptyState();
+	/** Set once by /api/rooms/new. Rooms opened by code alone (or created before hosts existed) have none. */
+	private hostKey: string | null = null;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
 		ctx.blockConcurrencyWhile(async () => {
 			this.state = (await ctx.storage.get<RoomState>("state")) ?? emptyState();
+			this.hostKey = (await ctx.storage.get<string>("hostKey")) ?? null;
 		});
+	}
+
+	/** Called by /api/rooms/new right after picking a code. Only the first claim wins. */
+	async claim(key: string): Promise<boolean> {
+		if (this.hostKey || !HOST_KEY_RE.test(key)) return false;
+		this.hostKey = key;
+		await this.ctx.storage.put("hostKey", key);
+		await this.touch();
+		return true;
 	}
 
 	/** Snapshot for HTTP readers (e.g. /room/{code} redirects). */
@@ -34,7 +54,7 @@ export class Room extends DurableObject<Env> {
 		const pair = new WebSocketPair();
 		const [client, server] = Object.values(pair);
 		this.ctx.acceptWebSocket(server);
-		server.serializeAttachment({ name: "Guest" });
+		server.serializeAttachment({ name: "Guest", host: false } satisfies Member);
 		await this.touch();
 		server.send(this.message());
 		this.broadcastMembers();
@@ -56,8 +76,16 @@ export class Room extends DurableObject<Env> {
 		}
 		if (msg.t === "hello") {
 			const name = typeof msg.name === "string" ? msg.name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 32) : "";
-			ws.serializeAttachment({ name: name || "Guest" });
+			const host = !!this.hostKey && typeof msg.key === "string" && sameKey(msg.key, this.hostKey);
+			ws.serializeAttachment({ name: name || "Guest", host } satisfies Member);
+			ws.send(JSON.stringify({ t: "you", host, hasHost: !!this.hostKey }));
 			this.broadcastMembers();
+			return;
+		}
+		if (!mayControl(this.state, msg, this.member(ws).host)) {
+			// Tell the sender, and resend the state so their player snaps back.
+			ws.send(JSON.stringify({ t: "denied", reason: msg.t === "lock" ? "not_host" : "locked" }));
+			ws.send(this.message());
 			return;
 		}
 		const next = applyMessage(this.state, msg);
@@ -94,6 +122,11 @@ export class Room extends DurableObject<Env> {
 		await this.ctx.storage.setAlarm(Date.now() + ROOM_TTL_MS);
 	}
 
+	private member(ws: WebSocket): Member {
+		const a = ws.deserializeAttachment() as Partial<Member> | null;
+		return { name: a?.name ?? "Guest", host: a?.host === true };
+	}
+
 	private message(): string {
 		return JSON.stringify({ t: "state", state: this.state, serverTime: Date.now() });
 	}
@@ -111,7 +144,9 @@ export class Room extends DurableObject<Env> {
 
 	private broadcastMembers(leaving?: WebSocket): void {
 		const sockets = this.ctx.getWebSockets().filter((w) => w !== leaving && w.readyState === WebSocket.OPEN);
-		const names = sockets.map((ws) => (ws.deserializeAttachment() as { name?: string } | null)?.name ?? "Guest");
-		this.broadcast(JSON.stringify({ t: "members", count: sockets.length, names: names.slice(0, MAX_MEMBERS) }));
+		const members = sockets.map((ws) => this.member(ws)).slice(0, MAX_MEMBERS);
+		const names = members.map((m) => m.name);
+		const hosts = members.filter((m) => m.host).map((m) => m.name);
+		this.broadcast(JSON.stringify({ t: "members", count: sockets.length, names, hosts }));
 	}
 }

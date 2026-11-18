@@ -67,7 +67,7 @@
 	</head>
 	<body>
 		<div id="announce" class="announce" hidden>
-			<p>BetterYTS is in beta. Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+			<p><b>Beta</b> Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
 			<button type="button" class="announce-close" aria-label="Dismiss announcement">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
 			</button>
@@ -265,9 +265,9 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 				<table class="table">
 					<thead><tr><th>Endpoint</th><th>What it does</th></tr></thead>
 					<tbody>
-						<tr><td><code>GET /api/rooms/new</code></td><td>Returns a new 6-character room code.</td></tr>
+						<tr><td><code>GET /api/rooms/new</code></td><td>Returns a new 6-character room code and a <code>hostKey</code>. Keep the key: sending it in <code>hello</code> makes you the host.</td></tr>
 						<tr><td><code>GET /api/rooms/{code}</code></td><td>Current video, playback position, queue and member count.</td></tr>
-						<tr><td><code>WS /api/rooms/{code}/ws</code></td><td>Join. Send <code>load</code>, <code>play</code>, <code>pause</code>, <code>seek</code>, <code>next</code>, <code>ended</code>, <code>queue_add</code>, <code>queue_remove</code>; receive <code>state</code> and <code>members</code>.</td></tr>
+						<tr><td><code>WS /api/rooms/{code}/ws</code></td><td>Join. Send <code>load</code>, <code>play</code>, <code>pause</code>, <code>seek</code>, <code>next</code>, <code>ended</code>, <code>queue_add</code>, <code>queue_remove</code>; receive <code>state</code> and <code>members</code>. Send <code>{"t":"hello","name":…,"key":hostKey}</code> to join as host (you get <code>{"t":"you","host":true}</code>); hosts can send <code>{"t":"lock","locked":true}</code> so only hosts control playback and the queue. Refused messages get <code>{"t":"denied"}</code>.</td></tr>
 						<tr><td><code>GET /room/{code}</code></td><td>For VRChat players: 302 to what the room is playing right now, at the current time.</td></tr>
 					</tbody>
 				</table>

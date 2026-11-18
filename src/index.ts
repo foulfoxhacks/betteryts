@@ -26,7 +26,7 @@ import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 export { VrcPool } from "./vrc/pool.ts";
 export { Room } from "./rooms/room.ts";
 
-import { currentPosition, newRoomCode, ROOM_CODE_RE } from "./rooms/protocol.ts";
+import { currentPosition, newHostKey, newRoomCode, ROOM_CODE_RE } from "./rooms/protocol.ts";
 import type { Room } from "./rooms/room.ts";
 
 function roomStub(code: string) {
@@ -35,7 +35,15 @@ function roomStub(code: string) {
 
 /** /api/rooms/new, /api/rooms/{code}, /api/rooms/{code}/ws */
 async function apiRooms(req: Request, path: string): Promise<Response> {
-	if (path === "/api/rooms/new") return json({ code: newRoomCode() });
+	if (path === "/api/rooms/new") {
+		// The creator gets a host key: with it they can switch the room to host-only control.
+		for (let i = 0; i < 3; i++) {
+			const code = newRoomCode();
+			const hostKey = newHostKey();
+			if (await roomStub(code).claim(hostKey)) return json({ code, hostKey });
+		}
+		return errorJson("Couldn't create a room, try again", 503);
+	}
 	const m = /^\/api\/rooms\/([A-Za-z0-9]{6})(\/ws)?$/.exec(path);
 	if (!m) return errorJson("Unknown room endpoint", 404);
 	const code = m[1].toUpperCase();
@@ -340,7 +348,7 @@ function apiIndex(origin: string): Response {
 				"GET /api/channel/{id|@handle}": "A channel's details and videos. tab=videos|live|shorts|playlists, page=",
 				"GET /vrc/protv.playlist?q=|list=": "ProTV playlist file from a search or playlist (n=1..500)",
 				"GET /vrc/search?q=": "In-world search for VRChat (see docs/vrchat-protocol.md)",
-				"GET /api/rooms/new": "Create a watch-party room code",
+				"GET /api/rooms/new": "Create a watch-party room: returns its code and the creator's hostKey",
 				"GET /api/rooms/{code}": "Room state (what's playing, position, queue, members)",
 				"WS /api/rooms/{code}/ws": "Join a room: synced playback and shared queue",
 				"GET /room/{code}": "VRChat players: 302 to what the room is playing right now",

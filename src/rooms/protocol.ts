@@ -19,12 +19,15 @@ export interface RoomState {
 	/** Epoch ms when `position` was recorded. */
 	at: number;
 	queue: RoomVideo[];
+	/** Host-only mode: only hosts may control playback and the queue. Missing in rooms saved before hosts existed. */
+	locked?: boolean;
 	/** Bumped on every change so clients can ignore stale updates. */
 	rev: number;
 }
 
 export type ClientMessage =
-	| { t: "hello"; name?: string }
+	| { t: "hello"; name?: string; key?: string }
+	| { t: "lock"; locked: boolean }
 	| { t: "load"; video: RoomVideo }
 	| { t: "play"; position: number }
 	| { t: "pause"; position: number }
@@ -36,7 +39,36 @@ export type ClientMessage =
 	| { t: "ping" };
 
 export function emptyState(): RoomState {
-	return { video: null, playing: false, position: 0, at: Date.now(), queue: [], rev: 0 };
+	return { video: null, playing: false, position: 0, at: Date.now(), queue: [], locked: false, rev: 0 };
+}
+
+/** Messages that change playback or the queue. In a locked room only hosts may send them. */
+export const CONTROL_MESSAGES: ReadonlySet<string> = new Set(["load", "play", "pause", "seek", "next", "queue_add", "queue_remove"]);
+
+/**
+ * Whether a member may send this message. `ended` stays open to everyone: it only advances when the
+ * reported video is the current one, and the host may not be the one whose player finished first.
+ */
+export function mayControl(s: RoomState, m: ClientMessage, isHost: boolean): boolean {
+	if (m.t === "lock") return isHost;
+	if (s.locked && CONTROL_MESSAGES.has(m.t)) return isHost;
+	return true;
+}
+
+export const HOST_KEY_RE = /^[A-Za-z0-9_-]{32}$/;
+
+/** Secret that proves who created a room. Returned once by /api/rooms/new and kept in that browser. */
+export function newHostKey(): string {
+	const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	return [...crypto.getRandomValues(new Uint8Array(32))].map((b) => alphabet[b & 63]).join("");
+}
+
+/** Constant-time comparison, so a wrong key can't be guessed one character at a time. */
+export function sameKey(a: string, b: string): boolean {
+	if (a.length !== b.length) return false;
+	let diff = 0;
+	for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+	return diff === 0;
 }
 
 /** Where playback is right now. */
@@ -60,6 +92,10 @@ const pos = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? Math.
 export function applyMessage(s: RoomState, m: ClientMessage, now = Date.now()): RoomState | null {
 	const next = (patch: Partial<RoomState>): RoomState => ({ ...s, ...patch, rev: s.rev + 1 });
 	switch (m.t) {
+		case "lock": {
+			const locked = m.locked === true;
+			return locked === !!s.locked ? null : next({ locked });
+		}
 		case "load": {
 			const video = cleanVideo(m.video);
 			return video ? next({ video, playing: true, position: 0, at: now }) : null;

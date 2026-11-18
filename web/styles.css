@@ -1,14 +1,15 @@
 /* BetterYTS by FoulFoxHacks — protv.dev-style layout in the akasammythepuppy.me palette:
    warm near-black, cream type, gold accents, orange glow, violet/pink gradient headings. */
 :root {
-	--bg: #070403;
-	--surface: #130d0a;
-	--surface-2: #1e1511;
+	--bg: #050302;
+	--surface: #120c08;
+	--surface-2: #1b120b;
 	--hover: rgb(255 243 228 / 0.06);
-	--border: rgb(255 243 228 / 0.14);
-	--text: #f4ebe2;
-	--text-strong: #fff7e7;
-	--muted: #a79fb2;
+	--border: rgb(255 255 255 / 0.16);
+	--line-gold: rgb(255 200 87 / 0.26);
+	--text: #fff7e7;
+	--text-strong: #ffffff;
+	--muted: #cdbda9;
 	--primary: #ffc857;
 	--primary-dark: #f2b23a;
 	--primary-darker: #b87333;
@@ -27,9 +28,9 @@
 	--btn-2-ink: #fff3e4;
 	--code-bg: rgb(255 243 228 / 0.09);
 	--codeblock-bg: #120b08;
-	--footer: #0c0705;
+	--footer: #080402;
 	--footer-ink: #e9dfd6;
-	--announce: linear-gradient(90deg, #3b1c07, #2a1238 60%, #3b1c07);
+	--announce: #0b0604;
 	--danger: #ff5a5a;
 	--warn-bg: rgb(255 200 87 / 0.1);
 	--warn-border: #ffc857;
@@ -37,8 +38,8 @@
 	--info-border: #9b6cff;
 	--grad-title: linear-gradient(96deg, #fff7e7, #f0c890 30%, #b87333 58%, #ff8b42 82%, #ffd36e);
 	--grad-heading: linear-gradient(100deg, #fff7e7 4%, #f0c890 35%, #9b6cff 72%, #ff8dd0);
-	--radius: 12px;
-	--btn-radius: 10px;
+	--radius: 0;
+	--btn-radius: 0;
 	--shadow: 0 10px 34px rgb(0 0 0 / 0.55);
 	--nav-h: 64px;
 	--font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
@@ -55,7 +56,7 @@
 		--border: rgb(29 16 5 / 0.14);
 		--text: #2a1a10;
 		--text-strong: #1d1005;
-		--muted: #6d6177;
+		--muted: #6e5a48;
 		--link: #9a4a0b;
 		--btn-2: #ffffff;
 		--btn-2-border: rgb(29 16 5 / 0.18);
@@ -273,7 +274,11 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .watch-close { position: absolute; top: 8px; right: 8px; z-index: 2; background: rgb(0 0 0 / 0.6); color: #fff; }
 .watch-close:hover { background: rgb(0 0 0 / 0.85); }
 .player-frame { aspect-ratio: 16 / 9; background: #000; }
+/* The IFrame API swaps #player for an <iframe>; the slot must fill the 16:9 frame or it falls back to 150px tall. */
+#player-slot { position: absolute; inset: 0; }
 .player-frame #player, .player-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.player-frame { width: min(100%, calc(70vh * 16 / 9)); margin-inline: auto; }
+@supports (height: 1dvh) { .player-frame { width: min(100%, calc(70dvh * 16 / 9)); } }
 .player-error { display: grid; place-items: center; height: 100%; color: #fff; }
 .seg-bar { position: relative; height: 6px; background: var(--surface-2); }
 .seg-bar span { position: absolute; top: 0; bottom: 0; opacity: 0.9; }
@@ -439,6 +444,14 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .channel-head-avatar { width: 96px; height: 96px; border-radius: 50%; box-shadow: 0 0 0 3px rgb(255 200 87 / 0.5); }
 .channel-head-text { flex: 1; min-width: 220px; }
 .channel-head-text .page-title { margin: 0; }
+.sub-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
+.sub-chip { display: inline-flex; align-items: center; gap: 2px; padding: 3px 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font-size: 13px; max-width: 100%; }
+.sub-chip a { display: inline-flex; align-items: center; gap: 6px; color: inherit; text-decoration: none; padding: 0 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub-chip a:hover { color: var(--primary); }
+.sub-chip img { width: 22px; height: 22px; border-radius: 50%; flex: none; }
+.sub-chip-x { border: 0; background: none; color: var(--muted); cursor: pointer; width: 24px; height: 24px; border-radius: 50%; }
+.sub-chip-x:hover { background: var(--hover); color: var(--text); }
+.sub-status { margin: 4px 0 12px; font-size: 13px; }
 .channel-view .tabs { margin-top: 20px; }
 
 /* ---------- watch dialog extras ---------- */
@@ -468,6 +481,7 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .room-live { width: 9px; height: 9px; border-radius: 50%; background: #ff4d4d; box-shadow: 0 0 0 0 rgb(255 77 77 / 0.6); animation: pulse 1.8s infinite; }
 @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgb(255 77 77 / 0); } 100% { box-shadow: 0 0 0 0 rgb(255 77 77 / 0); } }
 .room-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+#room-lock[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
 .room-add { display: flex; gap: 8px; }
 .room-add input { flex: 1; }
 .room-add-results { max-height: 240px; padding: 4px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
@@ -540,4 +554,125 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 	:root:not([data-theme="dark"]) .band h2, :root:not([data-theme="dark"]) .creator h2, :root:not([data-theme="dark"]) .doc h1 {
 		background: linear-gradient(100deg, #b45309, #9b6cff 70%, #d63c8f); -webkit-background-clip: text; background-clip: text;
 	}
+}
+
+/* =============================================================================================
+   akasammythepuppy.me look
+   Same page structure as before (announcement bar, navbar, hero band, features, footer), drawn
+   in Sammy's visual language: square framed panels, uppercase weight-950 display type with
+   gradient fills, tracked uppercase button labels, copper-gradient buttons with gold borders,
+   warm tan secondary text and violet accent rules.
+   ============================================================================================= */
+
+/* Buttons */
+.button { padding: 10px 18px; font-size: 12.5px; font-weight: 860; letter-spacing: 0.075em; text-transform: uppercase; line-height: 1.3; }
+.button.secondary {
+	background: linear-gradient(105deg, rgb(139 69 29 / 0.26), rgb(184 115 51 / 0.24), rgb(255 104 30 / 0.14));
+	border-color: rgb(255 200 87 / 0.58);
+	color: #fff;
+}
+.button.secondary:hover { background: linear-gradient(105deg, rgb(139 69 29 / 0.42), rgb(184 115 51 / 0.38), rgb(255 104 30 / 0.24)); border-color: var(--primary); }
+.button.primary { box-shadow: 0 16px 40px rgb(0 0 0 / 0.2); }
+.button.lg { padding: 13px 26px; font-size: 13.5px; }
+.button.small { padding: 7px 12px; font-size: 11.5px; }
+.button.tiny { padding: 4px 9px; font-size: 10.5px; letter-spacing: 0.06em; }
+.icon-btn { border-radius: 11px; border: 1px solid transparent; }
+.navbar .icon-btn, .nav-right .icon-btn { background: rgb(255 255 255 / 0.06); border-color: rgb(255 255 255 / 0.14); }
+.navbar .icon-btn:hover { border-color: var(--line-gold); }
+
+/* Ticker-style announcement bar */
+.announce { border-bottom: 1px solid var(--line-gold); color: #e6d9c8; font-weight: 400; font-size: 13px; }
+.announce p > b:first-child, .announce strong:first-child { color: var(--primary); font-weight: 850; letter-spacing: 0.1em; text-transform: uppercase; margin-right: 8px; }
+
+/* Navbar */
+.navbar { background: linear-gradient(rgb(5 3 2 / 0.97), rgb(5 3 2 / 0.82)); box-shadow: 0 16px 48px rgb(0 0 0 / 0.22); border-bottom-color: var(--line-gold); backdrop-filter: blur(10px); }
+.brand-text small { color: #c99a5d; font-weight: 850; letter-spacing: 0.1em; }
+.nav-link { font-weight: 700; }
+
+/* Hero: Sammy's display type, glowing orbs and the ring motif */
+.hero {
+	text-align: left; padding: 84px 0 76px; isolation: isolate;
+	background:
+		radial-gradient(14px 14px at 74% 14%, #ff9a4a, transparent 70%),
+		radial-gradient(90px 90px at 74% 14%, rgb(255 104 30 / 0.55), transparent 70%),
+		radial-gradient(60px 60px at 68% 30%, rgb(255 104 30 / 0.45), transparent 70%),
+		radial-gradient(560px 340px at 80% 30%, rgb(255 104 30 / 0.22), transparent 70%),
+		radial-gradient(520px 320px at 8% 100%, rgb(155 108 255 / 0.22), transparent 70%),
+		linear-gradient(180deg, #160b05, #050302);
+}
+.hero::before, .hero::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; pointer-events: none; }
+.hero::before { width: 560px; height: 560px; right: -120px; top: 50%; transform: translateY(-50%); border: 1.5px solid rgb(255 200 87 / 0.38); }
+.hero::after { width: 380px; height: 380px; right: -30px; top: 50%; transform: translateY(-50%); border: 1.5px dashed rgb(255 200 87 / 0.28); }
+.hero .container { position: relative; }
+.hero-title {
+	font-size: clamp(56px, 10.5vw, 128px); font-weight: 950; line-height: 0.9; letter-spacing: -0.075em; text-transform: uppercase;
+	background: linear-gradient(96deg, #fff7e7, #f0c890 30%, #b87333 58%, #ff8b42 82%, #ffd36e);
+	-webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero-by { margin-top: 18px; color: #f0c890; font-size: 14px; font-weight: 850; letter-spacing: 0.16em; line-height: 1.4; -webkit-text-fill-color: #f0c890; }
+.hero-subtitle { max-width: 640px; margin: 20px 0 0; color: var(--text); font-size: 19px; line-height: 1.6; }
+.hero-search-slot { margin: 30px 0 0; }
+.hero-buttons { justify-content: flex-start; gap: 12px; }
+.hero-compact .hero-title { font-size: clamp(44px, 8vw, 88px); }
+
+/* Search: square, framed */
+.search-box, .hero-search-slot .search-box, .suggestions, .suggestions li, .hint { border-radius: 0; }
+.hero-search-slot .search-box { background: #fff7e7; border: 1px solid rgb(255 200 87 / 0.7); box-shadow: 0 16px 48px rgb(0 0 0 / 0.45); }
+.hero-search-slot .search-submit { border-radius: 0; padding: 0 28px; font-size: 13px; }
+.search-box:focus-within { box-shadow: 0 0 0 3px rgb(255 200 87 / 0.28); }
+
+/* Section headings: big uppercase display type */
+.band h2, .page-title {
+	font-weight: 950; text-transform: uppercase; letter-spacing: -0.06em; line-height: 0.95;
+	background: linear-gradient(100deg, #fff7e7 4%, #f0c890 35%, #9b6cff 72%, #ff681e);
+	-webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.band h2 { font-size: clamp(34px, 5vw, 56px); margin-bottom: 14px; }
+.page-title { font-size: clamp(36px, 6vw, 64px); }
+.section-title { font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; }
+.eyebrow, .footer-title { color: #f0c890; font-weight: 850; letter-spacing: 0.1em; }
+
+/* Features: framed squares instead of round badges */
+.features { gap: 0; padding-top: 0; padding-bottom: 0; text-align: left; border-left: 1px solid var(--border); }
+.feature { padding: 36px 28px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: linear-gradient(155deg, rgb(30 16 8 / 0.97), rgb(8 4 2 / 0.99)); }
+.feature-icon { width: 56px; height: 56px; border-radius: 0; background: rgb(255 200 87 / 0.08); box-shadow: inset 0 0 0 1px rgb(255 200 87 / 0.45); }
+.feature-icon svg { width: 28px; height: 28px; }
+.feature h3 { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
+.feature p { color: var(--muted); }
+.band { background: radial-gradient(circle at 12% 0%, rgb(155 108 255 / 0.14), transparent 420px), linear-gradient(145deg, #150b06, #070402 68%); border-color: var(--line-gold); }
+
+/* Cards, panels and dialogs: square with Sammy's card gradient */
+.card, .side-panel, .playlist-item, .settings, .watch, .codeblock, .select, .chip, .tab, .sub-chip, .toast, .room-code-input,
+.lib-actions input, .save-menu input, .room-add input, #chapters-search { border-radius: 0; }
+.card { background: linear-gradient(155deg, rgb(30 16 8 / 0.97), rgb(8 4 2 / 0.99)); }
+.card:hover { border-color: rgb(255 200 87 / 0.58); box-shadow: 0 16px 40px rgb(0 0 0 / 0.3); }
+.badge, .kind, .da { border-radius: 0; }
+.side-panel, .playlist-item { background: linear-gradient(155deg, rgb(30 16 8 / 0.9), rgb(8 4 2 / 0.95)); }
+.watch { border-color: var(--line-gold); }
+.room-bar { background: linear-gradient(90deg, rgb(255 104 30 / 0.14), rgb(155 108 255 / 0.12)); }
+.room-info code { border-radius: 0; }
+
+/* Tabs and chips: tracked uppercase labels */
+.tab, .chip { font-size: 12px; font-weight: 850; letter-spacing: 0.07em; text-transform: uppercase; }
+.tab[aria-selected="true"], .chip[aria-pressed="true"] { box-shadow: 0 10px 28px rgb(255 200 87 / 0.18); }
+
+/* Admonitions: Sammy's violet-rule quote style */
+.admonition { border-left-width: 2px; }
+.admonition.info { background: radial-gradient(circle at 0% 0%, rgb(155 108 255 / 0.2), transparent 320px), rgb(155 108 255 / 0.06); }
+
+/* Light mode keeps the same shapes */
+@media (prefers-color-scheme: light) {
+	:root:not([data-theme="dark"]) .card, :root:not([data-theme="dark"]) .feature, :root:not([data-theme="dark"]) .side-panel, :root:not([data-theme="dark"]) .playlist-item { background: var(--surface); }
+	:root:not([data-theme="dark"]) .band { background: var(--surface-2); }
+	:root:not([data-theme="dark"]) .button.secondary { color: var(--btn-2-ink); background: var(--btn-2); }
+	:root:not([data-theme="dark"]) .navbar { background: rgb(255 248 239 / 0.94); }
+	:root:not([data-theme="dark"]) .announce { color: #fff3e4; }
+}
+
+@media (max-width: 900px) {
+	.features { grid-template-columns: 1fr; }
+	.hero { padding: 56px 0 52px; }
+	.hero::before { width: 360px; height: 360px; right: -180px; }
+	.hero::after { width: 240px; height: 240px; right: -120px; }
+	.hero-subtitle { font-size: 17px; }
 }
