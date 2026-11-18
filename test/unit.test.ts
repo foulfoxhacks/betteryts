@@ -369,3 +369,19 @@ test("google sign-in broker: consent URL, app redirect and input checks", async 
 	assert.equal(g.googleConfig({}), null);
 	assert.deepEqual(g.googleConfig({ GOOGLE_CLIENT_ID: " id ", GOOGLE_CLIENT_SECRET: "sec" }), { clientId: "id", clientSecret: "sec" });
 });
+
+test("lyrics: LRC parsing, song clean-up and picking a search hit", async () => {
+	const l = await import("../src/lib/lyrics.ts");
+	const lines = l.parseLrc("[ar:Daft Punk]\n[00:01.50]One more time\n[00:05.00][01:05.00]Celebrate\n[00:03.25]");
+	assert.deepEqual(lines.map((x: { time: number }) => x.time), [1.5, 3.25, 5, 65]);
+	assert.equal(lines[1].text, "");
+	assert.equal(l.cleanTitle("Get Lucky (Official Video) [HD]"), "Get Lucky");
+	assert.equal(l.cleanTitle("Midnight City (Eric Prydz Remix)"), "Midnight City (Eric Prydz Remix)");
+	assert.deepEqual(l.songOf("Daft Punk - One More Time (Official Video)", "Daft Punk"), { artist: "Daft Punk", track: "One More Time" });
+	assert.deepEqual(l.songOf("The Weeknd - Blinding Lights", "TheWeekndVEVO"), { artist: "The Weeknd", track: "Blinding Lights" });
+	assert.deepEqual(l.songOf("lofi hip hop radio - beats to relax", "Lofi Girl"), { artist: "Lofi Girl", track: "lofi hip hop radio - beats to relax" });
+	assert.deepEqual(l.songOf("lofi girl - snowy night", "Lofi Girl"), { artist: "Lofi Girl", track: "snowy night" });
+	const pick = l.pickRecord([{ duration: 200, plainLyrics: "x" }, { duration: 321, syncedLyrics: "[00:01.00]a" }, { duration: 320, plainLyrics: "y" }], 320);
+	assert.equal(pick?.syncedLyrics, "[00:01.00]a");
+	assert.equal(l.pickRecord([], 10), null);
+});

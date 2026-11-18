@@ -139,6 +139,28 @@
 			</div>
 		</nav>
 
+		<aside id="guide" class="guide" aria-label="Library and subscriptions" hidden>
+			<nav class="guide-section">
+				<a class="guide-link" href="/" data-guide="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>Home</a>
+				<a class="guide-link" href="/?view=library&amp;tab=subs" data-internal data-guide="subs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8H4V6h16v2zm-2-6H6v2h12V2zm4 10v8c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2zm-6 4-6-3.27v6.53L16 16z" /></svg>Subscriptions</a>
+			</nav>
+			<nav class="guide-section">
+				<p class="guide-title">You</p>
+				<a class="guide-link" href="/?view=library&amp;tab=queue" data-internal data-guide="queue"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z" /></svg>Queue</a>
+				<a class="guide-link" href="/?view=library&amp;tab=favorites" data-internal data-guide="favorites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z" /></svg>Favorites</a>
+				<a class="guide-link" href="/?view=library&amp;tab=history" data-internal data-guide="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.95 8.95 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z" /></svg>History</a>
+				<a class="guide-link" href="/?view=library&amp;tab=playlists" data-internal data-guide="playlists"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z" /></svg>Playlists</a>
+				<a class="guide-link" href="/?view=library&amp;tab=party" data-internal data-guide="party"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>Watch party</a>
+			</nav>
+			<nav class="guide-section" id="guide-subs-wrap" hidden>
+				<p class="guide-title">Subscriptions</p>
+				<div id="guide-subs"></div>
+			</nav>
+			<nav class="guide-section guide-footer">
+				<a href="/docs">API docs</a> · <a href="/docs#redirects">VRChat</a> · <a href="/sitemap">Site map</a>
+			</nav>
+		</aside>
+
 		<header class="hero" id="hero">
 			<div class="container">
 				<h1 class="hero-title">BetterYTS <span class="hero-by">by FoulFoxHacks</span></h1>
@@ -168,6 +190,7 @@
 		<main id="main">
 			<!-- Home -->
 			<section id="home" class="home">
+				<div id="home-shelves" class="container home-shelves" hidden></div>
 				<div class="features container">
 					<div class="feature">
 						<span class="feature-icon" aria-hidden="true">
@@ -452,6 +475,16 @@
 						<button class="button small secondary" type="button" id="copy-yt">Copy link</button>
 						<button class="button small primary" type="button" id="copy-vrc" title="youtube.com links work in VRChat even with untrusted URLs off">Copy for VRChat</button>
 						<button class="button small secondary" type="button" id="jump-highlight" hidden>Jump to highlight</button>
+						<label class="select sleep-select" id="sleep-wrap"><span>Sleep</span>
+							<select id="sleep-select" aria-label="Sleep timer">
+								<option value="">Off</option>
+								<option value="15">15 min</option>
+								<option value="30">30 min</option>
+								<option value="60">1 hour</option>
+								<option value="90">90 min</option>
+								<option value="end">End of video</option>
+							</select>
+						</label>
 					</div>
 					<div class="watch-actions library-actions">
 						<button class="button small secondary" type="button" id="fav-btn" aria-pressed="false">♡ Favorite</button>
@@ -467,6 +500,10 @@
 					<div id="upnext" class="side-panel" hidden>
 						<h3>Up next <span id="upnext-count" class="muted"></span></h3>
 						<ol id="upnext-list" class="upnext-list"></ol>
+					</div>
+					<div id="lyrics" class="side-panel lyrics-panel" hidden>
+						<h3>Lyrics <span id="lyrics-source" class="muted"></span></h3>
+						<ol id="lyrics-list" class="lyrics-list"></ol>
 					</div>
 					<div id="chapters" class="side-panel" hidden>
 						<h3>Chapters <span id="chapters-source" class="muted"></span></h3>
@@ -492,9 +529,23 @@
 					</button>
 				</header>
 				<fieldset>
+					<legend>Theme</legend>
+					<div id="theme-cards" class="theme-cards" role="radiogroup" aria-label="Theme"></div>
+				</fieldset>
+				<fieldset>
+					<legend>Plugins</legend>
+					<p class="fine plugins-note">Built for the BetterYTS ecosystem: the same plugins as the BetterYTS Music app.</p>
+					<label class="plugin"><input type="checkbox" data-setting="sponsorblock" /><span><b>SponsorBlock</b><small>Skip sponsors, intros, outros and non-music parts. Choose categories below.</small></span></label>
+					<div id="sb-settings" class="sb-grid"></div>
+					<label class="plugin"><input type="checkbox" data-setting="dislikes" /><span><b>Return YouTube Dislike</b><small>Like and dislike counts under the video.</small></span></label>
+					<label class="plugin"><input type="checkbox" data-setting="dearrow" /><span><b>DeArrow</b><small>Community titles and thumbnails instead of clickbait.</small></span></label>
+					<label class="plugin"><input type="checkbox" data-setting="lyrics" /><span><b>Synced lyrics</b><small>Time-synced lyrics from LRCLIB next to music videos.</small></span></label>
+					<label class="plugin"><input type="checkbox" data-setting="sleep" /><span><b>Sleep timer</b><small>Stop playback after a while or at the end of the video.</small></span></label>
+					<label class="plugin"><input type="checkbox" data-setting="vrchat" /><span><b>VRChat bridge</b><small>Copy-for-VRChat, room and ProTV playlist links.</small></span></label>
+				</fieldset>
+				<fieldset>
 					<legend>Results</legend>
 					<label class="toggle"><input type="checkbox" data-setting="hideShorts" /> Hide Shorts</label>
-					<label class="toggle"><input type="checkbox" data-setting="dearrow" /> DeArrow: show community titles &amp; thumbnails</label>
 					<label class="select wide"><span>Region</span>
 						<select data-setting="region">
 							<option value="">Default (US)</option>
@@ -516,15 +567,10 @@
 				<fieldset>
 					<legend>Player</legend>
 					<label class="toggle"><input type="checkbox" data-setting="autoplay" /> Autoplay when opening a video</label>
-					<label class="toggle"><input type="checkbox" data-setting="dislikes" /> Show likes &amp; dislikes</label>
 					<label class="toggle"><input type="checkbox" data-setting="captions" /> Turn on captions when available</label>
 					<label class="toggle"><input type="checkbox" data-setting="autoNext" /> Play the next video in your queue automatically</label>
 					<label class="select wide"><span>Watch-party name</span><input data-setting="partyName" type="text" maxlength="32" placeholder="Guest" /></label>
-				</fieldset>
-				<fieldset>
-					<legend>SponsorBlock auto-skip</legend>
-					<div id="sb-settings" class="sb-grid"></div>
-					<p class="fine">Unchecked categories still show on the timeline and in the segment list, where you can skip them by hand.</p>
+					<p class="fine">Unchecked SponsorBlock categories still show on the timeline and in the segment list, where you can skip them by hand.</p>
 				</fieldset>
 			</form>
 		</dialog>

@@ -20,6 +20,7 @@ import {
 } from "./lib/query.ts";
 import { CHANNEL_TABS, channel, type ChannelTab, channelRefFrom, playlist, playlistIdFrom } from "./lib/browse.ts";
 import { appRedirect, authorizeUrl, CALLBACK_PATH, googleConfig, googleToken, validToken, validTokenRequest } from "./lib/google.ts";
+import { lrclib, songOf } from "./lib/lyrics.ts";
 import { toProTVPlaylist } from "./lib/protv.ts";
 import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
 import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
@@ -461,6 +462,20 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 		});
 	}
 	if (path === "/api/branding") return apiBrandingBatch(url, ctx);
+	if (path === "/api/lyrics") {
+		// ?title=&channel= (a video's own title + uploader; cleaned up here) or ?track=&artist=, plus &duration=
+		const p = url.searchParams;
+		const raw = (k: string) => (p.get(k) ?? "").trim().slice(0, 200);
+		const song = raw("track") ? { track: raw("track"), artist: raw("artist") } : songOf(raw("title"), raw("channel"));
+		if (!song.track || !song.artist) return errorJson("Pass title & channel, or track & artist", 400);
+		const duration = Math.round(Number(p.get("duration")) || 0) || undefined;
+		const key = `lyrics/${song.artist.toLowerCase()}|${song.track.toLowerCase()}|${duration ?? ""}`;
+		return cached(key, ctx, async () => {
+			const found = await lrclib(song.track, song.artist, duration).catch(() => undefined);
+			if (found === undefined) return errorJson("The lyrics service didn't answer", 502);
+			return json({ ...song, lyrics: found }, 200, found ? 86400 : 3600);
+		});
+	}
 
 	const apiId = /^\/api\/(video|segments|dislikes|branding)\/([^/]+)$/.exec(path);
 	if (apiId) {

@@ -2,7 +2,7 @@
 // Everything from the API is inserted with textContent / attributes — never innerHTML.
 
 import { bestChapters, toSeconds } from "./chapters.js";
-import { initChrome } from "./chrome.js";
+import { currentTheme, initChrome, setTheme, THEMES } from "./chrome.js";
 import { $, $$, api, copy, fmtCount, fmtTime, h, isVideoId, minVideo, safeUrl, toast } from "./lib.js";
 import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
@@ -29,6 +29,11 @@ const SB = {
 };
 
 const DEFAULTS = {
+	// Plugins
+	sponsorblock: true,
+	lyrics: true,
+	sleep: true,
+	vrchat: true,
 	hideShorts: true,
 	dearrow: true,
 	dislikes: true,
@@ -116,6 +121,10 @@ function showView(name, title) {
 	}
 	for (const a of $$("[data-nav]")) a.classList.toggle("active", (a.dataset.nav === "library" && name === "library") || (a.dataset.nav === "search" && (name === "home" || name === "results")));
 	document.title = title ? `${title} · BetterYTS by FoulFoxHacks` : "BetterYTS by FoulFoxHacks — Ad-free YouTube Search for the Web & VRChat";
+	document.body.classList.toggle("with-guide", name !== "home");
+	$("#guide").hidden = name === "home";
+	renderGuide();
+	if (name === "home") renderHomeShelves();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -670,6 +679,8 @@ function updateSubButton() {
 
 for (const t of $$("[data-lib-tab]")) t.addEventListener("click", () => navigate(withParams({ view: "library", tab: t.dataset.libTab, ids: null, name: null }), { replace: true }));
 store.onChange(() => {
+	renderGuide();
+	if (currentView === "home") renderHomeShelves();
 	if (currentView === "library" && params().get("view") === "library") renderLibrary();
 	updateWatchLibraryButtons();
 	renderUpNext();
@@ -851,7 +862,9 @@ function openFromCard(e, item) {
 }
 
 function resetWatchUi() {
-	for (const id of ["#votes", "#segments", "#desc-wrap", "#full-label", "#jump-highlight", "#watch-original", "#chapters", "#save-menu"]) $(id).hidden = true;
+	for (const id of ["#votes", "#segments", "#desc-wrap", "#full-label", "#jump-highlight", "#watch-original", "#chapters", "#save-menu", "#lyrics"]) $(id).hidden = true;
+	lyricLines = [];
+	activeLyric = -1;
 	$("#seg-bar").replaceChildren();
 	$("#watch-stats").textContent = "";
 	const ch = $("#watch-channel");
@@ -950,6 +963,12 @@ function onPlayerState(e) {
 		else if (e.data === YTS.PAUSED && roomState?.playing) partySend({ t: "pause", position: t }, { quiet: true });
 		return;
 	}
+	if (e.data === YTS.ENDED && sleepAtEnd) {
+		sleepAtEnd = false;
+		$("#sleep-select").value = "";
+		toast("Sleep timer: goodnight");
+		return;
+	}
 	if (e.data === YTS.ENDED && settings.autoNext && !params().get("list")) playNextInQueue();
 }
 
@@ -1008,8 +1027,9 @@ function fillDetails(d, item) {
 	current.video = minVideo({ ...item, id: current.id, title: d.title || item.title, author: d.author, channelRef: d.channelId, duration: item.duration || (d.lengthSeconds ? fmtTime(d.lengthSeconds) : ""), live: d.isLive });
 	if (!room) store.addHistory(current.video);
 	updateWatchLibraryButtons();
+	loadLyrics(d, current.id);
 
-	current.segments = d.sponsorblock || [];
+	current.segments = settings.sponsorblock ? d.sponsorblock || [] : [];
 	current.duration = d.lengthSeconds || current.segments[0]?.videoDuration || current.duration;
 	current.description = d.description || "";
 	const { source, chapters } = bestChapters(current.description, current.segments);
@@ -1098,6 +1118,7 @@ function skipLoop() {
 	}
 	lastTick = { t, wall: now };
 	updateActiveChapter(t);
+	updateActiveLyric(t);
 
 	let inMute = false;
 	for (const s of current.segments) {
@@ -1458,13 +1479,175 @@ settingsDlg.addEventListener("change", (e) => {
 	if (el.dataset.skip) settings.skip[el.dataset.skip] = el.checked;
 	saveSettings();
 	if (el.dataset.setting === "partyName") room?.setName(settings.partyName || "Guest");
+	applyPlugins();
 	if (["hideShorts", "dearrow", "region"].includes(el.dataset.setting) && state.q && currentView === "results") runSearch();
 });
 $("#open-settings").addEventListener("click", () => {
 	syncSettingsForm();
+	renderThemeCards();
 	settingsDlg.showModal();
 });
 settingsDlg.addEventListener("click", (e) => e.target === settingsDlg && settingsDlg.close());
+
+// ---------------------------------------------------------------------------------------------
+// Plugins & themes (same names as BetterYTS Music: SponsorBlock, Return YouTube Dislike, DeArrow,
+// Synced lyrics, Sleep timer, VRChat bridge)
+// ---------------------------------------------------------------------------------------------
+
+function renderThemeCards() {
+	const now = currentTheme();
+	$("#theme-cards").replaceChildren(
+		...THEMES.map((t) =>
+			h(
+				"button",
+				{
+					type: "button",
+					class: "theme-card",
+					role: "radio",
+					"aria-checked": String(t.id === now),
+					style: `background:${t.bg}`,
+					onclick: () => {
+						setTheme(t.id);
+						renderThemeCards();
+					},
+				},
+				h("b", { style: `color:${t.swatches[0]}` }, t.name),
+				h("span", { class: "theme-swatches" }, t.swatches.map((c) => h("i", { style: `background:${c}` }))),
+				h("small", {}, t.id === now ? `${t.note} · in use` : t.note),
+			),
+		),
+	);
+}
+
+/** Shows or hides plugin-owned controls to match the settings. */
+function applyPlugins() {
+	for (const id of ["#copy-vrc", "#room-vrc", "#pl-protv", "#copy-vrc-search"]) {
+		const el = $(id);
+		if (el) el.hidden = !settings.vrchat;
+	}
+	$("#sleep-wrap").hidden = !settings.sleep;
+	if (!settings.sleep) cancelSleep();
+	if (!settings.lyrics) $("#lyrics").hidden = true;
+}
+
+// ---- Synced lyrics (LRCLIB via /api/lyrics). Only for videos YouTube files under Music. ----
+let lyricLines = [];
+let activeLyric = -1;
+
+async function loadLyrics(d, id) {
+	if (!settings.lyrics || d.category !== "Music" || d.isLive) return;
+	try {
+		const res = await api("/api/lyrics", { title: d.title || "", channel: d.author || "", duration: d.lengthSeconds || "" });
+		if (current?.id !== id || !res.lyrics) return;
+		const { synced, plain, instrumental } = res.lyrics;
+		$("#lyrics-source").textContent = `· ${res.artist} — ${res.track} · LRCLIB`;
+		lyricLines = synced || [];
+		activeLyric = -1;
+		const list = $("#lyrics-list");
+		if (lyricLines.length) {
+			list.replaceChildren(...lyricLines.map((l, i) => h("li", {}, h("button", { type: "button", class: "lyric", "data-i": i, onclick: () => seek(l.time) }, l.text || "♪"))));
+		} else if (plain) {
+			list.replaceChildren(...plain.split("\n").map((l) => h("li", { class: "lyric plain" }, l)));
+		} else if (instrumental) {
+			list.replaceChildren(h("li", { class: "lyric plain" }, "Instrumental"));
+		} else return;
+		$("#lyrics").hidden = false;
+	} catch {
+		/* no lyrics: the panel just stays hidden */
+	}
+}
+
+function updateActiveLyric(t) {
+	if (!lyricLines.length) return;
+	let i = -1;
+	for (let k = 0; k < lyricLines.length && lyricLines[k].time <= t + 0.3; k++) i = k;
+	if (i === activeLyric) return;
+	activeLyric = i;
+	const list = $("#lyrics-list");
+	for (const b of $$(".lyric.active", list)) b.classList.remove("active");
+	const el = list.querySelector(`.lyric[data-i="${i}"]`);
+	if (el) {
+		el.classList.add("active");
+		// Keep the current line in view inside the panel without scrolling the dialog.
+		list.scrollTop = el.offsetTop - list.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
+	}
+}
+
+// ---- Sleep timer ----
+let sleepTimer = null;
+let sleepAtEnd = false;
+
+function cancelSleep() {
+	clearTimeout(sleepTimer);
+	sleepTimer = null;
+	sleepAtEnd = false;
+	$("#sleep-select").value = "";
+}
+
+$("#sleep-select").addEventListener("change", (e) => {
+	const v = e.target.value;
+	clearTimeout(sleepTimer);
+	sleepTimer = null;
+	sleepAtEnd = v === "end";
+	if (v && v !== "end") {
+		sleepTimer = setTimeout(() => {
+			player?.pauseVideo?.();
+			$("#sleep-select").value = "";
+			toast("Sleep timer: goodnight");
+		}, Number(v) * 60_000);
+		toast(`Playback stops in ${v} min`);
+	} else if (v === "end") toast("Playback stops at the end of this video");
+});
+
+// ---- YouTube-style guide: library sections + your subscriptions ----
+function renderGuide() {
+	const guide = $("#guide");
+	if (!guide || guide.hidden) return;
+	const p = params();
+	const tab = p.get("view") === "library" ? p.get("tab") || "queue" : currentView === "home" ? "home" : "";
+	for (const a of $$("[data-guide]", guide)) a.classList.toggle("active", a.dataset.guide === tab);
+	const subs = store.get().subscriptions;
+	$("#guide-subs-wrap").hidden = !subs.length;
+	$("#guide-subs").replaceChildren(
+		...subs.slice(0, 30).map((c) =>
+			h(
+				"a",
+				{ class: "guide-link guide-channel", href: `/?channel=${encodeURIComponent(c.id)}`, "data-internal": true },
+				safeUrl(c.avatar) ? h("img", { src: safeUrl(c.avatar), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }) : h("span", { class: "avatar ph" }),
+				h("span", {}, c.title),
+			),
+		),
+	);
+}
+
+// ---- Home: personal shelves (only when there's something of yours to show) ----
+async function renderHomeShelves() {
+	const box = $("#home-shelves");
+	const { history, subscriptions } = store.get();
+	if (!history.length && !subscriptions.length) {
+		box.hidden = true;
+		return;
+	}
+	const shelf = (eyebrow, title, items, all) =>
+		h(
+			"section",
+			{ class: "shelf" },
+			h("div", { class: "shelf-head" }, h("div", {}, h("p", { class: "eyebrow" }, eyebrow), h("h2", { class: "shelf-title" }, title)), all ? h("a", { class: "button small secondary", href: all, "data-internal": true }, "See all") : null),
+			h("div", { class: "shelf-row" }, items.map((v) => videoCard(v))),
+		);
+	const parts = [];
+	if (history.length) parts.push(shelf("Pick up where you left off", "Continue watching", history.slice(0, 12), "/?view=library&tab=history"));
+	box.replaceChildren(...parts);
+	box.hidden = false;
+	if (subscriptions.length) {
+		const key = subscriptions.map((c) => c.id).sort().join(",");
+		if (subsFeed.key !== key || !subsFeed.items) await loadFeed(subscriptions, key);
+		if (currentView !== "home" || !subsFeed.items?.length) return;
+		box.append(shelf("From channels you follow", "Subscriptions", subsFeed.items.slice(0, 12), "/?view=library&tab=subs"));
+	}
+}
+
+applyPlugins();
 
 // ---------------------------------------------------------------------------------------------
 // VRChat link helpers, keyboard, routing, boot
