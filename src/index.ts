@@ -19,6 +19,7 @@ import {
 	videoIdFromQuery,
 } from "./lib/query.ts";
 import { CHANNEL_TABS, channel, type ChannelTab, channelRefFrom, playlist, playlistIdFrom } from "./lib/browse.ts";
+import { appRedirect, authorizeUrl, CALLBACK_PATH, googleConfig, googleToken, validToken, validTokenRequest } from "./lib/google.ts";
 import { toProTVPlaylist } from "./lib/protv.ts";
 import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
 import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
@@ -371,13 +372,69 @@ function apiIndex(origin: string): Response {
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
 	"api", "assets", "brand", "docs", "sitemap", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
-	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web", "vrc", "room",
+	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web", "vrc", "room", "auth",
 ]);
+
+/**
+ * Google sign-in broker for BetterYTS Music (src/lib/google.ts has the flow). Responses are
+ * no-store and carry no CORS headers: only the app calls these, never a web page.
+ */
+async function googleAuth(req: Request, url: URL, path: string): Promise<Response> {
+	const plain = (data: unknown, status = 200) =>
+		new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
+	const fail = (message: string, status: number) => plain({ error: { status, message } }, status);
+
+	const cfg = googleConfig(env);
+	if (!cfg) return fail("Google sign-in isn't set up on this server yet", 503);
+
+	if (path === "/auth/google/start" && req.method === "GET") {
+		const target = authorizeUrl(url.origin, cfg.clientId, url.searchParams.get("state"), url.searchParams.get("code_challenge"));
+		return typeof target === "string" ? new Response(null, { status: 302, headers: { Location: target, "Cache-Control": "no-store" } }) : fail(target.error, 400);
+	}
+	if (path === CALLBACK_PATH && req.method === "GET") {
+		return new Response(null, { status: 302, headers: { Location: appRedirect(url.searchParams), "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
+	}
+	if (req.method !== "POST") return fail("Method not allowed", 405);
+	const body = await req.json().catch(() => null);
+
+	if (path === "/api/auth/google/token") {
+		const r = validTokenRequest(body);
+		if (!r) return fail("Expected {code, code_verifier}", 400);
+		const out = await googleToken({
+			grant_type: "authorization_code",
+			code: r.code,
+			code_verifier: r.verifier,
+			client_id: cfg.clientId,
+			client_secret: cfg.clientSecret,
+			redirect_uri: url.origin + CALLBACK_PATH,
+		});
+		return "error" in out ? fail(out.error, out.status) : plain(out);
+	}
+	if (path === "/api/auth/google/refresh") {
+		const token = validToken((body as { refresh_token?: unknown } | null)?.refresh_token);
+		if (!token) return fail("Expected {refresh_token}", 400);
+		const out = await googleToken({ grant_type: "refresh_token", refresh_token: token, client_id: cfg.clientId, client_secret: cfg.clientSecret });
+		return "error" in out ? fail(out.error, out.status) : plain(out);
+	}
+	if (path === "/api/auth/google/revoke") {
+		const token = validToken((body as { token?: unknown } | null)?.token);
+		if (!token) return fail("Expected {token}", 400);
+		const res = await fetch("https://oauth2.googleapis.com/revoke", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({ token }),
+		});
+		// An already-revoked or expired token is fine: the user is signed out either way.
+		return plain({ ok: res.ok || res.status === 400 });
+	}
+	return fail("Unknown endpoint", 404);
+}
 
 async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	const url = new URL(req.url);
 	const path = url.pathname.replace(/\/{2,}/g, "/").replace(/(.)\/$/, "$1");
 
+	if (path.startsWith("/auth/google/") || path.startsWith("/api/auth/google/")) return googleAuth(req, url, path);
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 	if (req.method !== "GET" && req.method !== "HEAD") return errorJson("Method not allowed", 405);
 

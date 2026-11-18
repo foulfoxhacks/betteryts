@@ -331,3 +331,37 @@ test("parser: lockup metadata rows on channel pages vs search", async () => {
 	assert.equal(search.channel?.name, "Lofi Girl");
 	assert.equal(search.published, "Streamed 3 days ago");
 });
+
+test("google sign-in broker: consent URL, app redirect and input checks", async () => {
+	const g = await import("../src/lib/google.ts");
+	const state = "s".repeat(32);
+	const challenge = "c".repeat(43);
+	const url = g.authorizeUrl("https://yts.foulfoxhacks.dev", "id.apps.googleusercontent.com", state, challenge);
+	assert.equal(typeof url, "string");
+	const u = new URL(url as string);
+	assert.equal(u.host, "accounts.google.com");
+	assert.equal(u.searchParams.get("redirect_uri"), "https://yts.foulfoxhacks.dev/auth/google/callback");
+	assert.equal(u.searchParams.get("scope"), "https://www.googleapis.com/auth/youtube.readonly");
+	assert.equal(u.searchParams.get("code_challenge_method"), "S256");
+	assert.equal(u.searchParams.get("access_type"), "offline");
+	assert.deepEqual(g.authorizeUrl("o", "id", "short", challenge), { error: "Missing or invalid state" });
+	assert.ok(typeof g.authorizeUrl("o", "id", state, "nope") === "object");
+
+	const ok = new URL(g.appRedirect(new URLSearchParams({ code: "4/0AbCd-efgh_ijkl", state })));
+	assert.equal(ok.protocol, "betterytsmusic:");
+	assert.equal(ok.searchParams.get("code"), "4/0AbCd-efgh_ijkl");
+	assert.equal(ok.searchParams.get("state"), state);
+	const denied = new URL(g.appRedirect(new URLSearchParams({ error: "access_denied", state })));
+	assert.equal(denied.searchParams.get("error"), "access_denied");
+	const junk = new URL(g.appRedirect(new URLSearchParams({ error: "<script>", state: "bad state" })));
+	assert.equal(junk.searchParams.get("error"), "invalid_response");
+	assert.equal(junk.searchParams.get("state"), null, "malformed state is dropped");
+
+	assert.deepEqual(g.validTokenRequest({ code: "4/0AbCd-efgh_ijkl", code_verifier: "v".repeat(43) }), { code: "4/0AbCd-efgh_ijkl", verifier: "v".repeat(43) });
+	assert.equal(g.validTokenRequest({ code: "4/0AbCd-efgh_ijkl", code_verifier: "short" }), null);
+	assert.equal(g.validTokenRequest(null), null);
+	assert.equal(g.validToken("1//0abc-refresh-token"), "1//0abc-refresh-token");
+	assert.equal(g.validToken("has space in it"), null);
+	assert.equal(g.googleConfig({}), null);
+	assert.deepEqual(g.googleConfig({ GOOGLE_CLIENT_ID: " id ", GOOGLE_CLIENT_SECRET: "sec" }), { clientId: "id", clientSecret: "sec" });
+});

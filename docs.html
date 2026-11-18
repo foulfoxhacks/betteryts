@@ -269,6 +269,7 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 						<tr><td><code>GET /api/rooms/{code}</code></td><td>Current video, playback position, queue and member count.</td></tr>
 						<tr><td><code>WS /api/rooms/{code}/ws</code></td><td>Join. Send <code>load</code>, <code>play</code>, <code>pause</code>, <code>seek</code>, <code>next</code>, <code>ended</code>, <code>queue_add</code>, <code>queue_remove</code>; receive <code>state</code> and <code>members</code>. Send <code>{"t":"hello","name":…,"key":hostKey}</code> to join as host (you get <code>{"t":"you","host":true}</code>); hosts can send <code>{"t":"lock","locked":true}</code> so only hosts control playback and the queue. Refused messages get <code>{"t":"denied"}</code>.</td></tr>
 						<tr><td><code>GET /room/{code}</code></td><td>For VRChat players: 302 to what the room is playing right now, at the current time.</td></tr>
+						<tr><td><code>GET /auth/google/start</code><br /><code>POST /api/auth/google/token|refresh|revoke</code></td><td>Google sign-in broker for the BetterYTS Music app (read-only YouTube library import, PKCE). Tokens pass through and are never stored or logged. Not for use from web pages.</td></tr>
 					</tbody>
 				</table>
 				<p class="fine">Rooms are deleted after 24 hours without anyone connected. Up to 50 people per room.</p>
