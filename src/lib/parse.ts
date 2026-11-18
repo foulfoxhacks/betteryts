@@ -206,7 +206,9 @@ function parseLockup(l: J): Item | null {
 	if (ctype.includes("VIDEO")) {
 		// Metadata rows vary: search/playlists show [channel] [views, date]; channel pages only [views, date].
 		const views = parts.find((p) => /\bviews?\b|watching|No views/i.test(p)) ?? null;
-		const published = parts.find((p) => /\bago\b|Streamed|Premiered|Scheduled/i.test(p)) ?? null;
+		const published = parts.find((p) => /\bago\b|Streamed|Premiere[sd]|Scheduled/i.test(p)) ?? null;
+		// "Premieres 11/18/26, 7:00 PM" / "Scheduled for …": not out yet.
+		const upcoming = published !== null && /^(Premieres|Scheduled)\b/i.test(published);
 		const channelName = parts.find((p) => p !== views && p !== published && !/^\d[\d,.]*\s*[KMB]?\s/.test(p)) ?? null;
 		const live = /LIVE/i.test(badgeText) || (views !== null && /watching/i.test(views));
 		const byline = findKey(l?.metadata, "avatarStackViewModel") ?? findKey(l?.metadata, "decoratedAvatarViewModel");
@@ -235,7 +237,7 @@ function parseLockup(l: J): Item | null {
 				: null,
 			badges: [],
 			live,
-			upcoming: false,
+			upcoming,
 			isShort: false,
 		};
 	}

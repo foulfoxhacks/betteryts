@@ -320,11 +320,15 @@ test("parser: lockup metadata rows on channel pages vs search", async () => {
 				contents: [
 					{ richItemRenderer: { content: lockup("aaaaaaaaaaa", [["148K views", "2 weeks ago"]]) } },
 					{ richItemRenderer: { content: lockup("bbbbbbbbbbb", [["Lofi Girl"], ["1.2M views", "Streamed 3 days ago"]]) } },
+					{ richItemRenderer: { content: lockup("ccccccccccc", [["Premieres 11/18/26, 7:00 PM"]]) } },
 				],
 			},
 		},
 	};
-	const [channelPage, search] = parseSearchResponse(data).results as Array<{ views: string; published: string; channel: { name: string } | null }>;
+	const [channelPage, search, premiere] = parseSearchResponse(data).results as Array<{ views: string; published: string; upcoming: boolean; channel: { name: string } | null }>;
+	assert.equal(premiere.channel, null, "a premiere date is not a channel name");
+	assert.equal(premiere.upcoming, true);
+	assert.equal(channelPage.upcoming, false);
 	assert.equal(channelPage.views, "148K views");
 	assert.equal(channelPage.published, "2 weeks ago");
 	assert.equal(channelPage.channel, null, "a views row is not a channel name");
