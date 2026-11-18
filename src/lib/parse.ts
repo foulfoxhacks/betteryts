@@ -205,9 +205,9 @@ function parseLockup(l: J): Item | null {
 	const ctype: string = l?.contentType ?? "";
 	if (ctype.includes("VIDEO")) {
 		// Metadata rows vary: search/playlists show [channel] [views, date]; channel pages only [views, date].
-		const views = parts.find((p) => /views?|watching|No views/i.test(p)) ?? null;
-		const published = parts.find((p) => /ago|Streamed|Premiered|Scheduled/i.test(p)) ?? null;
-		const channelName = parts.find((p) => p !== views && p !== published && !/^d[d,.]*s*[KMB]?s/.test(p)) ?? null;
+		const views = parts.find((p) => /\bviews?\b|watching|No views/i.test(p)) ?? null;
+		const published = parts.find((p) => /\bago\b|Streamed|Premiered|Scheduled/i.test(p)) ?? null;
+		const channelName = parts.find((p) => p !== views && p !== published && !/^\d[\d,.]*\s*[KMB]?\s/.test(p)) ?? null;
 		const live = /LIVE/i.test(badgeText) || (views !== null && /watching/i.test(views));
 		const byline = findKey(l?.metadata, "avatarStackViewModel") ?? findKey(l?.metadata, "decoratedAvatarViewModel");
 		const browse = findKey(byline, "browseEndpoint");
