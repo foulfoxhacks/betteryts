@@ -823,3 +823,20 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .import-progress span { background: var(--primary); transition: width 0.2s; }
 .import-error { color: var(--danger); }
 .import-list { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+
+/* Plugin categories: a whole-category switch over its plugins; off dims (but keeps) each plugin's own switch. */
+.plugin-group { margin: 6px 0 10px; border: 1px solid var(--border); border-radius: 10px; padding: 0 12px; }
+.plugin-category { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; cursor: pointer; }
+.plugin-category input { width: 18px; height: 18px; margin-top: 3px; flex: none; accent-color: var(--primary); }
+.plugin-category b { color: var(--primary); text-transform: uppercase; letter-spacing: 0.06em; font-size: 13px; }
+.plugin-category small, .plugin-perms { display: block; color: var(--muted); font-size: 12px; }
+.plugin-group[data-off="true"] .plugin-items { opacity: 0.45; }
+.plugin-community { display: flex; align-items: flex-start; gap: 8px; }
+.plugin-community .plugin { flex: 1; }
+.plugin-community .button { margin-top: 10px; flex: none; }
+.plugin-perms { margin-top: 2px; }
+.community-install { margin-top: 8px; }
+.community-install summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.community-install textarea { width: 100%; box-sizing: border-box; font: 12px/1.4 ui-monospace, monospace; background: var(--surface-2); color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 8px; resize: vertical; }
+.community-actions { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.plugin-panel-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

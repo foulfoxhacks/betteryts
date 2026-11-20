@@ -6,6 +6,7 @@ import { currentTheme, initChrome, setTheme, THEMES } from "./chrome.js";
 import { $, $$, api, copy, fmtCount, fmtTime, h, isVideoId, minVideo, safeUrl, toast } from "./lib.js";
 import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
+import { activeCommunity, applyPalette, BUILTIN, builtinOn, CATEGORIES, categoryOn, community, PERMISSIONS, Sandbox, validateManifest } from "./plugins.js";
 import { importSpotify } from "./spotify.js";
 import { store } from "./store.js";
 
@@ -43,6 +44,8 @@ const DEFAULTS = {
 	autoNext: true,
 	partyName: "",
 	region: "",
+	// Category switches (Playback, Player, Look, BetterYTS); missing means on.
+	categories: {},
 	skip: Object.fromEntries(Object.entries(SB).map(([k, v]) => [k, v.skip])),
 };
 
@@ -62,6 +65,8 @@ function saveSettings() {
 	}
 }
 const settings = loadSettings();
+/** True if a built-in plugin should run: it and its category are both on. */
+const on = (id) => builtinOn(settings, id);
 
 // ---------------------------------------------------------------------------------------------
 // URL helpers & internal navigation
@@ -195,7 +200,7 @@ async function runSearch({ append = false } = {}) {
 		}
 		renderStatus(data.estimatedResults);
 		if (!state.count) resultsEl.replaceChildren(h("div", { class: "empty" }, h("p", {}, "No results. Try fewer filters or different words.")));
-		if (settings.dearrow) applyDeArrow(data.results);
+		if (on("dearrow")) applyDeArrow(data.results);
 		$("#load-more").hidden = !state.next;
 		ok = true;
 	} catch (err) {
@@ -664,7 +669,7 @@ function drawFeed(grid, status) {
 	]
 		.filter(Boolean)
 		.join(" ");
-	if (settings.dearrow) applyDeArrow(items);
+	if (on("dearrow")) applyDeArrow(items);
 }
 
 function updateSubButton() {
@@ -824,7 +829,7 @@ async function loadChannel(ref, tab, append = false) {
 		}
 		$("#ch-results").append(...d.results.map(renderCard).filter(Boolean));
 		if (!append && !d.results.length) $("#ch-results").replaceChildren(h("div", { class: "empty" }, h("p", {}, "Nothing here.")));
-		if (settings.dearrow) applyDeArrow(d.results);
+		if (on("dearrow")) applyDeArrow(d.results);
 		chState.next = d.next;
 		$("#ch-more").hidden = !d.next;
 	} catch (err) {
@@ -871,7 +876,7 @@ async function loadPlaylist(id, append = false) {
 		}
 		plState.items.push(...d.results);
 		$("#pl-results").append(...d.results.map(renderCard).filter(Boolean));
-		if (settings.dearrow) applyDeArrow(d.results);
+		if (on("dearrow")) applyDeArrow(d.results);
 		plState.next = d.next;
 		$("#pl-more").hidden = !d.next;
 	} catch (err) {
@@ -1069,7 +1074,7 @@ async function openWatchDetailsOnly(id) {
 }
 
 function fillDetails(d, item) {
-	const title = settings.dearrow && d.dearrow?.title ? d.dearrow.title : d.title;
+	const title = on("dearrow") && d.dearrow?.title ? d.dearrow.title : d.title;
 	$("#watch-title").textContent = title || item.title || "Video";
 	if (title && d.title && title !== d.title) {
 		const o = $("#watch-original");
@@ -1087,7 +1092,7 @@ function fillDetails(d, item) {
 	const date = d.publishDate ? new Date(d.publishDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : item.published;
 	$("#watch-stats").textContent = [views != null ? `${fmtCount(views)} views` : item.views, date].filter(Boolean).join(" · ");
 
-	if (settings.dislikes && d.votes && d.votes.likes + d.votes.dislikes > 0) {
+	if (on("dislikes") && d.votes && d.votes.likes + d.votes.dislikes > 0) {
 		const { likes, dislikes } = d.votes;
 		$("#likes").textContent = `👍 ${fmtCount(likes)}`;
 		$("#dislikes").textContent = `👎 ${fmtCount(dislikes)}`;
@@ -1103,8 +1108,9 @@ function fillDetails(d, item) {
 	if (!room) store.addHistory(current.video);
 	updateWatchLibraryButtons();
 	loadLyrics(d, current.id);
+	sendNowPlaying(true);
 
-	current.segments = settings.sponsorblock ? d.sponsorblock || [] : [];
+	current.segments = on("sponsorblock") ? d.sponsorblock || [] : [];
 	current.duration = d.lengthSeconds || current.segments[0]?.videoDuration || current.duration;
 	current.description = d.description || "";
 	const { source, chapters } = bestChapters(current.description, current.segments);
@@ -1195,6 +1201,7 @@ function skipLoop() {
 	if (room) roomDriftTick(t);
 	updateActiveChapter(t);
 	updateActiveLyric(t);
+	sendNowPlaying(false);
 
 	let inMute = false;
 	for (const s of current.segments) {
@@ -1625,13 +1632,18 @@ settingsDlg.addEventListener("change", (e) => {
 	const el = e.target;
 	if (el.dataset.setting) settings[el.dataset.setting] = el.type === "checkbox" ? el.checked : el.value.trim();
 	if (el.dataset.skip) settings.skip[el.dataset.skip] = el.checked;
+	if (el.dataset.category) {
+		settings.categories = { ...settings.categories, [el.dataset.category]: el.checked };
+		el.closest(".plugin-group")?.setAttribute("data-off", String(!el.checked));
+	}
+	if (el.dataset.community) community.setEnabled(el.dataset.community, el.checked);
 	saveSettings();
 	if (el.dataset.setting === "partyName") room?.setName(settings.partyName || "Guest");
 	applyPlugins();
 	if (["hideShorts", "dearrow", "region"].includes(el.dataset.setting) && state.q && currentView === "results") runSearch();
 });
 $("#open-settings").addEventListener("click", () => {
-	syncSettingsForm();
+	renderPluginGroups();
 	renderThemeCards();
 	settingsDlg.showModal();
 });
@@ -1671,11 +1683,133 @@ function renderThemeCards() {
 function applyPlugins() {
 	for (const id of ["#copy-vrc", "#room-vrc", "#pl-protv", "#copy-vrc-search"]) {
 		const el = $(id);
-		if (el) el.hidden = !settings.vrchat;
+		if (el) el.hidden = !on("vrchat");
 	}
-	$("#sleep-wrap").hidden = !settings.sleep;
-	if (!settings.sleep) cancelSleep();
-	if (!settings.lyrics) $("#lyrics").hidden = true;
+	$("#sleep-wrap").hidden = !on("sleep");
+	if (!on("sleep")) cancelSleep();
+	if (!on("lyrics")) $("#lyrics").hidden = true;
+	startCommunity();
+}
+
+// ---- Plugin settings: categories with whole-category switches, then community plugins ----
+function renderPluginGroups() {
+	const sb = $("#sb-settings");
+	const installed = community.all();
+	const row = (attrs, name, description, extra) =>
+		h("label", { class: "plugin" }, h("input", { type: "checkbox", ...attrs }), h("span", {}, h("b", {}, name), h("small", {}, description), extra));
+	$("#plugin-groups").replaceChildren(
+		...CATEGORIES.map((c) => {
+			const catOn = categoryOn(settings, c.id);
+			const items = [
+				...BUILTIN.filter((p) => p.category === c.id).map((p) => {
+					const r = row({ "data-setting": p.id }, p.name, p.description);
+					return p.id === "sponsorblock" ? [r, sb] : [r];
+				}).flat(),
+				...installed.filter((p) => p.category === c.id).map((p) =>
+					h(
+						"div",
+						{ class: "plugin-community" },
+						row(
+							{ "data-community": p.id, checked: p.enabled },
+							p.name,
+							p.description || "Community plugin",
+							h("small", { class: "plugin-perms" }, `Community${p.author ? ` · by ${p.author}` : ""}${p.version ? ` · v${p.version}` : ""} · can: ${p.permissions.map((x) => PERMISSIONS[x]).join("; ")}`),
+						),
+						h("button", { type: "button", class: "button small secondary", "data-remove-plugin": p.id }, "Remove"),
+					),
+				),
+			];
+			return h(
+				"section",
+				{ class: "plugin-group", "data-off": String(!catOn) },
+				h(
+					"label",
+					{ class: "plugin-category" },
+					h("input", { type: "checkbox", "data-category": c.id, checked: catOn }),
+					h("span", {}, h("b", {}, c.name), h("small", {}, c.description)),
+				),
+				h("div", { class: "plugin-items" }, items),
+			);
+		}),
+	);
+	syncSettingsForm();
+}
+
+$("#community-install").addEventListener("click", () => {
+	const err = $("#community-error");
+	err.hidden = true;
+	try {
+		const text = $("#community-manifest").value.trim();
+		if (!text) throw new Error("Paste a manifest first");
+		// Validated before asking, so the prompt lists exactly what will be granted.
+		const v = validateManifest(text);
+		const can = v.permissions.map((x) => `• ${PERMISSIONS[x]}`).join("\n");
+		const ok = window.confirm(`Install "${v.name}" (${v.category})?\n\nIt will be able to:\n${can}\n\nIt can't use the network, your cookies or this page.`);
+		if (!ok) return;
+		const p = community.install(text);
+		$("#community-manifest").value = "";
+		toast(`Installed ${p.name}`);
+		renderPluginGroups();
+		applyPlugins();
+	} catch (e) {
+		err.textContent = e.message;
+		err.hidden = false;
+	}
+});
+
+$("#plugin-groups").addEventListener("click", (e) => {
+	const btn = e.target.closest("[data-remove-plugin]");
+	if (!btn) return;
+	community.remove(btn.dataset.removePlugin);
+	renderPluginGroups();
+	applyPlugins();
+});
+
+// ---- Community plugins at runtime ----
+let sandboxes = [];
+let lastNowPlayingAt = 0;
+
+function startCommunity() {
+	const active = activeCommunity(settings);
+	applyPalette(active);
+	const want = active.filter((p) => p.code);
+	const key = want.map((p) => p.id + ":" + p.code.length + ":" + p.version).join("|");
+	if (startCommunity.key === key) return;
+	startCommunity.key = key;
+	for (const s of sandboxes) s.destroy();
+	const panels = $("#plugin-panels");
+	panels.replaceChildren();
+	sandboxes = want.map((p) => {
+		const box = h("div", { class: "side-panel plugin-panel", hidden: true }, h("h3", {}, p.name, " ", h("span", { class: "muted" }, "· community plugin")), h("p", { class: "plugin-panel-text" }));
+		panels.append(box);
+		return new Sandbox(p, {
+			onPanel: (text) => {
+				box.querySelector(".plugin-panel-text").textContent = text; // text only, never HTML
+				box.hidden = !text;
+			},
+			onError: (text) => console.warn(`[plugin ${p.id}]`, text),
+		});
+	});
+	sendNowPlaying(true);
+}
+
+/** What Player plugins with "nowPlaying" get: nothing about the user, only the video. */
+function sendNowPlaying(force) {
+	if (!sandboxes.length || !current) return;
+	const now = performance.now();
+	if (!force && now - lastNowPlayingAt < 5000) return;
+	lastNowPlayingAt = now;
+	let position = 0;
+	let playing = false;
+	try {
+		position = player?.getCurrentTime?.() || 0;
+		playing = player?.getPlayerState?.() === window.YT?.PlayerState?.PLAYING;
+	} catch {
+		/* player not ready */
+	}
+	const v = current.video || {};
+	const data = { id: current.id, title: v.title || "", channel: v.author || "", position, duration: current.duration || 0, playing };
+	for (const s of sandboxes) s.nowPlaying(data);
 }
 
 // ---- Synced lyrics (LRCLIB via /api/lyrics). Only for videos YouTube files under Music. ----

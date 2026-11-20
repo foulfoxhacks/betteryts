@@ -505,6 +505,7 @@
 						<h3>Lyrics <span id="lyrics-source" class="muted"></span></h3>
 						<ol id="lyrics-list" class="lyrics-list"></ol>
 					</div>
+					<div id="plugin-panels"></div>
 					<div id="chapters" class="side-panel" hidden>
 						<h3>Chapters <span id="chapters-source" class="muted"></span></h3>
 						<input id="chapters-search" type="search" placeholder="Search chapters and description" aria-label="Search chapters and description" />
@@ -535,13 +536,15 @@
 				<fieldset>
 					<legend>Plugins</legend>
 					<p class="fine plugins-note">Built for the BetterYTS ecosystem: the same plugins as the BetterYTS Music app.</p>
-					<label class="plugin"><input type="checkbox" data-setting="sponsorblock" /><span><b>SponsorBlock</b><small>Skip sponsors, intros, outros and non-music parts. Choose categories below.</small></span></label>
+					<div id="plugin-groups"></div>
 					<div id="sb-settings" class="sb-grid"></div>
-					<label class="plugin"><input type="checkbox" data-setting="dislikes" /><span><b>Return YouTube Dislike</b><small>Like and dislike counts under the video.</small></span></label>
-					<label class="plugin"><input type="checkbox" data-setting="dearrow" /><span><b>DeArrow</b><small>Community titles and thumbnails instead of clickbait.</small></span></label>
-					<label class="plugin"><input type="checkbox" data-setting="lyrics" /><span><b>Synced lyrics</b><small>Time-synced lyrics from LRCLIB next to music videos.</small></span></label>
-					<label class="plugin"><input type="checkbox" data-setting="sleep" /><span><b>Sleep timer</b><small>Stop playback after a while or at the end of the video.</small></span></label>
-					<label class="plugin"><input type="checkbox" data-setting="vrchat" /><span><b>VRChat bridge</b><small>Copy-for-VRChat, room and ProTV playlist links.</small></span></label>
+					<details class="community-install">
+						<summary>Add a community plugin</summary>
+						<p class="fine">Paste a plugin manifest (JSON). Community plugins can only join the Player and Look categories. Their code runs in a sandbox with no network, no cookies and no access to this page: it only sees what its permissions allow.</p>
+						<textarea id="community-manifest" rows="5" spellcheck="false" placeholder='{ "id": "song-clock", "name": "Song clock", "category": "Player", "permissions": ["nowPlaying", "panel"], "code": "…" }' aria-label="Plugin manifest"></textarea>
+						<div class="community-actions"><button type="button" class="button small" id="community-install">Check and install</button> <a class="fine" href="/docs#plugins">How to write one</a></div>
+						<p id="community-error" class="import-error" role="alert" hidden></p>
+					</details>
 				</fieldset>
 				<fieldset>
 					<legend>Results</legend>
