@@ -83,10 +83,9 @@
 					<span class="brand-text"><b>BetterYTS</b><small>by FoulFoxHacks</small></span>
 				</a>
 				<div class="nav-links" id="nav-links">
-					<a class="nav-link" href="/">Search</a>
-					<a class="nav-link active" href="/docs">API Docs</a>
+					<a class="nav-link" href="/?view=library">Library</a>
+					<a class="nav-link active" href="/docs">Docs</a>
 					<a class="nav-link" href="/docs#redirects">VRChat</a>
-					<a class="nav-link" href="/docs#addons">Add-ons</a>
 					<a class="nav-link" href="/ecosystem">Ecosystem</a>
 				</div>
 				<div class="nav-right">
@@ -340,55 +339,60 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 
 		<footer class="footer">
 			<div class="container">
-				<div class="footer-cols">
-					<div>
-						<p class="footer-title">Docs</p>
-						<ul>
-							<li><a href="/docs">API reference</a></li>
-							<li><a href="/docs#redirects">VRChat redirects</a></li>
-							<li><a href="/docs#search">Search options</a></li>
-							<li><a href="/docs#fair-use">Fair use</a></li>
-						</ul>
+				<div class="footer-top">
+					<div class="footer-brand">
+						<a class="brand" href="/" aria-label="BetterYTS home">
+							<img src="/brand/logo-64.png" alt="" width="32" height="32" />
+							<span class="brand-text"><b>BetterYTS</b><small>by FoulFoxHacks</small></span>
+						</a>
+						<p>Ad-free YouTube for the web, Android and VRChat. Open source, no accounts, no tracking.</p>
+						<p class="footer-build">Web <span class="ver" data-version="web">v1.1.0</span> · build <span data-build>…</span></p>
 					</div>
-					<div>
-						<p class="footer-title">Community</p>
-						<ul>
-							<li><a href="https://akasammythepuppy.me" target="_blank" rel="noopener author">Creator: akasammythepuppy</a></li>
-							<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
-							<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
-							<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
-						</ul>
-					</div>
-					<div>
-						<p class="footer-title">Powered by</p>
-						<ul>
-							<li><a href="https://sponsor.ajay.app" target="_blank" rel="noopener">SponsorBlock</a></li>
-							<li><a href="https://dearrow.ajay.app" target="_blank" rel="noopener">DeArrow</a></li>
-							<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
-						</ul>
-					</div>
-					<div>
-						<p class="footer-title">Ecosystem</p>
-						<ul class="footer-versions">
-							<li><a href="/">BetterYTS Web</a> <span class="ver" data-version="web">v1.1.0</span></li>
-							<li><a href="/docs">API</a> <span class="ver" data-version="api">v1.1.0</span></li>
-							<li><a href="/ecosystem#vrchat">VRChat packages</a> <span class="ver" data-version="vrchat">v1.0.1</span></li>
-							<li><a href="/ecosystem#music">BetterYTS Music</a> <span class="ver" data-version="music">v0.9.1</span></li>
-							<li><a href="/ecosystem">All projects</a></li>
-						</ul>
-					</div>
-					<div>
-						<p class="footer-title">Site</p>
-						<ul>
-							<li><a href="/privacy">Privacy</a></li>
-							<li><a href="/sitemap">Site map</a></li>
-							<li><a href="/sitemap.xml">sitemap.xml</a></li>
-							<li><a href="/robots.txt">robots.txt</a></li>
-							<li><a href="/llms.txt">llms.txt</a></li>
-						</ul>
-					</div>
+					<nav class="footer-cols" aria-label="Footer">
+						<div>
+							<p class="footer-title">Product</p>
+							<ul class="footer-versions">
+								<li><a href="/">Web search</a></li>
+								<li><a href="/?view=library" data-internal>Library</a></li>
+								<li><a href="/ecosystem#music">BetterYTS Music</a> <span class="ver" data-version="music">v0.9.2</span></li>
+								<li><a href="/ecosystem#vrchat">VRChat packages</a> <span class="ver" data-version="vrchat">v1.0.1</span></li>
+								<li><a href="/ecosystem">Ecosystem</a></li>
+							</ul>
+						</div>
+						<div>
+							<p class="footer-title">Developers</p>
+							<ul>
+								<li><a href="/docs">API reference</a> <span class="ver" data-version="api">v1.1.0</span></li>
+								<li><a href="/docs#redirects">VRChat redirects</a></li>
+								<li><a href="/docs#operators">Search operators</a></li>
+								<li><a href="/docs#plugins">Community plugins</a></li>
+								<li><a href="/api/openapi.json">OpenAPI spec</a></li>
+							</ul>
+						</div>
+						<div>
+							<p class="footer-title">Community</p>
+							<ul>
+								<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
+								<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
+								<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
+								<li><a href="https://akasammythepuppy.me" target="_blank" rel="noopener author">Creator: akasammythepuppy</a></li>
+							</ul>
+						</div>
+						<div>
+							<p class="footer-title">Powered by</p>
+							<ul>
+								<li><a href="https://sponsor.ajay.app" target="_blank" rel="noopener">SponsorBlock</a></li>
+								<li><a href="https://dearrow.ajay.app" target="_blank" rel="noopener">DeArrow</a></li>
+								<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
+								<li><a href="https://lrclib.net" target="_blank" rel="noopener">LRCLIB</a></li>
+							</ul>
+						</div>
+					</nav>
 				</div>
-				<p class="copyright">Copyright © 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.<br /><span class="footer-build">BetterYTS Web <span data-version="web">v1.1.0</span> · build <span data-build>…</span> · <a href="/ecosystem">every project &amp; version</a></span></p>
+				<div class="footer-bottom">
+					<p class="copyright">© 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google. SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
+					<p class="footer-legal"><a href="/privacy">Privacy</a><a href="/sitemap">Site map</a><a href="/sitemap.xml">sitemap.xml</a><a href="/llms.txt">llms.txt</a></p>
+				</div>
 			</div>
 		</footer>
 

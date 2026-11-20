@@ -362,7 +362,17 @@ async function apiEcosystem(ctx: ExecutionContext): Promise<Response> {
 		} catch {
 			/* listing unreachable: VRChat version shows as unknown */
 		}
-		return json(ecosystem(listing, BUILD), 200, listing ? 3600 : 300);
+		const eco = ecosystem(listing, BUILD);
+		// The Music app's version is whatever the in-app updater announces (public/app/update.json).
+		try {
+			const r = await env.ASSETS.fetch(new Request(new URL("/app/update.json", "https://assets.local")));
+			const m = r.ok ? ((await r.json()) as { versionName?: unknown }) : null;
+			const music = eco.projects.find((p) => p.id === "music");
+			if (music && typeof m?.versionName === "string" && /^[\w.-]{1,20}$/.test(m.versionName)) music.version = m.versionName;
+		} catch {
+			/* keep the built-in version */
+		}
+		return json(eco, 200, listing ? 3600 : 300);
 	});
 }
 
