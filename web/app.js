@@ -8,6 +8,7 @@ import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
 import { activeCommunity, applyPalette, BUILTIN, builtinOn, CATEGORIES, categoryOn, community, PERMISSIONS, Sandbox, validateManifest } from "./plugins.js";
 import { importSpotify } from "./spotify.js";
+import { buildBackup, readBackup } from "./backup.js";
 import { qrSvg } from "./qr.js";
 import { store } from "./store.js";
 
@@ -1470,6 +1471,47 @@ $("#show-transcript").addEventListener("click", () => {
 });
 $("#transcript-search").addEventListener("input", filterTranscript);
 $("#transcript-lang").addEventListener("change", (e) => loadTranscript(e.target.value));
+
+// ---- Backup: export / import everything this browser keeps ----
+$("#backup-export").addEventListener("click", async () => {
+	let version = "";
+	try {
+		version = (await api("/api/health")).version || "";
+	} catch {
+		/* offline: export anyway */
+	}
+	const backup = buildBackup({ settings, library: store.get(), plugins: community.all(), version });
+	const blob = new Blob([JSON.stringify(backup, null, 1)], { type: "application/json" });
+	const a = h("a", { href: URL.createObjectURL(blob), download: `betteryts-backup-${new Date().toISOString().slice(0, 10)}.json` });
+	document.body.append(a);
+	a.click();
+	a.remove();
+	setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+	toast("Backup saved");
+});
+
+$("#backup-file").addEventListener("change", async (e) => {
+	const file = e.target.files?.[0];
+	e.target.value = "";
+	const err = $("#backup-error");
+	err.hidden = true;
+	if (!file) return;
+	try {
+		const b = readBackup(await file.text(), DEFAULTS);
+		const c = b.counts;
+		const what = `${c.favorites} favorites, ${c.history} history, ${c.playlists} playlists, ${c.subscriptions} subscriptions, ${c.queue} in the queue, ${b.plugins.length} community plugins`;
+		if (!window.confirm(`Replace what's in this browser with this backup${b.exportedAt ? ` from ${b.exportedAt.slice(0, 10)}` : ""}?\n\n${what}\n\nYour current library and settings here will be overwritten.`)) return;
+		Object.assign(settings, b.settings);
+		saveSettings();
+		store.replaceAll(b.library);
+		community.save(b.plugins);
+		toast("Backup restored");
+		setTimeout(() => location.reload(), 600);
+	} catch (ex) {
+		err.textContent = ex.message;
+		err.hidden = false;
+	}
+});
 
 // ---- Send to phone / VR: a QR code, a short link to type in VRChat, or a watch party ----
 function sendDialog() {

@@ -48,6 +48,11 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const store = {
 	get: () => data,
+	/** Replaces the whole library (a checked backup: web/backup.js). */
+	replaceAll(lib) {
+		data = { ...empty(), ...lib };
+		save();
+	},
 	onChange(fn) {
 		listeners.add(fn);
 		return () => listeners.delete(fn);

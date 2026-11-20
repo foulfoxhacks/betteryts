@@ -601,6 +601,15 @@
 					<label class="select wide"><span>Watch-party name</span><input data-setting="partyName" type="text" maxlength="32" placeholder="Guest" /></label>
 					<p class="fine">Unchecked SponsorBlock categories still show on the timeline and in the segment list, where you can skip them by hand.</p>
 				</fieldset>
+				<fieldset>
+					<legend>Backup</legend>
+					<p class="fine">Everything here lives in this browser only. Save it to a file to move it to another browser or keep it safe: settings, favorites, history, playlists, subscriptions, queue and community plugins.</p>
+					<div class="backup-actions">
+						<button type="button" class="button small primary" id="backup-export">Export backup</button>
+						<label class="button small secondary backup-import">Import backup<input type="file" id="backup-file" accept="application/json,.json" hidden /></label>
+					</div>
+					<p id="backup-error" class="import-error" role="alert" hidden></p>
+				</fieldset>
 			</form>
 		</dialog>
 

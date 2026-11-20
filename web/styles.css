@@ -875,3 +875,7 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .transcript-time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
 #transcript-search, #transcript-lang { min-width: 0; padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--btn-radius); background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
 #transcript-search:focus, #transcript-lang:focus { outline: none; border-color: var(--primary); }
+
+/* Backup */
+.backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup-import { cursor: pointer; }
