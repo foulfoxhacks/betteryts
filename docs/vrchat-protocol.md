@@ -87,6 +87,7 @@ Optional query parameters (append after the query in the input field):
 | a video | `302 Location: https://www.youtube.com/watch?v={id}` |
 | a thumbnail sheet | `200 image/jpeg` bytes directly (**not** a redirect: VRChat images can't follow redirects) |
 | a next page | `200 application/json` in the `/vrc/search` format, served directly |
+| a link poll | `200 application/json`: see [Linking](#linking) |
 | unassigned or expired | `404` (`text/plain`) |
 
 ## Thumbnail sheet image
@@ -101,3 +102,50 @@ Optional query parameters (append after the query in the input field):
 
 `{ "v": 1, "poolSize": 20000, "poolUrl": "https://yts.foulfoxhacks.dev/vrc/p/{slot}", "searchPrefix": "https://yts.foulfoxhacks.dev/vrc/search?q=" }`.
 Editor tools read this to bake the pool and pre-fill the input field.
+
+## Linking
+
+Players can send their own playlists (YouTube via Google sign-in, Spotify links, or their
+BetterYTS library) into a world, and the world can keep them across visits with PlayerData.
+It works like a TV sign-in, using only baked URLs.
+
+### Constants to bake
+
+| What | URLs |
+|---|---|
+| Start buttons | `{base}/vrc/link/start/youtube`, `{base}/vrc/link/start/spotify` |
+| Saved libraries | `{base}/vrc/l/{n}` for `n = 0 … 9999` (`LIBRARY_SLOTS = 10000`) |
+| Polling | the existing pool `{base}/vrc/p/{slot}` |
+
+### Flow
+
+1. The player presses **Link YouTube** (or Spotify). The world loads the start URL with
+   `VRCStringDownloader` and gets:
+   `{ "v": 1, "ok": true, "service": "youtube", "code": "K7QX-M2PA", "url": "yts.foulfoxhacks.dev/inworld/youtube/auth", "expiresIn": 600, "poll": 4127 }`
+2. The world shows the `code` and `url` large, with the expiry. The player opens the URL on
+   a phone or PC, enters the code, signs in or picks a source, and chooses playlists.
+3. The world polls `pool[poll]` every 5 s (the string-download rate limit), and only while the
+   code is on screen:
+   - `{ "status": "waiting", "code": … }`: keep polling.
+   - `{ "status": "expired" }`: stop and offer a new code.
+   - `{ "status": "linked", "service", "account", "playlists": [{ "name", "tracks": [{ "title", "channel", "slot" }] }], "library": 2227 }`: done.
+4. Play a track by loading `pool[track.slot]` into the video player (it's a `302` to YouTube,
+   like search results).
+5. Save `library` (an int) in the player's PlayerData, e.g. key `betteryts.library.youtube`.
+
+### Next visit
+
+Load `{base}/vrc/l/{library}`. You get the same `linked` shape with fresh slots and a **new**
+`library` number. Save it straight away. The old number keeps working only until the new
+one is used once, so a world that crashes before saving can still recover with the old number.
+`{ "status": "missing" }` means the library expired (180 days unused) or was replaced:
+clear the saved number and offer **Link** again.
+
+### Limits and safety
+
+- Codes: 8 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (CSPRNG), valid 10 minutes, one use.
+- Rate limits per IP: 30 codes/hour, 60 library loads/hour, 20 code entries per 10 minutes.
+- A library has at most 20 playlists and 1,000 songs (200 per playlist). It holds only what
+  the player chose; no account tokens are ever stored (the import runs in the player's browser).
+- Tell players: anyone who gets their library number could load those playlists, so they
+  shouldn't send anything private.

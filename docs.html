@@ -124,6 +124,7 @@
 					<li><a href="#vrchat-world">In-world search</a></li>
 					<li><a href="#protv">ProTV playlists</a></li>
 					<li><a href="#rooms">Watch-party rooms</a></li>
+					<li><a href="#linking">Linking accounts in VRChat</a></li>
 					<li><a href="#plugins">Community plugins</a></li>
 					<li class="group">More</li>
 					<li><a href="#errors">Errors &amp; caching</a></li>
@@ -292,6 +293,9 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 					</tbody>
 				</table>
 				<p class="fine">Rooms are deleted after 24 hours without anyone connected. Up to 50 people per room.</p>
+
+				<h2 id="linking">Linking accounts in VRChat</h2>
+				<p>Players can bring their own music into a world: YouTube playlists (Google sign-in), Spotify playlist links, or their BetterYTS library. The world shows a code; the player enters it at <a href="/inworld/youtube/auth"><code>yts.foulfoxhacks.dev/inworld/youtube/auth</code></a> (or <code>/inworld/spotify/auth</code>) and picks playlists; the world saves a library number in PlayerData to get them back next visit. Everything uses baked URLs: <code>/vrc/link/start/{youtube|spotify}</code>, the pool <code>/vrc/p/{slot}</code> and <code>/vrc/l/{0…9999}</code>. Full protocol: <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-protocol.md#linking">docs/vrchat-protocol.md › Linking</a>.</p>
 
 				<h2 id="plugins">Community plugins</h2>
 				<p>Plugins on the site and in BetterYTS Music are grouped into categories, each with its own switch: <b>Playback</b>, <b>Player</b>, <b>Look</b> and <b>BetterYTS</b>. Anyone can write a community plugin for <b>Player</b> or <b>Look</b>; Playback and BetterYTS are built-in only, because what they do (control playback, rooms, the network) can't be sandboxed safely. Install one in Settings › Plugins › Add a community plugin, by pasting its manifest.</p>
