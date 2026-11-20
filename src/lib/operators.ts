@@ -135,9 +135,14 @@ function channelMatches(v: VideoItem, wanted: string): boolean {
 /** Applies the operators YouTube can't: channels, excluded words, Shorts and dates. */
 export function matchesOperators(item: { type: string }, ops: Operators, now = Date.now()): boolean {
 	if (item.type !== "video" && item.type !== "short") {
-		// Channels and playlists: only the word and channel exclusions apply.
-		const t = String((item as { title?: string }).title ?? "").toLowerCase();
-		return !ops.exclude.some((w) => t.includes(w)) && !ops.excludeChannels.some((c) => compact(t) === compact(c));
+		// A channel result is "by" itself; a playlist or mix is by its owner (mixes: "YouTube").
+		const it = item as { title?: string; handle?: string | null; id?: string; channel?: VideoItem["channel"] };
+		const t = String(it.title ?? "").toLowerCase();
+		const owners = item.type === "channel" ? [it.title, it.handle, it.id] : [it.channel?.name, it.channel?.handle, it.channel?.id];
+		const isBy = (c: string) => owners.some((x) => x && compact(x) === compact(c));
+		if (ops.channels.length && !ops.channels.some(isBy)) return false;
+		if (ops.excludeChannels.some(isBy)) return false;
+		return !ops.exclude.some((w) => t.includes(w));
 	}
 	const v = item as unknown as VideoItem;
 	if (ops.channels.length && !ops.channels.some((c) => channelMatches(v, c))) return false;

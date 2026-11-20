@@ -52,6 +52,12 @@ test("operators: filtering results", () => {
 	assert.ok(matchesOperators(vid(), parseOperators('channel:"lofi girl"'), now), "channel by display name");
 	assert.ok(matchesOperators(vid({ channel: { name: "Lofi Girl", handle: null, id: "UCx" } }), parseOperators("channel:@LofiGirl"), now), "a handle matches the name when results have no handle");
 
+	const only = parseOperators("lofi channel:@LofiGirl");
+	assert.ok(matchesOperators({ type: "channel", title: "Lofi Girl", handle: "@LofiGirl", id: "UCx" }, only, now), "the channel itself stays");
+	assert.ok(!matchesOperators({ type: "mix", title: "Mix - lofi", channel: { name: "YouTube" } }, only, now), "YouTube mixes go");
+	assert.ok(matchesOperators({ type: "playlist", title: "Study", channel: { name: "Lofi Girl" } }, only, now), "the channel's own playlists stay");
+	assert.ok(!matchesOperators({ type: "channel", title: "Lofi Girl", id: "UCx" }, parseOperators("lofi -channel:lofigirl"), now));
+
 	const after = parseOperators("lofi after:2026-11-01");
 	assert.ok(matchesOperators(vid({ published: "2 weeks ago" }), after, now));
 	assert.ok(!matchesOperators(vid({ published: "3 months ago" }), after, now));
