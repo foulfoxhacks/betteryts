@@ -552,7 +552,9 @@ function protvText(name, videos) {
 function renderLibrary() {
 	for (const t of $$("[data-lib-tab]")) t.setAttribute("aria-selected", String(t.dataset.libTab === libTab));
 	const d = store.get();
-	const empty = (msg) => h("div", { class: "empty" }, h("p", {}, msg));
+	// Empty sections say what goes here and offer a next step, instead of one bare line.
+	const findSomething = () => h("button", { type: "button", class: "button small primary", onclick: () => { window.scrollTo({ top: 0, behavior: "smooth" }); input.focus(); } }, "Search videos");
+	const empty = (msg, icon = "♪", ...actions) => h("div", { class: "empty empty-state" }, h("span", { class: "empty-icon", "aria-hidden": "true" }, icon), h("p", {}, msg), actions.length ? h("div", { class: "empty-actions" }, ...actions) : null);
 
 	if (libTab === "subs") {
 		renderSubscriptions(d.subscriptions);
@@ -561,12 +563,12 @@ function renderLibrary() {
 			h("div", { class: "lib-actions" }, h("button", { type: "button", class: "button small primary", onclick: () => playList(d.queue), disabled: !d.queue.length }, "▶ Play queue"), h("button", { type: "button", class: "button small secondary", onclick: () => store.clearQueue(), disabled: !d.queue.length }, "Clear")),
 			d.queue.length
 				? h("ol", { class: "row-list" }, d.queue.map((v, i) => rowItem(v, [iconBtn("▶", "Play now", () => (store.removeFromQueue(i), navigate(withParams({ v: v.id }), { watchState: true }))), iconBtn("↑", "Move up", () => store.moveInQueue(i, -1)), iconBtn("↓", "Move down", () => store.moveInQueue(i, 1)), iconBtn("✕", "Remove", () => store.removeFromQueue(i))])))
-				: empty("Your queue is empty. Use + on any video to add it."),
+				: empty("Your queue is empty. Use + on any video to line it up here.", "≡", findSomething()),
 		);
 	} else if (libTab === "favorites") {
 		libBody.replaceChildren(
 			h("div", { class: "lib-actions" }, h("button", { type: "button", class: "button small primary", onclick: () => playList(d.favorites), disabled: !d.favorites.length }, "▶ Play all"), h("button", { type: "button", class: "button small secondary", onclick: () => playList(d.favorites, { shuffle: true }), disabled: !d.favorites.length }, "Shuffle"), h("button", { type: "button", class: "button small secondary", onclick: () => copy(shareUrl("Favorites", d.favorites), "Share link"), disabled: !d.favorites.length }, "Copy share link")),
-			d.favorites.length ? h("div", { class: "grid" }, d.favorites.map((v) => videoCard(v))) : empty("No favorites yet. Tap ♡ on a video."),
+			d.favorites.length ? h("div", { class: "grid" }, d.favorites.map((v) => videoCard(v))) : empty("No favorites yet. Tap ♡ on any video to keep it here.", "♡", findSomething()),
 		);
 	} else if (libTab === "history") {
 		const ago = (t) => {
@@ -575,7 +577,7 @@ function renderLibrary() {
 		};
 		libBody.replaceChildren(
 			h("div", { class: "lib-actions" }, h("button", { type: "button", class: "button small secondary", onclick: () => confirm("Clear your watch history in this browser?") && store.clearHistory(), disabled: !d.history.length }, "Clear history")),
-			d.history.length ? h("ol", { class: "row-list" }, d.history.map((v) => rowItem(v, [iconBtn("+", "Add to queue", () => addToQueue(v)), iconBtn("✕", "Remove from history", () => store.removeHistory(v.id))], ago(v.at)))) : empty("Nothing watched yet."),
+			d.history.length ? h("ol", { class: "row-list" }, d.history.map((v) => rowItem(v, [iconBtn("+", "Add to queue", () => addToQueue(v)), iconBtn("✕", "Remove from history", () => store.removeHistory(v.id))], ago(v.at)))) : empty("Nothing watched yet. Videos you play show up here (in this browser only).", "↺", findSomething()),
 		);
 	} else if (libTab === "playlists") {
 		const nameInput = h("input", { type: "text", maxlength: 80, placeholder: "New playlist name", "aria-label": "New playlist name" });
@@ -607,7 +609,7 @@ function renderLibrary() {
 							),
 						),
 					)
-				: empty("No playlists yet."),
+				: empty("No playlists yet. Save videos to a playlist, or import one below from YouTube or Spotify.", "☰"),
 		);
 	} else if (libTab === "party") {
 		const code = h("input", { type: "text", maxlength: 6, placeholder: "ABC123", "aria-label": "Room code", class: "room-code-input", autocapitalize: "characters" });
@@ -1907,6 +1909,14 @@ $("#backup-file").addEventListener("change", async (e) => {
 		err.hidden = false;
 	}
 });
+
+// ---- Home: "Try" chips under the search ----
+for (const chip of $$(".hero-chip[data-try]")) {
+	chip.addEventListener("click", () => {
+		input.value = chip.dataset.try;
+		form.requestSubmit();
+	});
+}
 
 // ---- Send to phone / VR: a QR code, a short link to type in VRChat, or a watch party ----
 function sendDialog() {
