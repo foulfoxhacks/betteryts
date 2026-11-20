@@ -7,8 +7,8 @@ import { $, $$, api, copy, fmtCount, fmtTime, h, isVideoId, minVideo, safeUrl, t
 import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
 import { activeCommunity, applyPalette, BUILTIN, builtinOn, CATEGORIES, categoryOn, community, PERMISSIONS, Sandbox, validateManifest } from "./plugins.js";
-import { importSpotify } from "./spotify.js";
-import { finishGoogle, revokeGoogle, startGoogle, youtubeLibrary } from "./accounts.js";
+import { importSpotify, matchList } from "./spotify.js";
+import { authConfig, finishGoogle, finishSpotify, revokeGoogle, spotifyPlaylists, spotifyTracks, startGoogle, startSpotify, youtubeLibrary } from "./accounts.js";
 import { buildBackup, cleanLibrary, readBackup } from "./backup.js";
 import { qrSvg } from "./qr.js";
 import { store } from "./store.js";
@@ -951,7 +951,8 @@ function renderLinkView() {
 					spotifyInput,
 					h("button", { type: "submit", class: "button small secondary", disabled: s.busy }, "Add a Spotify playlist"),
 				),
-				h("p", { class: "fine" }, "Spotify: public playlist and album links work now. Signing in to Spotify (private playlists, Liked Songs) comes when the site's Spotify app is approved."),
+				spotifyAccountBlock(`link:${s.code}`),
+				authCfg.spotify ? null : h("p", { class: "fine" }, "Spotify: public playlist and album links work now. Signing in to Spotify (private playlists, Liked Songs) needs the site's Spotify app, which isn't set up yet."),
 				s.note ? h("p", { class: "import-progress" }, s.note) : null,
 			),
 		);
@@ -982,6 +983,117 @@ function renderLinkView() {
 	root.replaceChildren(...parts.filter(Boolean));
 }
 
+// ---- Sign in with Spotify: pick playlists (and Liked Songs), match them, import or send ----
+let spotifyAccount = null; // { token, lists, picked:Set, purpose, running, note, error }
+let authCfg = {};
+authConfig().then((c) => {
+	authCfg = c || {};
+	refreshSpotifyPanel();
+	if (currentView === "link") renderLinkView();
+});
+
+async function handleSpotifyReturn(p) {
+	const isLink = () => spotifyAccount?.purpose?.startsWith("link:");
+	history.replaceState(history.state, "", "/?view=library&tab=playlists");
+	spotifyAccount = { token: null, lists: [], picked: new Set(), purpose: "import", running: true, note: "Signing in to Spotify…", error: "" };
+	try {
+		const done = await finishSpotify(p);
+		spotifyAccount.token = done.token;
+		spotifyAccount.purpose = done.purpose;
+		spotifyAccount.note = "Reading your playlists…";
+		refreshSpotifyChooser();
+		spotifyAccount.lists = await spotifyPlaylists(done.token);
+		spotifyAccount.picked = new Set(spotifyAccount.lists.slice(0, 5).map((l) => l.id));
+		spotifyAccount.note = "";
+	} catch (err) {
+		spotifyAccount.error = err.message;
+	} finally {
+		spotifyAccount.running = false;
+		if (isLink()) navigate(`/?view=link&code=${encodeURIComponent(spotifyAccount.purpose.slice(5))}`, { replace: true });
+		else refreshSpotifyChooser();
+	}
+}
+
+function refreshSpotifyChooser() {
+	refreshSpotifyPanel();
+	if (currentView === "link") renderLinkView();
+}
+
+/** Matches the picked playlists and hands them on: into the library, or to the linking page. */
+async function importPickedSpotify() {
+	const a = spotifyAccount;
+	const lists = a.lists.filter((l) => a.picked.has(l.id));
+	if (!lists.length) return;
+	a.running = true;
+	a.error = "";
+	const out = [];
+	try {
+		for (const [i, l] of lists.entries()) {
+			a.note = `Reading “${l.name}” (${i + 1} of ${lists.length})…`;
+			refreshSpotifyChooser();
+			const list = await spotifyTracks(a.token, l);
+			const r = await matchList(list, (done, total) => {
+				a.note = `Matching “${l.name}”: ${done} / ${total}`;
+				refreshSpotifyChooser();
+			});
+			out.push({ source: `spotify:${l.id}`, name: l.name, items: r.videos });
+		}
+		if (a.purpose.startsWith("link:")) {
+			linkState.picker = [...(linkState.picker || []), ...out.map((x) => ({ name: x.name, items: x.items, on: true }))];
+			a.note = `${out.reduce((n, x) => n + x.items.length, 0)} songs matched. Pick what to send below.`;
+		} else {
+			const sum = store.mergeImport({ playlists: out });
+			a.note = `Imported ${sum.playlists} new playlist${sum.playlists === 1 ? "" : "s"} (${sum.updated} updated).`;
+			toast("Spotify playlists imported");
+		}
+	} catch (err) {
+		a.error = err.message;
+	} finally {
+		a.running = false;
+		refreshSpotifyChooser();
+	}
+}
+
+/** The signed-in chooser (or a Sign in button when Spotify sign-in is set up). */
+function spotifyAccountBlock(purpose) {
+	const a = spotifyAccount;
+	if (!a || !a.token) {
+		if (!authCfg.spotify) return null;
+		return h(
+			"div",
+			{ class: "link-sources" },
+			h("button", { type: "button", class: "button small primary", onclick: () => startSpotify(purpose) }, "Sign in with Spotify"),
+			a?.error ? h("p", { class: "import-error" }, a.error) : null,
+			a?.note ? h("p", { class: "import-progress" }, a.note) : null,
+		);
+	}
+	return h(
+		"div",
+		{ class: "spotify-chooser" },
+		h("p", { class: "fine" }, "Pick playlists to bring over. Each song is matched to its YouTube version."),
+		h(
+			"ul",
+			{ class: "link-picker" },
+			...a.lists.map((l) =>
+				h(
+					"li",
+					{},
+					h(
+						"label",
+						{ class: "toggle" },
+						h("input", { type: "checkbox", checked: a.picked.has(l.id), disabled: a.running, onchange: (e) => (e.target.checked ? a.picked.add(l.id) : a.picked.delete(l.id)) }),
+						` ${l.name} `,
+						h("span", { class: "muted" }, `· ${l.count} song${l.count === 1 ? "" : "s"}`),
+					),
+				),
+			),
+		),
+		h("button", { type: "button", class: "button small primary", disabled: a.running, onclick: importPickedSpotify }, a.running ? "Working…" : "Match the picked playlists"),
+		a.note ? h("p", { class: "import-progress" }, a.note) : null,
+		a.error ? h("p", { class: "import-error" }, a.error) : null,
+	);
+}
+
 function spotifyPanel() {
 	const wrap = h("div", { id: "spotify-import", class: "side-panel spotify-import" });
 	fillSpotifyPanel(wrap);
@@ -999,6 +1111,7 @@ function fillSpotifyPanel(wrap) {
 	const kids = [
 		h("h3", {}, "Import from Spotify"),
 		h("p", { class: "muted" }, "Paste a public Spotify playlist or album link. Each song is matched to its YouTube version and saved as one of your playlists."),
+		spotifyAccountBlock("import"),
 		h(
 			"form",
 			{ class: "lib-actions", onsubmit: (e) => (e.preventDefault(), startSpotifyImport(input.value)) },
@@ -2417,6 +2530,10 @@ function syncFromUrl() {
 	// Back from Google sign-in: finish it (this rewrites the URL), then show the library.
 	if (p.get("link") === "google" && (p.get("code") || p.get("error"))) {
 		handleGoogleReturn(p);
+		return syncFromUrl();
+	}
+	if (p.get("link") === "spotify" && (p.get("code") || p.get("error"))) {
+		handleSpotifyReturn(p);
 		return syncFromUrl();
 	}
 	const view = p.get("view");

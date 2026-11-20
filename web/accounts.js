@@ -103,3 +103,81 @@ export async function youtubeLibrary(token, onProgress = () => {}) {
 		.filter((c) => typeof c.id === "string");
 	return { playlists, liked, subscriptions };
 }
+
+// ---- Spotify (PKCE with Spotify directly; the Worker only routes the callback) ----
+
+let configCache = null;
+/** Which sign-ins this server has: { google, spotify, spotifyClientId }. */
+export async function authConfig() {
+	if (!configCache) configCache = fetch("/api/auth/config").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+	return configCache;
+}
+
+export async function startSpotify(purpose = "import") {
+	const verifier = random(48);
+	const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+	const state = `web_${random(24)}`;
+	sessionStorage.setItem(PENDING, JSON.stringify({ service: "spotify", state, verifier, purpose, at: Date.now() }));
+	location.assign(`/auth/spotify/start?${new URLSearchParams({ state, code_challenge: challenge })}`);
+}
+
+export async function finishSpotify(params) {
+	let pending = null;
+	try {
+		pending = JSON.parse(sessionStorage.getItem(PENDING) || "null");
+	} catch {
+		/* ignore */
+	}
+	sessionStorage.removeItem(PENDING);
+	if (!pending || pending.service !== "spotify" || pending.state !== params.get("state") || Date.now() - pending.at > 15 * 60_000) {
+		throw new Error("That sign-in link expired or didn't start here. Try again.");
+	}
+	const error = params.get("error");
+	if (error) throw new Error(error === "access_denied" ? "Sign-in was cancelled" : `Spotify said: ${error}`);
+	const cfg = await authConfig();
+	if (!cfg.spotifyClientId) throw new Error("Spotify sign-in isn't set up on this server");
+	const res = await fetch("https://accounts.spotify.com/api/token", {
+		method: "POST",
+		headers: { "Content-Type": "application/x-www-form-urlencoded" },
+		body: new URLSearchParams({ grant_type: "authorization_code", code: params.get("code") || "", redirect_uri: `${location.origin}/auth/spotify/callback`, client_id: cfg.spotifyClientId, code_verifier: pending.verifier }),
+	});
+	const body = await res.json().catch(() => null);
+	if (!res.ok || !body?.access_token) throw new Error(body?.error_description || "Spotify sign-in failed");
+	return { token: body.access_token, purpose: pending.purpose };
+}
+
+async function sp(token, url) {
+	const res = await fetch(url.startsWith("https://") ? url : `https://api.spotify.com/v1${url}`, { headers: { Authorization: `Bearer ${token}` } });
+	const body = await res.json().catch(() => null);
+	if (!res.ok) throw new Error(body?.error?.message || `Spotify: HTTP ${res.status}`);
+	return body;
+}
+
+/** Your playlists plus Liked Songs, as { id, name, count } (id "liked" for Liked Songs). */
+export async function spotifyPlaylists(token) {
+	const liked = await sp(token, "/me/tracks?limit=1");
+	const out = [{ id: "liked", name: "Liked Songs", count: liked.total || 0 }];
+	let next = "/me/playlists?limit=50";
+	while (next && out.length < 101) {
+		const page = await sp(token, next);
+		for (const p of page.items || []) if (p?.id) out.push({ id: p.id, name: p.name || "Playlist", count: p.tracks?.total || 0 });
+		next = page.next;
+	}
+	return out;
+}
+
+/** One playlist's songs in the shape matchList() takes (up to 500). */
+export async function spotifyTracks(token, list) {
+	const tracks = [];
+	let next = list.id === "liked" ? "/me/tracks?limit=50" : `/playlists/${encodeURIComponent(list.id)}/tracks?limit=100&fields=items(track(name,duration_ms,is_local,artists(name))),next`;
+	while (next && tracks.length < 500) {
+		const page = await sp(token, next);
+		for (const it of page.items || []) {
+			const t = it?.track;
+			if (!t || t.is_local || !t.name) continue;
+			tracks.push({ title: t.name, artists: (t.artists || []).map((a) => a.name).filter(Boolean), durationMs: t.duration_ms || 0 });
+		}
+		next = page.next;
+	}
+	return { name: list.name, owner: "", kind: "playlist", tracks: tracks.slice(0, 500) };
+}

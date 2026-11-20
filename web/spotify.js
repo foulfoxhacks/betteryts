@@ -12,6 +12,14 @@ import { mapLimit } from "./feed.js";
  */
 export async function importSpotify(link, onProgress, signal) {
 	const list = await api("/api/spotify", { url: link.trim() }, signal);
+	return matchList(list, onProgress, signal);
+}
+
+/**
+ * Matches every song of a list ({ name, owner, kind, tracks: [{ title, artists, durationMs }] })
+ * to its YouTube video. Used for public links and for signed-in Spotify playlists alike.
+ */
+export async function matchList(list, onProgress, signal) {
 	const total = list.tracks.length;
 	let done = 0;
 	onProgress(0, total);

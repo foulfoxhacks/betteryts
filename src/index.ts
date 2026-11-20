@@ -11,6 +11,7 @@ import { matchesOperators, mergeFilters, parseOperators } from "./lib/operators.
 import { transcript } from "./lib/transcript.ts";
 import { openapi } from "./lib/openapi.ts";
 import { linkRoutes } from "./vrc/linking.ts";
+import { SPOTIFY_CALLBACK, spotifyAuthorizeUrl, spotifyCallbackRedirect, spotifyClientId } from "./lib/spotify-auth.ts";
 import { env } from "cloudflare:workers";
 import { branding, dislikes, sponsorSegments, SB_CATEGORIES, suggestions } from "./lib/addons.ts";
 import { cached, CORS_HEADERS, errorJson, json, redirect, text } from "./lib/http.ts";
@@ -533,6 +534,16 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	const path = url.pathname.replace(/\/{2,}/g, "/").replace(/(.)\/$/, "$1");
 
 	if (path.startsWith("/auth/google/") || path.startsWith("/api/auth/google/")) return googleAuth(req, url, path);
+	// Which sign-ins this deployment has (the site and app hide the rest).
+	if (path === "/api/auth/config") return json({ google: !!googleConfig(env), spotify: !!spotifyClientId(env), spotifyClientId: spotifyClientId(env) }, 200, 300);
+	if (path === "/auth/spotify/start" || path === SPOTIFY_CALLBACK) {
+		const id = spotifyClientId(env);
+		if (!id) return errorJson("Spotify sign-in isn't set up on this server yet", 503);
+		const nostore = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" };
+		if (path === SPOTIFY_CALLBACK) return new Response(null, { status: 302, headers: { Location: spotifyCallbackRedirect(url.origin, url.searchParams), ...nostore } });
+		const target = spotifyAuthorizeUrl(url.origin, id, url.searchParams.get("state"), url.searchParams.get("code_challenge"));
+		return typeof target === "string" ? new Response(null, { status: 302, headers: { Location: target, ...nostore } }) : errorJson(target.error, 400);
+	}
 	// The site posts an import to the world waiting on an activation code (src/vrc/linking.ts).
 	if (path === "/api/inworld/complete") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
