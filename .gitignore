@@ -8,3 +8,6 @@ dist/
 !.env.example
 *.log
 .DS_Store
+
+# In-app update APKs (built by betteryts-music/scripts/publish-update.ps1, deployed, not committed)
+public/app/*.apk

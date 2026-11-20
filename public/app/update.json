@@ -1,0 +1,13 @@
+{
+    "packageName":  "dev.foulfoxhacks.betteryts.music",
+    "versionCode":  11,
+    "versionName":  "0.9.2",
+    "notes":  "In-app updates, animated fox intro, polish.",
+    "released":  "2026-11-20T23:03:46Z",
+    "signerSha256":  "b77d81c3041f987ebf26313c3876829bff6f1c16b9e897afa6a8f7e70814622c",
+    "apk":  {
+                "url":  "https://yts.foulfoxhacks.dev/app/BetterYTS-Music-0.9.2.apk",
+                "size":  8991361,
+                "sha256":  "014860afa03b7c2accb00a0014e1333b27b476cd035d88252eceebaaf1072b7c"
+            }
+}

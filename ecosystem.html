@@ -101,7 +101,11 @@
 				<section class="eco-card" id="music">
 					<p class="eyebrow">Android app · beta</p>
 					<h2>BetterYTS Music <span class="ver" data-version="music">v0.9.1</span></h2>
-					<p>A YouTube Music-style app on the BetterYTS core: background play, synced lyrics, Spotify import, plugins and Listen Together rooms with people on this site and in VRChat. In private beta: not published yet.</p>
+					<p>A YouTube Music-style app on the BetterYTS core: background play, synced lyrics, Spotify import, plugins and Listen Together rooms with people on this site and in VRChat. It updates itself: new versions are checked against this app's signing key and a SHA-256 checksum before they install.</p>
+					<div class="eco-links" data-app-download hidden>
+						<a class="button small primary" data-app-apk href="#">Download APK</a>
+					</div>
+					<p class="fine eco-sha" data-app-sha hidden></p>
 				</section>
 			</div>
 			<p class="fine eco-build">This site: build <span data-build>…</span>. Versions come from <a href="/api/ecosystem">/api/ecosystem</a>; VRChat package versions are read live from the VPM listing.</p>

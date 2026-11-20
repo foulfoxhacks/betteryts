@@ -79,7 +79,30 @@ export function initChrome() {
  * Footer (and /ecosystem) versions: the page ships with the numbers at build time; this swaps in
  * the live ones from /api/ecosystem (VRChat packages come straight from the VPM listing).
  */
+/** /ecosystem: the Music app's download button and checksum, from the in-app updater's manifest. */
+function fillAppDownload() {
+	const box = document.querySelector("[data-app-download]");
+	if (!box) return;
+	fetch("/app/update.json", { cache: "no-cache" })
+		.then((r) => (r.ok ? r.json() : null))
+		.then((m) => {
+			const url = m?.apk?.url;
+			if (typeof url !== "string" || !url.startsWith(`${location.origin}/app/`) && !url.startsWith("https://yts.foulfoxhacks.dev/app/")) return;
+			const a = box.querySelector("[data-app-apk]");
+			a.href = new URL(url).pathname;
+			a.textContent = `Download APK · v${m.versionName} · ${(m.apk.size / 1048576).toFixed(1)} MB`;
+			box.hidden = false;
+			const sha = document.querySelector("[data-app-sha]");
+			sha.textContent = `SHA-256 ${m.apk.sha256} · signed by ${String(m.signerSha256).slice(0, 16)}… · Android 8+. After this one, the app updates itself.`;
+			sha.hidden = false;
+		})
+		.catch(() => {
+			/* no published build yet: the button stays hidden */
+		});
+}
+
 function fillVersions() {
+	fillAppDownload();
 	const build = typeof __BUILD__ === "string" ? __BUILD__ : "dev";
 	for (const el of document.querySelectorAll("[data-build]")) el.textContent = build;
 	if (!document.querySelector("[data-version], [data-packages]")) return;
