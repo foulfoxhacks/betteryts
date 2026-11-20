@@ -8,7 +8,8 @@ import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
 import { activeCommunity, applyPalette, BUILTIN, builtinOn, CATEGORIES, categoryOn, community, PERMISSIONS, Sandbox, validateManifest } from "./plugins.js";
 import { importSpotify } from "./spotify.js";
-import { buildBackup, readBackup } from "./backup.js";
+import { finishGoogle, revokeGoogle, startGoogle, youtubeLibrary } from "./accounts.js";
+import { buildBackup, cleanLibrary, readBackup } from "./backup.js";
 import { qrSvg } from "./qr.js";
 import { store } from "./store.js";
 
@@ -580,6 +581,7 @@ function renderLibrary() {
 		const nameInput = h("input", { type: "text", maxlength: 80, placeholder: "New playlist name", "aria-label": "New playlist name" });
 		libBody.replaceChildren(
 			h("form", { class: "lib-actions", onsubmit: (e) => (e.preventDefault(), nameInput.value.trim() && (store.createPlaylist(nameInput.value.trim()), toast("Playlist created"))) }, nameInput, h("button", { type: "submit", class: "button small primary" }, "Create playlist")),
+			youtubeImportPanel(),
 			spotifyPanel(),
 			d.playlists.length
 				? h(
@@ -756,6 +758,71 @@ store.onChange(() => {
 // Lives outside renderLibrary so the Library re-rendering (it does on every store change)
 // doesn't lose an import in progress.
 const spotifyJob = { running: false, done: 0, total: 0, controller: null, result: null, error: "", link: "" };
+
+// ---- Import from YouTube (sign in with Google once; the token is revoked right after) ----
+let youtubeJob = { running: false, note: "", error: "" };
+
+function youtubeImportPanel() {
+	const wrap = h("div", { id: "youtube-import", class: "side-panel spotify-import" });
+	fillYoutubePanel(wrap);
+	return wrap;
+}
+
+function fillYoutubePanel(wrap) {
+	const j = youtubeJob;
+	wrap.replaceChildren(
+		h("h3", {}, "Import from YouTube"),
+		h("p", { class: "muted" }, "Sign in with Google to copy your YouTube playlists, liked videos and subscriptions here. Read-only, once: BetterYTS signs out right after and keeps no token. Same import as the BetterYTS Music app."),
+		h("button", { type: "button", class: "button small primary", disabled: j.running, onclick: () => startGoogle("import") }, j.running ? "Importing…" : "Sign in with Google"),
+		...(j.note ? [h("p", { class: "import-progress" }, j.note)] : []),
+		...(j.error ? [h("p", { class: "import-error" }, j.error)] : []),
+	);
+}
+
+function refreshYoutubePanel() {
+	const el = $("#youtube-import");
+	if (el) fillYoutubePanel(el);
+}
+
+/** Back from Google (/?link=google&code=…&state=…): finish the sign-in and import. */
+async function handleGoogleReturn(p) {
+	// Drop the code from the address bar straight away.
+	history.replaceState(history.state, "", "/?view=library&tab=playlists");
+	youtubeJob = { running: true, note: "Signing in…", error: "" };
+	let token = null;
+	try {
+		const done = await finishGoogle(p);
+		token = done.token;
+		const lib = await youtubeLibrary(token, (note) => {
+			youtubeJob.note = note;
+			refreshYoutubePanel();
+		});
+		if (done.purpose?.startsWith("link:")) {
+			await sendToWorld(done.purpose.slice(5), "youtube", lib);
+			return;
+		}
+		// Same checks as a backup import: valid IDs, safe URLs, limits.
+		const clean = cleanLibrary({ favorites: lib.liked, subscriptions: lib.subscriptions, playlists: lib.playlists.map((x) => ({ name: x.name, items: x.items })) });
+		const sum = store.mergeImport({
+			favorites: clean.favorites,
+			subscriptions: clean.subscriptions,
+			playlists: lib.playlists.map((x, i) => ({ source: x.source, name: clean.playlists[i]?.name ?? x.name, items: clean.playlists[i]?.items ?? [] })),
+		});
+		youtubeJob = { running: false, note: `Imported ${sum.playlists} new playlist${sum.playlists === 1 ? "" : "s"} (${sum.updated} updated), ${sum.favorites} liked video${sum.favorites === 1 ? "" : "s"} and ${sum.subscriptions} subscription${sum.subscriptions === 1 ? "" : "s"}.`, error: "" };
+		toast("YouTube library imported");
+	} catch (err) {
+		youtubeJob = { running: false, note: "", error: err.message };
+	} finally {
+		if (token) revokeGoogle(token);
+		refreshYoutubePanel();
+		renderLibrary?.();
+	}
+}
+
+/** Hands an imported library to a VRChat world that showed this activation code (src/lib/inworld.ts). */
+async function sendToWorld(code, service, lib) {
+	throw new Error("Sending to VRChat isn't available yet");
+}
 
 function spotifyPanel() {
 	const wrap = h("div", { id: "spotify-import", class: "side-panel spotify-import" });
@@ -2189,6 +2256,11 @@ document.addEventListener("keydown", (e) => {
 
 function syncFromUrl() {
 	const p = params();
+	// Back from Google sign-in: finish it (this rewrites the URL), then show the library.
+	if (p.get("link") === "google" && (p.get("code") || p.get("error"))) {
+		handleGoogleReturn(p);
+		return syncFromUrl();
+	}
 	const view = p.get("view");
 	const channelRef = p.get("channel");
 	const list = p.get("list");

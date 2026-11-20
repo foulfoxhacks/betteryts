@@ -3,6 +3,7 @@
 // Flow (PKCE; the client secret never leaves the Worker, the code verifier never leaves the phone):
 //   1. App opens  /auth/google/start?state=…&code_challenge=…      → 302 to Google's consent page
 //   2. Google →   /auth/google/callback?code=…&state=…             → 302 to betterytsmusic://oauth?code=…&state=…
+//                 (states starting "web_" go back to the website instead: /?link=google&code=…&state=…)
 //   3. App POSTs  /api/auth/google/token   {code, code_verifier}   → Worker adds the secret, returns tokens
 //   4. Later:     /api/auth/google/refresh {refresh_token}         → new access token
 //                 /api/auth/google/revoke  {token}                 → sign out
@@ -58,6 +59,17 @@ export function appRedirect(params: URLSearchParams): string {
 	if (code && CODE_RE.test(code)) out.set("code", code);
 	else out.set("error", error && /^[a-z_]{1,64}$/.test(error) ? error : "invalid_response");
 	return `${APP_REDIRECT}?${out}`;
+}
+
+/**
+ * Where Google's answer goes. States starting "web_" came from the website (web/accounts.js),
+ * which finishes the same PKCE exchange in the browser; everything else goes to the app.
+ */
+export function callbackRedirect(origin: string, params: URLSearchParams): string {
+	const state = params.get("state") ?? "";
+	if (!state.startsWith("web_")) return appRedirect(params);
+	const app = new URL(appRedirect(params));
+	return `${origin}/?link=google&${app.searchParams}`;
 }
 
 export function validTokenRequest(body: unknown): { code: string; verifier: string } | null {

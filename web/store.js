@@ -48,6 +48,41 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 export const store = {
 	get: () => data,
+	/**
+	 * Merges an account import (YouTube via Google, Spotify): adds favorites and subscriptions,
+	 * and adds or replaces playlists by their `source` (e.g. "youtube:PL…"). Never deletes.
+	 * Items must already be checked (minVideo). Returns counts.
+	 */
+	mergeImport({ favorites = [], playlists = [], subscriptions = [] }) {
+		const sum = { favorites: 0, playlists: 0, updated: 0, subscriptions: 0 };
+		for (const v of favorites) {
+			if (!data.favorites.some((f) => f.id === v.id)) {
+				data.favorites.push(v);
+				sum.favorites++;
+			}
+		}
+		for (const p of playlists) {
+			const items = p.items.slice(0, MAX_PLAYLIST_ITEMS);
+			const old = p.source && data.playlists.find((x) => x.source === p.source);
+			if (old) {
+				old.name = String(p.name).slice(0, 80);
+				old.items = items;
+				sum.updated++;
+			} else if (data.playlists.length < MAX_PLAYLISTS) {
+				data.playlists.push({ id: uid(), name: String(p.name || "Playlist").slice(0, 80), items, createdAt: Date.now(), source: p.source || null });
+				sum.playlists++;
+			}
+		}
+		for (const c of subscriptions) {
+			if (data.subscriptions.length >= MAX_SUBSCRIPTIONS) break;
+			if (!data.subscriptions.some((s) => s.id === c.id)) {
+				data.subscriptions.push({ ...c, at: Date.now() });
+				sum.subscriptions++;
+			}
+		}
+		save();
+		return sum;
+	},
 	/** Replaces the whole library (a checked backup: web/backup.js). */
 	replaceAll(lib) {
 		data = { ...empty(), ...lib };

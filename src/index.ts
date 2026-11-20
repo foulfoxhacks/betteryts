@@ -23,7 +23,7 @@ import {
 	videoIdFromQuery,
 } from "./lib/query.ts";
 import { CHANNEL_TABS, channel, type ChannelTab, channelRefFrom, playlist, playlistIdFrom } from "./lib/browse.ts";
-import { appRedirect, authorizeUrl, CALLBACK_PATH, googleConfig, googleToken, validToken, validTokenRequest } from "./lib/google.ts";
+import { authorizeUrl, callbackRedirect, CALLBACK_PATH, googleConfig, googleToken, validToken, validTokenRequest } from "./lib/google.ts";
 import { lrclib, songOf } from "./lib/lyrics.ts";
 import { toProTVPlaylist } from "./lib/protv.ts";
 import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
@@ -488,7 +488,7 @@ async function googleAuth(req: Request, url: URL, path: string): Promise<Respons
 		return typeof target === "string" ? new Response(null, { status: 302, headers: { Location: target, "Cache-Control": "no-store" } }) : fail(target.error, 400);
 	}
 	if (path === CALLBACK_PATH && req.method === "GET") {
-		return new Response(null, { status: 302, headers: { Location: appRedirect(url.searchParams), "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
+		return new Response(null, { status: 302, headers: { Location: callbackRedirect(url.origin, url.searchParams), "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
 	}
 	if (req.method !== "POST") return fail("Method not allowed", 405);
 	const body = await req.json().catch(() => null);
