@@ -4,7 +4,7 @@
 export const PROTOCOL_VERSION = 1;
 export const POOL_SIZE = 20000;
 
-export type SlotKind = "video" | "sheet" | "page";
+export type SlotKind = "video" | "sheet" | "page" | "link";
 
 export interface SlotEntry {
 	kind: SlotKind;

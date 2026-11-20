@@ -6,6 +6,7 @@ import { boolParam, intParam, queryFromSearchParams } from "../lib/query.ts";
 import type { ClientOptions, Item, SearchFilters, VideoItem } from "../lib/types.ts";
 import type { VrcPool } from "./pool.ts";
 import { POOL_SIZE, PROTOCOL_VERSION, type SlotEntry } from "./protocol.ts";
+import { linkSlot } from "./linking.ts";
 import { renderSheet, SHEET, sheetLayout } from "./sheet.ts";
 
 const PER_PAGE = SHEET.cols * SHEET.rows;
@@ -173,6 +174,8 @@ export async function vrcSlot(slotText: string, env: Env, ctx: ExecutionContext,
 				return fail(err instanceof Error ? err.message : "Search failed");
 			}
 		}
+		case "link":
+			return linkSlot(entry.payload, env);
 		default:
 			return text("BetterYTS: unknown slot type\n", 500);
 	}

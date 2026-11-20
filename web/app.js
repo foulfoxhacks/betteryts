@@ -120,7 +120,7 @@ const filtersEl = $("#filters");
 const resultsEl = $("#results");
 const statusEl = $("#status");
 
-const VIEWS = { home: ["#home", "#hero"], results: ["#results-view"], library: ["#library-view"], channel: ["#channel-view"], playlist: ["#playlist-view"] };
+const VIEWS = { home: ["#home", "#hero"], results: ["#results-view"], library: ["#library-view"], channel: ["#channel-view"], playlist: ["#playlist-view"], link: ["#link-view"] };
 let currentView = "";
 
 function showView(name, title) {
@@ -798,7 +798,14 @@ async function handleGoogleReturn(p) {
 			refreshYoutubePanel();
 		});
 		if (done.purpose?.startsWith("link:")) {
-			await sendToWorld(done.purpose.slice(5), "youtube", lib);
+			// Signed in from the VRChat linking page: pick what to send there.
+			const code = done.purpose.slice(5);
+			linkState.picker = [
+				...(lib.liked.length ? [{ name: "Liked videos", items: lib.liked, on: true }] : []),
+				...lib.playlists.map((x, i) => ({ name: x.name, items: x.items, on: i < 19 })),
+			];
+			linkState.account = "";
+			navigate(`/?view=link&code=${encodeURIComponent(code)}`, { replace: true });
 			return;
 		}
 		// Same checks as a backup import: valid IDs, safe URLs, limits.
@@ -819,9 +826,160 @@ async function handleGoogleReturn(p) {
 	}
 }
 
-/** Hands an imported library to a VRChat world that showed this activation code (src/lib/inworld.ts). */
-async function sendToWorld(code, service, lib) {
-	throw new Error("Sending to VRChat isn't available yet");
+// ---- Send music to a VRChat world (/inworld/{service}/auth → /?view=link): src/vrc/links.ts ----
+let linkState = { code: "", service: "", checked: false, error: "", note: "", picker: null, sent: null, busy: false, account: "" };
+
+function openLinkView(code, service) {
+	if (code && code !== linkState.code) linkState = { ...linkState, code, checked: false, sent: null, error: "" };
+	if (service && !linkState.service) linkState.service = service;
+	renderLinkView();
+	if (linkState.code && !linkState.checked) checkLinkCode();
+}
+
+async function checkLinkCode() {
+	linkState.busy = true;
+	linkState.error = "";
+	renderLinkView();
+	try {
+		const d = await api("/api/inworld/check", { code: linkState.code });
+		linkState = { ...linkState, code: d.code, service: d.service, checked: true };
+	} catch (err) {
+		linkState.checked = false;
+		linkState.error = err.message;
+	} finally {
+		linkState.busy = false;
+		renderLinkView();
+	}
+}
+
+const MAX_SEND_PLAYLISTS = 20;
+
+async function sendToWorld() {
+	const chosen = (linkState.picker || []).filter((p) => p.on).slice(0, MAX_SEND_PLAYLISTS);
+	if (!chosen.length) {
+		linkState.error = "Pick at least one playlist";
+		return renderLinkView();
+	}
+	linkState.busy = true;
+	linkState.error = "";
+	renderLinkView();
+	try {
+		const res = await fetch("/api/inworld/complete", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				code: linkState.code,
+				service: linkState.service,
+				library: { account: linkState.account, playlists: chosen.map((p) => ({ name: p.name, tracks: p.items.map((v) => ({ id: v.id, title: v.title, channel: v.channel || "" })) })) },
+			}),
+		});
+		const body = await res.json().catch(() => null);
+		if (!res.ok || !body?.ok) throw new Error(body?.error?.message || body?.error || `Failed (${res.status})`);
+		linkState.sent = body;
+		linkState.picker = null;
+	} catch (err) {
+		linkState.error = err.message;
+	} finally {
+		linkState.busy = false;
+		renderLinkView();
+	}
+}
+
+function renderLinkView() {
+	const root = $("#link-root");
+	if (!root) return;
+	const s = linkState;
+	const step = (n, title, ...kids) => h("section", { class: "link-step side-panel" }, h("h3", {}, h("span", { class: "link-num" }, n), " ", title), ...kids);
+	const parts = [
+		h("p", { class: "eyebrow" }, "BetterYTS for VRChat"),
+		h("h1", { class: "page-title" }, "Send music to a VRChat world"),
+		h("p", { class: "muted" }, "In a world with BetterYTS, press Link YouTube or Link Spotify. It shows a code: enter it here, pick playlists, and they appear in the world. The world remembers them for your next visit."),
+	];
+	if (s.sent) {
+		parts.push(
+			step("✓", "Sent", h("p", {}, `Sent ${s.sent.playlists} playlist${s.sent.playlists === 1 ? "" : "s"} (${s.sent.tracks} songs). Look at the world: they show up within a few seconds.`), h("button", { type: "button", class: "button small secondary", onclick: () => { linkState = { ...linkState, code: "", checked: false, sent: null }; navigate("/?view=link"); } }, "Link another world")),
+		);
+		root.replaceChildren(...parts);
+		return;
+	}
+	const input = h("input", { type: "text", class: "room-code-input link-code-input", maxlength: 9, placeholder: "ABCD-1234", "aria-label": "Activation code", value: s.code, autocapitalize: "characters", spellcheck: "false" });
+	parts.push(
+		step(
+			"1",
+			"Enter the code from the world",
+			h("form", { class: "lib-actions", onsubmit: (e) => (e.preventDefault(), (linkState.code = input.value.trim()), checkLinkCode()) }, input, h("button", { type: "submit", class: "button small primary", disabled: s.busy }, s.checked ? "Checked ✓" : "Check")),
+			s.checked ? h("p", { class: "fine" }, `Code ${s.code} is waiting for ${s.service === "spotify" ? "Spotify" : "YouTube"} music. It's good for 10 minutes and works once.`) : null,
+		),
+	);
+	if (s.checked) {
+		const lib = store.get();
+		const sources = [
+			h("button", { type: "button", class: "button small secondary", onclick: () => { linkState.picker = [...(lib.favorites.length ? [{ name: "Favorites", items: lib.favorites, on: true }] : []), ...lib.playlists.map((p, i) => ({ name: p.name, items: p.items, on: i < 19 }))]; renderLinkView(); } }, `This browser's library (${lib.playlists.length} playlists)`),
+			h("button", { type: "button", class: "button small primary", onclick: () => startGoogle(`link:${s.code}`) }, "Sign in with Google (YouTube)"),
+		];
+		const spotifyInput = h("input", { type: "url", placeholder: "https://open.spotify.com/playlist/…", "aria-label": "Spotify playlist link" });
+		parts.push(
+			step(
+				"2",
+				"Choose where the music comes from",
+				h("div", { class: "link-sources" }, ...sources),
+				h(
+					"form",
+					{
+						class: "lib-actions",
+						onsubmit: async (e) => {
+							e.preventDefault();
+							linkState.busy = true;
+							linkState.note = "Matching Spotify songs to YouTube…";
+							renderLinkView();
+							try {
+								const r = await importSpotify(spotifyInput.value, (done, total) => {
+									linkState.note = `Matching songs… ${done} / ${total}`;
+									renderLinkView();
+								});
+								linkState.picker = [...(linkState.picker || []).filter((p) => p.spotify !== r.name), { name: r.name || "Spotify playlist", items: r.videos, on: true, spotify: r.name }];
+								linkState.note = `${r.videos.length} of ${r.total} songs matched${r.unmatched.length ? ` (${r.unmatched.length} not found)` : ""}.`;
+							} catch (err) {
+								linkState.error = err.message;
+								linkState.note = "";
+							} finally {
+								linkState.busy = false;
+								renderLinkView();
+							}
+						},
+					},
+					spotifyInput,
+					h("button", { type: "submit", class: "button small secondary", disabled: s.busy }, "Add a Spotify playlist"),
+				),
+				h("p", { class: "fine" }, "Spotify: public playlist and album links work now. Signing in to Spotify (private playlists, Liked Songs) comes when the site's Spotify app is approved."),
+				s.note ? h("p", { class: "import-progress" }, s.note) : null,
+			),
+		);
+	}
+	if (s.checked && s.picker) {
+		const total = s.picker.filter((p) => p.on).reduce((n, p) => n + Math.min(p.items.length, 200), 0);
+		parts.push(
+			step(
+				"3",
+				"Pick what to send",
+				h(
+					"ul",
+					{ class: "link-picker" },
+					...s.picker.map((p) =>
+						h(
+							"li",
+							{},
+							h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: p.on, onchange: (e) => { p.on = e.target.checked; renderLinkView(); } }), ` ${p.name} `, h("span", { class: "muted" }, `· ${p.items.length} song${p.items.length === 1 ? "" : "s"}`)),
+						),
+					),
+				),
+				h("p", { class: "fine" }, `Up to ${MAX_SEND_PLAYLISTS} playlists and 1,000 songs (200 per playlist). Selected: ${total} songs. Only what you pick goes to the world, and anyone who learns your world library number could load it, so leave out anything private.`),
+				h("button", { type: "button", class: "button primary", disabled: s.busy, onclick: sendToWorld }, s.busy ? "Sending…" : "Send to the world"),
+			),
+		);
+	}
+	if (s.error) parts.push(h("p", { class: "import-error", role: "alert" }, s.error));
+	root.replaceChildren(...parts.filter(Boolean));
 }
 
 function spotifyPanel() {
@@ -2268,7 +2426,10 @@ function syncFromUrl() {
 	const v = p.get("v");
 
 	// ---- Page behind the player ----
-	if (view === "library") {
+	if (view === "link") {
+		showView("link", "Send music to VRChat");
+		openLinkView(p.get("code"), p.get("service"));
+	} else if (view === "library") {
 		libTab = ["subs", "queue", "favorites", "history", "playlists", "party"].includes(p.get("tab")) ? p.get("tab") : "queue";
 		showView("library", "Your library");
 		renderLibrary();

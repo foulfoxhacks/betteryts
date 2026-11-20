@@ -879,3 +879,13 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 /* Backup */
 .backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .backup-import { cursor: pointer; }
+
+/* Send music to VRChat */
+.link-view { padding-top: 24px; padding-bottom: 48px; max-width: 760px; }
+.link-step { margin-top: 16px; }
+.link-step h3 { display: flex; align-items: center; gap: 8px; }
+.link-num { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: var(--primary-ink, #000); font-size: 14px; }
+.link-code-input { width: 11ch; font-size: 20px; letter-spacing: 0.12em; text-transform: uppercase; }
+.link-sources { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.link-picker { list-style: none; margin: 8px 0; padding: 0; max-height: 320px; overflow: auto; }
+.link-picker li { padding: 4px 0; }

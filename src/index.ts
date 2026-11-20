@@ -10,6 +10,7 @@ import { ecosystem, SITE_VERSION, VPM_LISTING } from "./lib/ecosystem.ts";
 import { matchesOperators, mergeFilters, parseOperators } from "./lib/operators.ts";
 import { transcript } from "./lib/transcript.ts";
 import { openapi } from "./lib/openapi.ts";
+import { linkRoutes } from "./vrc/linking.ts";
 import { env } from "cloudflare:workers";
 import { branding, dislikes, sponsorSegments, SB_CATEGORIES, suggestions } from "./lib/addons.ts";
 import { cached, CORS_HEADERS, errorJson, json, redirect, text } from "./lib/http.ts";
@@ -31,6 +32,7 @@ import { bestMatch, fetchSpotify, SpotifyError, spotifyRef } from "./lib/spotify
 import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 
 export { VrcPool } from "./vrc/pool.ts";
+export { VrcLinks } from "./vrc/links.ts";
 export { Room } from "./rooms/room.ts";
 
 import { currentPosition, newHostKey, newRoomCode, ROOM_CODE_RE, originAllowed } from "./rooms/protocol.ts";
@@ -467,7 +469,7 @@ function apiIndex(origin: string): Response {
 
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
-	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
+	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
 	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
 ]);
 
@@ -531,6 +533,8 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	const path = url.pathname.replace(/\/{2,}/g, "/").replace(/(.)\/$/, "$1");
 
 	if (path.startsWith("/auth/google/") || path.startsWith("/api/auth/google/")) return googleAuth(req, url, path);
+	// The site posts an import to the world waiting on an activation code (src/vrc/linking.ts).
+	if (path === "/api/inworld/complete") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 	if (req.method !== "GET" && req.method !== "HEAD") return errorJson("Method not allowed", 405);
 
@@ -610,6 +614,12 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	if (browseMatch) {
 		const ref = decodeURIComponent(browseMatch[2]);
 		return browseMatch[1] === "playlist" ? apiPlaylist(ref, url, ctx) : apiChannel(ref, url, ctx);
+	}
+
+	// ---- In-world account linking + saved libraries (src/vrc/links.ts) ----
+	{
+		const linked = await linkRoutes(req, url, env);
+		if (linked) return linked;
 	}
 
 	if (path.startsWith("/api/rooms/")) return apiRooms(req, path);
