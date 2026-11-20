@@ -36,6 +36,9 @@ export default defineConfig({
 			YT_CLIENT_VERSION: bindings.text("2.20251114.01.00"),
 			DEFAULT_HL: bindings.text("en"),
 			DEFAULT_GL: bindings.text("US"),
+			// Spotify sign-in (src/lib/spotify-auth.ts). Public by design: it's in every consent URL.
+			// PKCE, so the app's client secret is never used or stored.
+			SPOTIFY_CLIENT_ID: bindings.text("783ca1075f974251a85c57c275adc49e"),
 		},
 		observability: {
 			enabled: true,
