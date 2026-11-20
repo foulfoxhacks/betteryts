@@ -221,7 +221,7 @@ test("rooms: state machine for load, play/pause/seek, queue and end-of-video", a
 	assert.equal(s.playing, true);
 	s = applyMessage(s, { t: "queue_add", video: b }, 1000)!;
 	assert.equal(s.queue.length, 1);
-	assert.equal(currentPosition(s, 11000), 10);
+	assert.equal(currentPosition(s, 11000), 9.7, "starts SYNC_LEAD_MS (300 ms) after the server accepts it");
 	s = applyMessage(s, { t: "pause", position: 42 }, 2000)!;
 	assert.equal(currentPosition(s, 99999), 42);
 	s = applyMessage(s, { t: "seek", position: 100 }, 3000)!;
@@ -384,4 +384,37 @@ test("lyrics: LRC parsing, song clean-up and picking a search hit", async () => 
 	const pick = l.pickRecord([{ duration: 200, plainLyrics: "x" }, { duration: 321, syncedLyrics: "[00:01.00]a" }, { duration: 320, plainLyrics: "y" }], 320);
 	assert.equal(pick?.syncedLyrics, "[00:01.00]a");
 	assert.equal(l.pickRecord([], 10), null);
+});
+
+test("rooms sync v2: scheduled starts, rate limit, origin allowlist", async () => {
+	const { applyMessage, emptyState, currentPosition, SYNC_LEAD_MS, takeToken, originAllowed } = await import("../src/rooms/protocol.ts");
+	const v = { id: "aaaaaaaaaaa", title: "A" };
+	let s = applyMessage(emptyState(), { t: "load", video: v }, 10_000)!;
+	assert.equal(s.at, 10_000 + SYNC_LEAD_MS, "load starts in the future");
+	assert.equal(currentPosition(s, 10_100), 0, "before the start, everyone holds at the start position");
+	assert.equal(currentPosition(s, 10_000 + SYNC_LEAD_MS + 2000), 2);
+	s = applyMessage(s, { t: "pause", position: 5 }, 20_000)!;
+	assert.equal(s.at, 20_000, "pause is immediate");
+	s = applyMessage(s, { t: "seek", position: 30 }, 21_000)!;
+	assert.equal(s.at, 21_000, "seeking while paused is immediate");
+	s = applyMessage(s, { t: "play", position: 30 }, 22_000)!;
+	assert.equal(s.at, 22_000 + SYNC_LEAD_MS);
+	s = applyMessage(s, { t: "seek", position: 60 }, 23_000)!;
+	assert.equal(s.at, 23_000 + SYNC_LEAD_MS, "seeking while playing is scheduled too");
+
+	const b = { tokens: 3, at: 0 };
+	assert.ok(takeToken(b, 0, 3, 1) && takeToken(b, 0, 3, 1) && takeToken(b, 0, 3, 1), "burst allowed");
+	assert.equal(takeToken(b, 0, 3, 1), false, "then dropped");
+	assert.equal(takeToken(b, 500, 3, 1), false, "half a token isn't enough");
+	assert.equal(takeToken(b, 1000, 3, 1), true, "refills over time");
+	assert.equal(takeToken({ tokens: 0, at: 0 }, 60_000, 3, 1), true);
+
+	const self = "https://yts.foulfoxhacks.dev";
+	assert.equal(originAllowed(null, self), true, "native apps send no Origin");
+	assert.equal(originAllowed(self, self), true);
+	assert.equal(originAllowed("http://localhost:5173", "http://localhost:5173"), true);
+	assert.equal(originAllowed("http://localhost:5174", self), true, "local dev");
+	assert.equal(originAllowed("https://evil.example", self), false);
+	assert.equal(originAllowed("https://yts.foulfoxhacks.dev.evil.example", self), false);
+	assert.equal(originAllowed("http://localhost.evil.example", self), false);
 });

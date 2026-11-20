@@ -29,7 +29,7 @@ import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 export { VrcPool } from "./vrc/pool.ts";
 export { Room } from "./rooms/room.ts";
 
-import { currentPosition, newHostKey, newRoomCode, ROOM_CODE_RE } from "./rooms/protocol.ts";
+import { currentPosition, newHostKey, newRoomCode, ROOM_CODE_RE, originAllowed } from "./rooms/protocol.ts";
 import type { Room } from "./rooms/room.ts";
 
 function roomStub(code: string) {
@@ -54,6 +54,8 @@ async function apiRooms(req: Request, path: string): Promise<Response> {
 	const stub = roomStub(code);
 	if (m[2]) {
 		if (req.headers.get("Upgrade") !== "websocket") return errorJson("Expected a WebSocket upgrade", 426);
+		// Other websites can't drive rooms from their visitors' browsers (native apps send no Origin).
+		if (!originAllowed(req.headers.get("Origin"), new URL(req.url).origin)) return errorJson("Origin not allowed", 403);
 		return stub.fetch(req);
 	}
 	const snap = await stub.snapshot();

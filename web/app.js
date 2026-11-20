@@ -1192,6 +1192,7 @@ function skipLoop() {
 		if (Math.abs(t - expected) > 2.5) partySend({ t: "seek", position: t }, { quiet: true });
 	}
 	lastTick = { t, wall: now };
+	if (room) roomDriftTick(t);
 	updateActiveChapter(t);
 	updateActiveLyric(t);
 
@@ -1400,27 +1401,97 @@ function applyRoomState(s, { force = false } = {}) {
 		return;
 	}
 	$("#player-empty").hidden = true;
-	const target = room.positionOf(s);
+	clearTimeout(startTimer);
 	if (!current || current.id !== s.video.id) {
+		endNudge();
 		suppressUntil = performance.now() + 2500;
-		openWatch(s.video.id, { id: s.video.id, title: s.video.title }, { start: target });
+		openWatch(s.video.id, { id: s.video.id, title: s.video.title }, { start: room.positionOf(s) });
 		return;
 	}
 	if (!player?.getCurrentTime) return;
 	const YTS = window.YT.PlayerState;
 	const t = player.getCurrentTime();
 	const playing = player.getPlayerState?.() === YTS.PLAYING || player.getPlayerState?.() === YTS.BUFFERING;
-	if (force || Math.abs(t - target) > 1.5) {
+	const hold = () => {
 		suppressUntil = performance.now() + 1200;
+	};
+
+	// Sync v2: the server schedules starts slightly in the future (state.at) so everyone starts
+	// together. If we're stopped, cue the position now and press play at exactly that moment.
+	const wait = room.msUntil(s);
+	if (s.playing && !playing && wait > 30) {
+		if (force || Math.abs(t - s.position) > 0.3) {
+			hold();
+			player.seekTo(s.position, true);
+			lastTick = { t: s.position, wall: performance.now() };
+		}
+		startTimer = setTimeout(() => {
+			if (roomState !== s || !player) return;
+			hold();
+			player.playVideo();
+		}, wait);
+		return;
+	}
+
+	// Where the room's timeline is right now (before a scheduled start that's slightly behind
+	// s.position, which keeps an already-playing player continuous).
+	const target = s.playing ? Math.max(0, s.position + (room.serverNow() - s.at) / 1000) : s.position;
+	if (!s.playing) endNudge();
+	if (force || Math.abs(t - target) > 1) {
+		endNudge();
+		hold();
 		player.seekTo(target, true);
 		lastTick = { t: target, wall: performance.now() };
 	}
 	if (s.playing && !playing) {
-		suppressUntil = performance.now() + 1200;
+		hold();
 		player.playVideo();
 	} else if (!s.playing && playing) {
-		suppressUntil = performance.now() + 1200;
+		hold();
 		player.pauseVideo();
+	}
+}
+
+// ---------- Watch party: drift correction ----------
+
+let startTimer = null;
+let nudge = { dir: 0 };
+
+/** Back to normal speed after a catch-up. */
+function endNudge() {
+	if (!nudge.dir) return;
+	nudge.dir = 0;
+	try {
+		player?.setPlaybackRate?.(1);
+	} catch {
+		/* player gone */
+	}
+}
+
+/**
+ * Runs every player tick in a room. Small drift (0.25–2 s) is fixed by briefly playing at 1.25×
+ * or 0.75× until we're within 80 ms, which is invisible compared to a seek (seeks re-buffer and
+ * cause new drift). Bigger gaps get a seek.
+ */
+function roomDriftTick(t) {
+	const s = roomState;
+	if (!room || !s?.playing || !s.video || current?.id !== s.video.id || room.msUntil(s) > 0) return endNudge();
+	if (player?.getPlayerState?.() !== window.YT?.PlayerState?.PLAYING) return;
+	const drift = t - room.positionOf(s); // > 0: we're ahead
+	const a = Math.abs(drift);
+	if (a > 2) {
+		endNudge();
+		suppressUntil = performance.now() + 1200;
+		const target = room.positionOf(s);
+		player.seekTo(target, true);
+		lastTick = { t: target, wall: performance.now() };
+		return;
+	}
+	const dir = drift < 0 ? 1 : -1; // speed up when behind
+	if (nudge.dir && (a < 0.08 || dir !== nudge.dir)) endNudge();
+	else if (!nudge.dir && a > 0.25) {
+		nudge.dir = dir;
+		player.setPlaybackRate?.(dir > 0 ? 1.25 : 0.75);
 	}
 }
 
@@ -1455,6 +1526,8 @@ function renderRoomRole() {
 $("#room-lock").addEventListener("click", () => room?.isHost && room.send({ t: "lock", locked: !roomState?.locked }));
 
 function leaveRoom() {
+	clearTimeout(startTimer);
+	endNudge();
 	room?.close();
 	room = null;
 	roomState = null;

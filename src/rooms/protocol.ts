@@ -6,6 +6,38 @@ export const MAX_QUEUE = 100;
 export const MAX_MESSAGE_BYTES = 4096;
 export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Sync v2: play/seek/load changes take effect this many ms after the server accepts them, so every
+ * member (whatever their latency) starts at the same moment instead of when their message arrives.
+ * Old clients treat a future `at` as "now", which is how they behaved before.
+ */
+export const SYNC_LEAD_MS = 300;
+
+/** Per-connection message budget: a burst, then a steady refill. Over budget, messages are dropped. */
+export const RATE_BURST = 30;
+export const RATE_PER_SEC = 10;
+
+export interface Bucket {
+	tokens: number;
+	at: number;
+}
+
+/** Token bucket: true if the message may go through (and takes a token). */
+export function takeToken(b: Bucket, now: number, burst = RATE_BURST, perSec = RATE_PER_SEC): boolean {
+	b.tokens = Math.min(burst, b.tokens + ((now - b.at) / 1000) * perSec);
+	b.at = now;
+	if (b.tokens < 1) return false;
+	b.tokens -= 1;
+	return true;
+}
+
+/** Browser origins allowed to open room sockets. Native apps send no Origin and are allowed. */
+export function originAllowed(origin: string | null, self: string): boolean {
+	if (!origin) return true;
+	if (origin === self || origin === "https://yts.foulfoxhacks.dev") return true;
+	return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
+
 export interface RoomVideo {
 	id: string;
 	title: string;
@@ -36,7 +68,7 @@ export type ClientMessage =
 	| { t: "ended"; id: string }
 	| { t: "queue_add"; video: RoomVideo }
 	| { t: "queue_remove"; index: number }
-	| { t: "ping" };
+	| { t: "ping"; c?: number };
 
 export function emptyState(): RoomState {
 	return { video: null, playing: false, position: 0, at: Date.now(), queue: [], locked: false, rev: 0 };
@@ -98,14 +130,14 @@ export function applyMessage(s: RoomState, m: ClientMessage, now = Date.now()): 
 		}
 		case "load": {
 			const video = cleanVideo(m.video);
-			return video ? next({ video, playing: true, position: 0, at: now }) : null;
+			return video ? next({ video, playing: true, position: 0, at: now + SYNC_LEAD_MS }) : null;
 		}
 		case "play":
-			return s.video ? next({ playing: true, position: pos(m.position), at: now }) : null;
+			return s.video ? next({ playing: true, position: pos(m.position), at: now + SYNC_LEAD_MS }) : null;
 		case "pause":
 			return s.video ? next({ playing: false, position: pos(m.position), at: now }) : null;
 		case "seek":
-			return s.video ? next({ position: pos(m.position), at: now }) : null;
+			return s.video ? next({ position: pos(m.position), at: s.playing ? now + SYNC_LEAD_MS : now }) : null;
 		case "ended":
 			// Several clients report the end; only advance once for the video that's actually current.
 			if (!s.video || m.id !== s.video.id) return null;
@@ -115,7 +147,7 @@ export function applyMessage(s: RoomState, m: ClientMessage, now = Date.now()): 
 		case "queue_add": {
 			const video = cleanVideo(m.video);
 			if (!video || s.queue.length >= MAX_QUEUE) return null;
-			if (!s.video) return next({ video, playing: true, position: 0, at: now });
+			if (!s.video) return next({ video, playing: true, position: 0, at: now + SYNC_LEAD_MS });
 			return next({ queue: [...s.queue, video] });
 		}
 		case "queue_remove": {
@@ -129,7 +161,7 @@ export function applyMessage(s: RoomState, m: ClientMessage, now = Date.now()): 
 
 function advance(s: RoomState, now: number): RoomState {
 	const [video, ...queue] = s.queue;
-	return { ...s, video: video ?? null, queue, playing: !!video, position: 0, at: now, rev: s.rev + 1 };
+	return { ...s, video: video ?? null, queue, playing: !!video, position: 0, at: video ? now + SYNC_LEAD_MS : now, rev: s.rev + 1 };
 }
 
 export function newRoomCode(): string {

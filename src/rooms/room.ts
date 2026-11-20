@@ -14,7 +14,13 @@ import {
 	ROOM_TTL_MS,
 	type RoomState,
 	sameKey,
+	takeToken,
+	type Bucket,
+	RATE_BURST,
 } from "./protocol.ts";
+
+/** Re-arming the cleanup alarm on every message is a storage write each time; once an hour is plenty. */
+const ALARM_REFRESH_MS = 60 * 60 * 1000;
 
 interface Member {
 	name: string;
@@ -25,6 +31,9 @@ export class Room extends DurableObject<Env> {
 	private state: RoomState = emptyState();
 	/** Set once by /api/rooms/new. Rooms opened by code alone (or created before hosts existed) have none. */
 	private hostKey: string | null = null;
+	/** Per-socket message budgets. In memory only: hibernation resets them, which is harmless. */
+	private buckets = new WeakMap<WebSocket, Bucket>();
+	private alarmSetAt = 0;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
@@ -70,8 +79,20 @@ export class Room extends DurableObject<Env> {
 			return;
 		}
 		if (!msg || typeof msg !== "object") return;
+
+		// Rate limit every message, pings included: floods are dropped, not queued.
+		const now = Date.now();
+		let bucket = this.buckets.get(ws);
+		if (!bucket) {
+			bucket = { tokens: RATE_BURST, at: now };
+			this.buckets.set(ws, bucket);
+		}
+		if (!takeToken(bucket, now)) return;
+
 		if (msg.t === "ping") {
-			ws.send(JSON.stringify({ t: "pong" }));
+			// Time sync: echo the client's send time (c) and stamp ours (s) as late as possible.
+			const c = typeof msg.c === "number" && Number.isFinite(msg.c) ? msg.c : undefined;
+			ws.send(JSON.stringify(c === undefined ? { t: "pong" } : { t: "pong", c, s: Date.now() }));
 			return;
 		}
 		if (msg.t === "hello") {
@@ -91,9 +112,12 @@ export class Room extends DurableObject<Env> {
 		const next = applyMessage(this.state, msg);
 		if (!next) return;
 		this.state = next;
-		await this.ctx.storage.put("state", next);
-		await this.touch();
+		// Broadcast first. allowUnconfirmed lets the message leave before the write is durable;
+		// the in-memory state is the source of truth while the room is awake, and a lost write
+		// only means a room restored after an eviction is one step behind.
 		this.broadcast(this.message());
+		this.ctx.storage.put("state", next, { allowUnconfirmed: true });
+		if (Date.now() - this.alarmSetAt > ALARM_REFRESH_MS) await this.touch();
 	}
 
 	async webSocketClose(ws: WebSocket, code: number): Promise<void> {
@@ -119,6 +143,7 @@ export class Room extends DurableObject<Env> {
 	}
 
 	private async touch(): Promise<void> {
+		this.alarmSetAt = Date.now();
 		await this.ctx.storage.setAlarm(Date.now() + ROOM_TTL_MS);
 	}
 

@@ -44,8 +44,45 @@ export class RoomClient {
 		this.closed = false;
 		this.retry = 0;
 		this.clockOffset = 0; // serverTime - localTime
+		this.synced = false; // true once a timestamped pong has set clockOffset
+		this.samples = []; // recent { rtt, offset } from pongs
+		this.rtt = null;
 		this.name = "Guest";
 		this.ping = null;
+	}
+
+	/**
+	 * NTP-style clock sync. Each pong carries our send time (c) and the server's time (s);
+	 * the server's clock read happens about halfway through the round trip, so
+	 * offset ≈ s − (c + rtt/2). The sample with the smallest round trip is the least distorted
+	 * by network queuing, so that one wins.
+	 */
+	onPong(msg) {
+		const now = Date.now();
+		if (typeof msg.c !== "number" || typeof msg.s !== "number") return;
+		const rtt = now - msg.c;
+		if (rtt < 0 || rtt > 10_000) return;
+		this.samples.push({ rtt, offset: msg.s - (msg.c + rtt / 2) });
+		if (this.samples.length > 8) this.samples.shift();
+		const best = this.samples.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+		this.clockOffset = best.offset;
+		this.rtt = best.rtt;
+		this.synced = true;
+	}
+
+	/** A few quick pings right after connecting, so the clock is accurate before the first play. */
+	syncBurst() {
+		for (let i = 0; i < 5; i++) setTimeout(() => this.send({ t: "ping", c: Date.now() }), i * 120);
+	}
+
+	/** The server's clock, now. */
+	serverNow() {
+		return Date.now() + this.clockOffset;
+	}
+
+	/** Ms until a scheduled change (state.at) takes effect; ≤ 0 once it has. */
+	msUntil(state) {
+		return state ? state.at - this.serverNow() : 0;
 	}
 
 	connect() {
@@ -58,8 +95,11 @@ export class RoomClient {
 			this.retry = 0;
 			this.onStatus?.("connected");
 			this.hello();
+			this.samples = [];
+			this.syncBurst();
 			clearInterval(this.ping);
-			this.ping = setInterval(() => this.send({ t: "ping" }), 25000);
+			// Doubles as keep-alive; keeps the clock estimate fresh as network conditions change.
+			this.ping = setInterval(() => this.send({ t: "ping", c: Date.now() }), 10000);
 		};
 		ws.onmessage = (e) => {
 			let msg;
@@ -68,8 +108,11 @@ export class RoomClient {
 			} catch {
 				return;
 			}
-			if (msg.t === "state") {
-				if (typeof msg.serverTime === "number") this.clockOffset = msg.serverTime - Date.now();
+			if (msg.t === "pong") {
+				this.onPong(msg);
+			} else if (msg.t === "state") {
+				// Rough fallback until the first timestamped pong (an older server sends none).
+				if (!this.synced && typeof msg.serverTime === "number") this.clockOffset = msg.serverTime - Date.now();
 				this.onState?.(msg.state);
 			} else if (msg.t === "members") {
 				this.onMembers?.(msg);
@@ -119,7 +162,7 @@ export class RoomClient {
 	positionOf(state) {
 		if (!state) return 0;
 		if (!state.playing) return state.position;
-		return state.position + Math.max(0, Date.now() + this.clockOffset - state.at) / 1000;
+		return state.position + Math.max(0, this.serverNow() - state.at) / 1000;
 	}
 
 	close() {
