@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Ecosystem — Every BetterYTS Project &amp; Version · BetterYTS by FoulFoxHacks</title>
+		<meta name="description" content="Every BetterYTS project in one place: the website, the API, the VRChat packages and the BetterYTS Music app, with current versions and where to get them." />
+		<meta name="keywords" content="BetterYTS ecosystem, BetterYTS VRChat, BetterYTS Music, BetterYTS API, VCC packages" />
+		<meta name="author" content="Sammy The Femboy Puppy (FoulFoxHacks)" />
+		<meta name="publisher" content="FoulFoxHacks" />
+		<meta name="robots" content="index, follow, max-image-preview:large" />
+		<link rel="canonical" href="https://yts.foulfoxhacks.dev/ecosystem" />
+		<link rel="author" href="https://akasammythepuppy.me" />
+		<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+		<link rel="search" type="application/opensearchdescription+xml" title="BetterYTS" href="/opensearch.xml" />
+		<link rel="icon" href="/favicon.ico" sizes="any" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16x16.png" />
+		<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
+		<meta name="theme-color" content="#242526" />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="BetterYTS by FoulFoxHacks" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://yts.foulfoxhacks.dev/ecosystem" />
+		<meta property="og:title" content="BetterYTS Ecosystem" />
+		<meta property="og:description" content="The website, API, VRChat packages and Music app, with their current versions." />
+		<meta property="og:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="BetterYTS — ad-free YouTube search for the web and VRChat, with Sammy The Femboy Puppy" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="BetterYTS Ecosystem" />
+		<meta name="twitter:description" content="The website, API, VRChat packages and Music app, with their current versions." />
+		<meta name="twitter:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<link rel="stylesheet" href="/web/styles.css" />
+	</head>
+	<body>
+		<div id="announce" class="announce" hidden>
+			<p><b>Beta</b> Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+			<button type="button" class="announce-close" aria-label="Dismiss announcement">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
+			</button>
+		</div>
+
+		<nav class="navbar" id="navbar" aria-label="Main">
+			<div class="navbar-inner">
+				<button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" /></svg>
+				</button>
+				<a class="brand" href="/" aria-label="BetterYTS home">
+					<img src="/brand/logo-64.png" alt="BetterYTS logo — Sammy The Femboy Puppy" width="32" height="32" />
+					<span class="brand-text"><b>BetterYTS</b><small>by FoulFoxHacks</small></span>
+				</a>
+				<div class="nav-links" id="nav-links">
+					<a class="nav-link" href="/">Search</a>
+					<a class="nav-link" href="/docs">API Docs</a>
+					<a class="nav-link" href="/docs#redirects">VRChat</a>
+					<a class="nav-link" href="/docs#addons">Add-ons</a>
+					<a class="nav-link" href="/ecosystem">Ecosystem</a>
+				</div>
+				<div class="nav-right">
+					<a class="nav-link github" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">
+						GitHub
+						<svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg>
+					</a>
+					<a class="button small primary" href="/">Try it</a>
+				</div>
+			</div>
+		</nav>
+		<header class="hero hero-compact">
+			<div class="container">
+				<p class="breadcrumbs hero-crumbs"><a href="/">Home</a> › Ecosystem</p>
+				<h1 class="hero-title">The BetterYTS ecosystem</h1>
+				<p class="hero-subtitle">One hub, every project: the website, the API, the VRChat packages and the Music app. Versions update live.</p>
+			</div>
+		</header>
+
+		<main class="container ecosystem">
+			<div class="eco-grid">
+				<section class="eco-card" id="web">
+					<p class="eyebrow">Website</p>
+					<h2>BetterYTS Web <span class="ver" data-version="web">v1.1.0</span></h2>
+					<p>Ad-free YouTube search and playback with SponsorBlock, DeArrow, lyrics, a local library, watch-party rooms and plugins.</p>
+					<div class="eco-links"><a class="button small primary" href="/">Open</a> <a class="button small secondary" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">Source <svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg></a></div>
+				</section>
+				<section class="eco-card" id="api">
+					<p class="eyebrow">JSON API &amp; redirects</p>
+					<h2>BetterYTS API <span class="ver" data-version="api">v1.1.0</span></h2>
+					<p>Search, video, channel and playlist JSON, VRChat-ready redirects, ProTV playlists and watch-party rooms. Machine-readable: <a href="/api/ecosystem">/api/ecosystem</a>.</p>
+					<div class="eco-links"><a class="button small primary" href="/docs">Docs</a> <a class="button small secondary" href="/api">GET /api</a></div>
+				</section>
+				<section class="eco-card" id="vrchat">
+					<p class="eyebrow">VRChat packages (VCC)</p>
+					<h2>BetterYTS for VRChat <span class="ver" data-version="vrchat">v1.0.1</span></h2>
+					<p>In-world YouTube search, ProTV integration and editor tools for your worlds.</p>
+					<ul class="eco-packages" data-packages></ul>
+					<div class="eco-links"><a class="button small primary" href="vcc://vpm/addRepo?url=https%3A%2F%2Fvpm.foulfoxhacks.dev%2Findex.json">Add to VCC</a> <a class="button small secondary" href="https://vpm.foulfoxhacks.dev" target="_blank" rel="noopener">Package listing <svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg></a> <a class="button small secondary" href="https://github.com/foulfoxhacks/betteryts-vrchat" target="_blank" rel="noopener">Source <svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg></a></div>
+				</section>
+				<section class="eco-card" id="music">
+					<p class="eyebrow">Android app · beta</p>
+					<h2>BetterYTS Music <span class="ver" data-version="music">v0.8.0</span></h2>
+					<p>A YouTube Music-style app on the BetterYTS core: background play, synced lyrics, Spotify import, plugins and Listen Together rooms with people on this site and in VRChat. In private beta: not published yet.</p>
+				</section>
+			</div>
+			<p class="fine eco-build">This site: build <span data-build>…</span>. Versions come from <a href="/api/ecosystem">/api/ecosystem</a>; VRChat package versions are read live from the VPM listing.</p>
+		</main>
+
+		<footer class="footer">
+			<div class="container">
+				<div class="footer-cols">
+					<div>
+						<p class="footer-title">Docs</p>
+						<ul>
+							<li><a href="/docs">API reference</a></li>
+							<li><a href="/docs#redirects">VRChat redirects</a></li>
+							<li><a href="/docs#search">Search options</a></li>
+							<li><a href="/docs#fair-use">Fair use</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Community</p>
+						<ul>
+							<li><a href="https://akasammythepuppy.me" target="_blank" rel="noopener author">Creator: akasammythepuppy</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Powered by</p>
+						<ul>
+							<li><a href="https://sponsor.ajay.app" target="_blank" rel="noopener">SponsorBlock</a></li>
+							<li><a href="https://dearrow.ajay.app" target="_blank" rel="noopener">DeArrow</a></li>
+							<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Ecosystem</p>
+						<ul class="footer-versions">
+							<li><a href="/">BetterYTS Web</a> <span class="ver" data-version="web">v1.1.0</span></li>
+							<li><a href="/docs">API</a> <span class="ver" data-version="api">v1.1.0</span></li>
+							<li><a href="/ecosystem#vrchat">VRChat packages</a> <span class="ver" data-version="vrchat">v1.0.1</span></li>
+							<li><a href="/ecosystem#music">BetterYTS Music</a> <span class="ver" data-version="music">v0.8.0</span></li>
+							<li><a href="/ecosystem">All projects</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Site</p>
+						<ul>
+							<li><a href="/sitemap">Site map</a></li>
+							<li><a href="/sitemap.xml">sitemap.xml</a></li>
+							<li><a href="/robots.txt">robots.txt</a></li>
+							<li><a href="/llms.txt">llms.txt</a></li>
+						</ul>
+					</div>
+				</div>
+				<p class="copyright">Copyright © 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.<br /><span class="footer-build">BetterYTS Web <span data-version="web">v1.1.0</span> · build <span data-build>…</span> · <a href="/ecosystem">every project &amp; version</a></span></p>
+			</div>
+		</footer>
+
+		<script type="module" src="/web/chrome-entry.js"></script>
+	</body>
+</html>

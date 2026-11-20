@@ -87,6 +87,7 @@
 					<a class="nav-link active" href="/docs">API Docs</a>
 					<a class="nav-link" href="/docs#redirects">VRChat</a>
 					<a class="nav-link" href="/docs#addons">Add-ons</a>
+					<a class="nav-link" href="/ecosystem">Ecosystem</a>
 				</div>
 				<div class="nav-right">
 					<a class="nav-link github" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">
@@ -209,6 +210,23 @@ https://yts.foulfoxhacks.dev/v/dQw4w9WgXcQ               # by video ID</code></p
   "next": "EpEDEg9taW5lY3JhZnQ…",     // pass back as ?page=
   "blocked": { "ads": 2, "shorts": 0, "shelfItems": 9 }
 }</code></pre>
+
+				<h3 id="operators">Search operators</h3>
+				<p>Type these into any search (the site, <code>/api/search</code>, <code>/search</code> and <code>/lucky</code> redirects, so they work from a VRChat URL too). URL options win over operators; the rest of the query goes to YouTube.</p>
+				<table class="table">
+					<thead><tr><th>Operator</th><th>Effect</th></tr></thead>
+					<tbody>
+						<tr><td><code>channel:@handle</code>, <code>channel:"Two Words"</code></td><td>Only results from that channel (by @handle, name or ID).</td></tr>
+						<tr><td><code>-channel:name</code></td><td>Never results from that channel.</td></tr>
+						<tr><td><code>-word</code>, <code>-"a phrase"</code></td><td>Drop results whose title or channel contains it.</td></tr>
+						<tr><td><code>-shorts</code>, <code>shorts:only</code></td><td>No Shorts, or only Shorts.</td></tr>
+						<tr><td><code>duration:short|medium|long</code> (or <code>long:true</code>)</td><td>Under 4 min, 4–20 min, over 20 min.</td></tr>
+						<tr><td><code>sort:date|views|rating</code>, <code>upload:hour|today|week|month|year</code>, <code>type:video|channel|playlist</code></td><td>Same as the URL options.</td></tr>
+						<tr><td><code>is:4k</code>, <code>has:subtitles</code>, <code>hd:true</code></td><td>Features: <code>4k hd hdr cc subtitles live 360 vr180 3d location</code>.</td></tr>
+						<tr><td><code>after:2026-01-01</code>, <code>before:2025-12</code></td><td>By upload date. YouTube only says "3 weeks ago", so a result is kept if its date could match.</td></tr>
+					</tbody>
+				</table>
+				<p class="fine">Example: <a href="/search?q=lofi+channel%3A%40LofiGirl+-shorts+duration%3Along"><code>/search?q=lofi channel:@LofiGirl -shorts duration:long</code></a>. Responses include an <code>operators</code> object and <code>blocked.operators</code>, the number of results the operators removed.</p>
 
 				<h2 id="video"><span class="method">GET</span>/api/video/{id}</h2>
 				<p>Everything about one video in a single call, with the community add-ons merged in.</p>
@@ -346,6 +364,16 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 						</ul>
 					</div>
 					<div>
+						<p class="footer-title">Ecosystem</p>
+						<ul class="footer-versions">
+							<li><a href="/">BetterYTS Web</a> <span class="ver" data-version="web">v1.1.0</span></li>
+							<li><a href="/docs">API</a> <span class="ver" data-version="api">v1.1.0</span></li>
+							<li><a href="/ecosystem#vrchat">VRChat packages</a> <span class="ver" data-version="vrchat">v1.0.1</span></li>
+							<li><a href="/ecosystem#music">BetterYTS Music</a> <span class="ver" data-version="music">v0.8.0</span></li>
+							<li><a href="/ecosystem">All projects</a></li>
+						</ul>
+					</div>
+					<div>
 						<p class="footer-title">Site</p>
 						<ul>
 							<li><a href="/sitemap">Site map</a></li>
@@ -355,7 +383,7 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 						</ul>
 					</div>
 				</div>
-				<p class="copyright">Copyright © 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
+				<p class="copyright">Copyright © 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.<br /><span class="footer-build">BetterYTS Web <span data-version="web">v1.1.0</span> · build <span data-build>…</span> · <a href="/ecosystem">every project &amp; version</a></span></p>
 			</div>
 		</footer>
 

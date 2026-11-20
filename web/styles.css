@@ -840,3 +840,17 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .community-install textarea { width: 100%; box-sizing: border-box; font: 12px/1.4 ui-monospace, monospace; background: var(--surface-2); color: inherit; border: 1px solid var(--border); border-radius: 8px; padding: 8px; resize: vertical; }
 .community-actions { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
 .plugin-panel-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Ecosystem: versions in the footer and the /ecosystem hub. */
+.ver { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: rgb(var(--accent-rgb) / 0.14); color: var(--primary); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; vertical-align: middle; line-height: 1.7; }
+.footer-build { display: inline-block; margin-top: 6px; opacity: 0.85; }
+.footer-build [data-build] { font-family: ui-monospace, monospace; }
+.ecosystem { padding-top: 24px; padding-bottom: 48px; }
+.eco-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.eco-card { display: flex; flex-direction: column; gap: 8px; padding: 18px; border: 1px solid var(--line-gold); border-radius: 12px; background: var(--surface); }
+.eco-card h2 { margin: 0; font-size: 20px; }
+.eco-card p { margin: 0; }
+.eco-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
+.eco-packages { margin: 0; padding-left: 18px; font-size: 13px; }
+.eco-packages code { color: var(--muted); font-size: 12px; }
+.eco-build { margin-top: 20px; }

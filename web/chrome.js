@@ -40,6 +40,7 @@ addEventListener("storage", (e) => e.key === THEME_KEY && applyTheme());
 
 export function initChrome() {
 	applyTheme();
+	fillVersions();
 	const bar = document.getElementById("announce");
 	if (bar) {
 		let dismissed = false;
@@ -72,4 +73,41 @@ export function initChrome() {
 		});
 		document.addEventListener("keydown", (e) => e.key === "Escape" && setOpen(false));
 	}
+}
+
+/**
+ * Footer (and /ecosystem) versions: the page ships with the numbers at build time; this swaps in
+ * the live ones from /api/ecosystem (VRChat packages come straight from the VPM listing).
+ */
+function fillVersions() {
+	const build = typeof __BUILD__ === "string" ? __BUILD__ : "dev";
+	for (const el of document.querySelectorAll("[data-build]")) el.textContent = build;
+	if (!document.querySelector("[data-version], [data-packages]")) return;
+	fetch("/api/ecosystem")
+		.then((r) => (r.ok ? r.json() : null))
+		.then((eco) => {
+			if (!eco?.projects) return;
+			for (const p of eco.projects) {
+				for (const el of document.querySelectorAll(`[data-version="${p.id}"]`)) {
+					if (p.version) el.textContent = `v${p.version}`;
+				}
+				const list = p.packages?.length ? document.querySelector("[data-packages]") : null;
+				if (list && p.id === "vrchat") {
+					list.replaceChildren(
+						...p.packages.map((pkg) => {
+							const li = document.createElement("li");
+							const b = document.createElement("b");
+							b.textContent = pkg.name;
+							const code = document.createElement("code");
+							code.textContent = `${pkg.id} · v${pkg.version}`;
+							li.append(b, " ", code);
+							return li;
+						}),
+					);
+				}
+			}
+		})
+		.catch(() => {
+			/* offline: the build-time numbers stay */
+		});
 }

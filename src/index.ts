@@ -6,6 +6,8 @@
 //   /v/<id>            302 to a video by ID.
 //   /api/*             JSON API (see /docs or GET /api).
 
+import { ecosystem, SITE_VERSION, VPM_LISTING } from "./lib/ecosystem.ts";
+import { matchesOperators, mergeFilters, parseOperators } from "./lib/operators.ts";
 import { env } from "cloudflare:workers";
 import { branding, dislikes, sponsorSegments, SB_CATEGORIES, suggestions } from "./lib/addons.ts";
 import { cached, CORS_HEADERS, errorJson, json, redirect, text } from "./lib/http.ts";
@@ -74,7 +76,9 @@ async function roomFollow(req: Request, code: string, url: URL): Promise<Respons
 }
 import type { ClientOptions, Item, SearchFilters, VideoItem } from "./lib/types.ts";
 
-const VERSION = "1.0.0";
+const VERSION = SITE_VERSION;
+/** Short git commit of this deploy (vite.config.ts), or "dev". */
+const BUILD = typeof __BUILD__ === "string" ? __BUILD__ : "dev";
 
 function clientOptions(url: URL): ClientOptions {
 	const hl = (url.searchParams.get("hl") || env.DEFAULT_HL || "en").slice(0, 10);
@@ -121,7 +125,8 @@ async function apiSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
 	if (!q && !page) return errorJson("Missing search query. Use /api/search?q=your+search", 400);
 	if (page && page.length > 4096) return errorJson("Invalid page token", 400);
 
-	const filters = filtersFromUrl(url);
+	const ops = parseOperators(q);
+	const filters = mergeFilters(ops.filters, filtersFromUrl(url));
 	const opts = clientOptions(url);
 	const includeShorts = boolParam(url, "shorts", true);
 	const includeShelves = boolParam(url, "shelves", false);
@@ -137,10 +142,15 @@ async function apiSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
 	})}`;
 
 	return cached(key, ctx, async () => {
-		const r = await search(q, filters, opts, page);
+		const r = await search(ops.query || q, filters, opts, page);
 		let shortsRemoved = 0;
 		let shelvesRemoved = 0;
+		let operatorsRemoved = 0;
 		const results = r.results.filter((item) => {
+			if (ops.any && !matchesOperators(item, ops)) {
+				operatorsRemoved++;
+				return false;
+			}
 			if (!includeShelves && item.shelf) {
 				shelvesRemoved++;
 				return false;
@@ -168,7 +178,10 @@ async function apiSearch(url: URL, ctx: ExecutionContext): Promise<Response> {
 				count: results.length,
 				results,
 				next: r.next,
-				blocked: { ads: r.blocked.ads, shorts: shortsRemoved, shelfItems: shelvesRemoved },
+				blocked: { ads: r.blocked.ads, shorts: shortsRemoved, shelfItems: shelvesRemoved, operators: operatorsRemoved },
+				operators: ops.any
+					? { searched: ops.query, channels: ops.channels, excludeChannels: ops.excludeChannels, exclude: ops.exclude, shorts: ops.shorts ?? null, after: ops.after ?? null, before: ops.before ?? null }
+					: null,
 				source: r.source,
 			},
 			200,
@@ -189,14 +202,16 @@ async function luckyRedirect(q: string, url: URL, ctx: ExecutionContext): Promis
 	const allowLive = boolParam(url, "live", true);
 	const minLen = intParam(url, "minlen", 0, 0, 86400);
 	const maxLen = intParam(url, "maxlen", 0, 0, 86400);
-	const filters = filtersFromUrl(url, "video");
+	const ops = parseOperators(q);
+	const filters = mergeFilters({ ...ops.filters, type: undefined }, filtersFromUrl(url, "video"));
 	const opts = clientOptions(url);
 
 	const key = `lucky?${new URLSearchParams({ q, f: JSON.stringify(filters), hl: opts.hl, gl: opts.gl, o: `${n}|${+allowShorts}|${+allowLive}|${minLen}|${maxLen}` })}`;
 	const res = await cached(key, ctx, async () => {
-		const r = await search(q, filters, opts);
+		const r = await search(ops.query || q, filters, opts);
 		const candidates = r.results.filter(isVideo).filter((v) => {
 			if (v.shelf) return false;
+			if (ops.any && !matchesOperators(v, ops)) return false;
 			if (v.upcoming) return false;
 			if (v.isShort && !allowShorts) return false;
 			if (v.live && !allowLive) return false;
@@ -332,6 +347,20 @@ async function vrcProTVPlaylist(url: URL, ctx: ExecutionContext): Promise<Respon
 }
 
 /** /api/spotify?url=… or /api/spotify/{playlist|album}/{id}: a public Spotify playlist or album's tracks. */
+/** /api/ecosystem: every BetterYTS project and its version (VRChat packages read live from the VPM listing). */
+async function apiEcosystem(ctx: ExecutionContext): Promise<Response> {
+	return cached(`ecosystem/${BUILD}`, ctx, async () => {
+		let listing: unknown = null;
+		try {
+			const r = await fetch(VPM_LISTING, { headers: { Accept: "application/json" }, cf: { cacheTtl: 3600 } });
+			if (r.ok) listing = await r.json();
+		} catch {
+			/* listing unreachable: VRChat version shows as unknown */
+		}
+		return json(ecosystem(listing, BUILD), 200, listing ? 3600 : 300);
+	});
+}
+
 async function apiSpotify(url: URL, path: string, ctx: ExecutionContext): Promise<Response> {
 	const m = /^\/api\/spotify\/(playlist|album)\/([A-Za-z0-9]{22})$/.exec(path);
 	const ref = m ? { kind: m[1] as "playlist" | "album", id: m[2] } : spotifyRef(url.searchParams.get("url") ?? "");
@@ -410,6 +439,7 @@ function apiIndex(origin: string): Response {
 				"GET /vrc/search?q=": "In-world search for VRChat (see docs/vrchat-protocol.md)",
 				"GET /api/spotify?url=": "A public Spotify playlist or album's tracks (also /api/spotify/{playlist|album}/{id})",
 				"GET /api/match?track=&artist=&duration=": "The YouTube video that best matches a song (Spotify importer)",
+				"GET /api/ecosystem": "Every BetterYTS project (web, API, VRChat packages, Music app) and its current version",
 				"GET /api/rooms/new": "Create a watch-party room: returns its code and the creator's hostKey",
 				"GET /api/rooms/{code}": "Room state (what's playing, position, queue, members)",
 				"WS /api/rooms/{code}/ws": "Join a room: synced playback and shared queue",
@@ -432,8 +462,8 @@ function apiIndex(origin: string): Response {
 
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
-	"api", "assets", "brand", "docs", "sitemap", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
-	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "web", "vrc", "room", "auth",
+	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
+	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
 ]);
 
 /**
@@ -508,7 +538,8 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 
 	// ---- JSON API ----
 	if (path === "/api" || path === "/api/") return apiIndex(url.origin);
-	if (path === "/api/health") return json({ ok: true, version: VERSION });
+	if (path === "/api/health") return json({ ok: true, version: VERSION, build: BUILD });
+	if (path === "/api/ecosystem") return apiEcosystem(ctx);
 	if (path === "/api/search") return apiSearch(url, ctx);
 	if (path === "/api/suggest") {
 		const q = queryFromSearchParams(url);

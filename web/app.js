@@ -37,6 +37,9 @@ const DEFAULTS = {
 	sleep: true,
 	vrchat: true,
 	hideShorts: true,
+	// Never show these (one per line or comma-separated). Channels match name, @handle or ID.
+	hiddenChannels: "",
+	hiddenWords: "",
 	dearrow: true,
 	dislikes: true,
 	autoplay: true,
@@ -137,7 +140,7 @@ function showView(name, title) {
 // Search
 // ---------------------------------------------------------------------------------------------
 
-const state = { key: "", q: "", next: null, loading: false, controller: null, count: 0, blocked: { ads: 0, shorts: 0, shelfItems: 0 } };
+const state = { key: "", q: "", next: null, loading: false, controller: null, count: 0, blocked: { ads: 0, shorts: 0, shelfItems: 0, operators: 0, hidden: 0 } };
 
 function readFilters() {
 	const f = {};
@@ -175,7 +178,7 @@ async function runSearch({ append = false } = {}) {
 
 	if (!append) {
 		state.count = 0;
-		state.blocked = { ads: 0, shorts: 0, shelfItems: 0 };
+		state.blocked = { ads: 0, shorts: 0, shelfItems: 0, operators: 0, hidden: 0 };
 		resultsEl.replaceChildren(...skeletons(8));
 		statusEl.textContent = "Searching…";
 		$("#corrected").hidden = true;
@@ -193,6 +196,8 @@ async function runSearch({ append = false } = {}) {
 		state.blocked.ads += data.blocked.ads;
 		state.blocked.shorts += data.blocked.shorts;
 		state.blocked.shelfItems += data.blocked.shelfItems;
+		state.blocked.operators += data.blocked.operators || 0;
+		state.blocked.hidden += data.results.filter(isHidden).length;
 		if (!append && data.correctedQuery) {
 			const c = $("#corrected");
 			c.replaceChildren("Showing results for ", h("b", {}, data.correctedQuery));
@@ -224,6 +229,8 @@ function renderStatus(estimated) {
 	if (b.ads) junk.push(`${b.ads} ad${b.ads === 1 ? "" : "s"}`);
 	if (b.shorts) junk.push(`${b.shorts} Short${b.shorts === 1 ? "" : "s"}`);
 	if (b.shelfItems) junk.push(`${b.shelfItems} shelf filler${b.shelfItems === 1 ? "" : "s"}`);
+	if (b.hidden) junk.push(`${b.hidden} hidden by you`);
+	if (b.operators) parts.push(`${b.operators} filtered by your search operators`);
 	statusEl.replaceChildren(parts.join(" · "), junk.length ? h("span", { class: "blocked" }, `🛡 Blocked ${junk.join(", ")}`) : "");
 }
 
@@ -236,7 +243,30 @@ const channelHref = (ch) => {
 	return ref ? `/?channel=${encodeURIComponent(ref)}` : null;
 };
 
+// ---- Hidden channels and words (Settings › Results; this browser only) ----
+const listOf = (s) =>
+	String(s || "")
+		.split(/[\n,]/)
+		.map((x) => x.trim().toLowerCase().replace(/^@/, ""))
+		.filter(Boolean);
+
+/** Letters and digits only, like the server's search operators: "@LofiGirl" = "Lofi Girl". */
+const compactName = (x) => String(x).toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+function isHidden(item) {
+	const chans = listOf(settings.hiddenChannels).map(compactName);
+	const words = listOf(settings.hiddenWords);
+	if (!item || (!chans.length && !words.length)) return false;
+	const ch = item.channel || {};
+	const ids = [ch.name, ch.handle, ch.id, item.author, item.channelRef];
+	if (item.type === "channel") ids.push(item.title, item.handle, item.id);
+	if (ids.some((x) => x && chans.includes(compactName(x)))) return true;
+	const text = `${item.title || ""} ${ch.name || item.author || ""}`.toLowerCase();
+	return words.some((w) => text.includes(w));
+}
+
 function renderCard(item) {
+	if (isHidden(item)) return null;
 	if (item.type === "video" || item.type === "short") return videoCard(item);
 	if (item.type === "channel") return channelCard(item);
 	if (item.type === "playlist" || item.type === "mix") return playlistCard(item);
@@ -662,7 +692,7 @@ async function loadFeed(subs, key) {
 
 function drawFeed(grid, status) {
 	const items = subsFeed.items || [];
-	grid.replaceChildren(...items.map((v) => videoCard(v)));
+	grid.replaceChildren(...items.filter((v) => !isHidden(v)).map((v) => videoCard(v)));
 	status.textContent = [
 		items.length ? "Newest uploads first (YouTube only gives approximate dates)." : "No recent uploads from these channels.",
 		subsFeed.failed ? `${subsFeed.failed} channel${subsFeed.failed === 1 ? "" : "s"} couldn't be loaded.` : "",
@@ -672,7 +702,30 @@ function drawFeed(grid, status) {
 	if (on("dearrow")) applyDeArrow(items);
 }
 
+function updateHideButton() {
+	const btn = $("#ch-hide");
+	const ch = chState.channel;
+	btn.hidden = !ch?.id;
+	if (!ch?.id) return;
+	btn.textContent = isHidden({ type: "channel", id: ch.id, handle: ch.handle, title: ch.title }) ? "Unhide channel" : "Hide channel";
+}
+
+$("#ch-hide").addEventListener("click", () => {
+	const ch = chState.channel;
+	if (!ch?.id) return;
+	const keys = [ch.handle, ch.id].filter(Boolean).map((x) => String(x).toLowerCase().replace(/^@/, ""));
+	const list = listOf(settings.hiddenChannels);
+	const hidden = list.some((x) => keys.includes(x));
+	// Both: search results often lack the @handle, but always have the channel ID.
+	const next = hidden ? list.filter((x) => !keys.includes(x)) : [...list, ...keys];
+	settings.hiddenChannels = next.join("\n");
+	saveSettings();
+	updateHideButton();
+	toast(hidden ? `${ch.title} is shown again` : `${ch.title} is hidden from search, your feed and home. Undo here or in Settings.`);
+});
+
 function updateSubButton() {
+	updateHideButton();
 	const btn = $("#ch-sub");
 	const ch = chState.channel;
 	btn.hidden = !ch?.id;
@@ -1640,7 +1693,7 @@ settingsDlg.addEventListener("change", (e) => {
 	saveSettings();
 	if (el.dataset.setting === "partyName") room?.setName(settings.partyName || "Guest");
 	applyPlugins();
-	if (["hideShorts", "dearrow", "region"].includes(el.dataset.setting) && state.q && currentView === "results") runSearch();
+	if (["hideShorts", "dearrow", "region", "hiddenChannels", "hiddenWords"].includes(el.dataset.setting) && state.q && currentView === "results") runSearch();
 });
 $("#open-settings").addEventListener("click", () => {
 	renderPluginGroups();
@@ -1915,7 +1968,7 @@ async function renderHomeShelves() {
 			"section",
 			{ class: "shelf" },
 			h("div", { class: "shelf-head" }, h("div", {}, h("p", { class: "eyebrow" }, eyebrow), h("h2", { class: "shelf-title" }, title)), all ? h("a", { class: "button small secondary", href: all, "data-internal": true }, "See all") : null),
-			h("div", { class: "shelf-row" }, items.map((v) => videoCard(v))),
+			h("div", { class: "shelf-row" }, items.filter((v) => !isHidden(v)).map((v) => videoCard(v))),
 		);
 	const parts = [];
 	if (history.length) parts.push(shelf("Pick up where you left off", "Continue watching", history.slice(0, 12), "/?view=library&tab=history"));
