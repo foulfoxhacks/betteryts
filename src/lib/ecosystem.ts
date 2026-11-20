@@ -7,7 +7,7 @@
 // VPM listing, so they're never out of date.
 
 export const SITE_VERSION = "1.1.0";
-export const MUSIC_VERSION = "0.9.0";
+export const MUSIC_VERSION = "0.9.1";
 export const VPM_LISTING = "https://vpm.foulfoxhacks.dev/index.json";
 
 export interface Project {
