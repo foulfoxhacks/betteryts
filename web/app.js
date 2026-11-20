@@ -998,7 +998,8 @@ function openFromCard(e, item) {
 }
 
 function resetWatchUi() {
-	for (const id of ["#votes", "#segments", "#desc-wrap", "#full-label", "#jump-highlight", "#watch-original", "#chapters", "#save-menu", "#lyrics"]) $(id).hidden = true;
+	for (const id of ["#votes", "#segments", "#desc-wrap", "#full-label", "#jump-highlight", "#watch-original", "#chapters", "#save-menu", "#lyrics", "#transcript"]) $(id).hidden = true;
+	resetTranscript();
 	lyricLines = [];
 	activeLyric = -1;
 	$("#seg-bar").replaceChildren();
@@ -1257,6 +1258,7 @@ function skipLoop() {
 	if (room) roomDriftTick(t);
 	updateActiveChapter(t);
 	updateActiveLyric(t);
+	updateActiveTranscript(t);
 	sendNowPlaying(false);
 
 	let inMute = false;
@@ -1386,6 +1388,88 @@ function renderUpNext() {
 }
 
 // ---------- Watch party ----------
+
+// ---- Transcript: the video's captions, searchable, click a line to jump (loaded on demand) ----
+let transcript = { id: null, lines: [], active: -1 };
+
+function resetTranscript() {
+	transcript = { id: null, lines: [], active: -1 };
+	$("#transcript-list").replaceChildren();
+	$("#transcript-search").value = "";
+	$("#transcript-source").textContent = "";
+	$("#show-transcript").setAttribute("aria-expanded", "false");
+}
+
+async function loadTranscript(lang) {
+	if (!current) return;
+	const id = current.id;
+	const status = $("#transcript-status");
+	status.textContent = "Loading the transcript…";
+	status.hidden = false;
+	$("#transcript-list").replaceChildren();
+	try {
+		const d = await api(`/api/transcript/${encodeURIComponent(id)}`, lang ? { lang } : {});
+		if (current?.id !== id) return;
+		transcript = { id, lines: d.lines || [], active: -1 };
+		const sel = $("#transcript-lang");
+		sel.replaceChildren(...(d.languages || []).map((l) => h("option", { value: l.auto ? `${l.code}:asr` : l.code, selected: l.code === d.language?.code && l.auto === d.language?.auto }, l.name)));
+		sel.hidden = (d.languages || []).length < 2;
+		$("#transcript-source").textContent = d.language ? `· ${d.language.name}` : "";
+		if (!transcript.lines.length) {
+			status.textContent = "This video has no captions.";
+			return;
+		}
+		status.hidden = true;
+		$("#transcript-list").replaceChildren(
+			...transcript.lines.map((l, i) => h("li", {}, h("button", { type: "button", class: "lyric transcript-line", "data-i": i, onclick: () => seek(l.start) }, h("span", { class: "transcript-time" }, fmtTime(l.start)), " ", l.text))),
+		);
+		filterTranscript();
+	} catch (err) {
+		if (current?.id === id) status.textContent = `Couldn't load the transcript: ${err.message}`;
+	}
+}
+
+function filterTranscript() {
+	const q = $("#transcript-search").value.trim().toLowerCase();
+	let shown = 0;
+	for (const b of $$(".transcript-line", $("#transcript-list"))) {
+		const hit = !q || b.textContent.toLowerCase().includes(q);
+		b.parentElement.hidden = !hit;
+		if (hit) shown++;
+	}
+	const status = $("#transcript-status");
+	if (q && transcript.lines.length) {
+		status.textContent = shown ? `${shown} line${shown === 1 ? "" : "s"} match` : "No matches";
+		status.hidden = false;
+	} else if (transcript.lines.length) status.hidden = true;
+}
+
+function updateActiveTranscript(t) {
+	if (!transcript.lines.length || $("#transcript").hidden) return;
+	let i = -1;
+	for (let k = 0; k < transcript.lines.length && transcript.lines[k].start <= t + 0.2; k++) i = k;
+	if (i === transcript.active) return;
+	transcript.active = i;
+	const list = $("#transcript-list");
+	for (const b of $$(".transcript-line.active", list)) b.classList.remove("active");
+	const el = list.querySelector(`.transcript-line[data-i="${i}"]`);
+	if (el) {
+		el.classList.add("active");
+		// Follow along only while not searching (the list is filtered then).
+		if (!$("#transcript-search").value) list.scrollTop = el.offsetTop - list.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
+	}
+}
+
+$("#show-transcript").addEventListener("click", () => {
+	const panel = $("#transcript");
+	const open = panel.hidden;
+	panel.hidden = !open;
+	$("#show-transcript").setAttribute("aria-expanded", String(open));
+	if (open && current && transcript.id !== current.id) loadTranscript();
+	if (open) panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
+$("#transcript-search").addEventListener("input", filterTranscript);
+$("#transcript-lang").addEventListener("change", (e) => loadTranscript(e.target.value));
 
 // ---- Send to phone / VR: a QR code, a short link to type in VRChat, or a watch party ----
 function sendDialog() {

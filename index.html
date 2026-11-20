@@ -486,6 +486,7 @@
 						<a id="watch-yt" class="button small secondary" target="_blank" rel="noopener">Open on YouTube</a>
 						<button class="button small secondary" type="button" id="copy-yt">Copy link</button>
 						<button class="button small primary" type="button" id="copy-vrc" title="youtube.com links work in VRChat even with untrusted URLs off">Copy for VRChat</button>
+						<button class="button small secondary" type="button" id="show-transcript" aria-expanded="false">Transcript</button>
 						<button class="button small secondary" type="button" id="send-to" title="QR code for your phone, a short link for VRChat, or a watch party">Send to phone / VR</button>
 						<button class="button small secondary" type="button" id="jump-highlight" hidden>Jump to highlight</button>
 						<label class="select sleep-select" id="sleep-wrap"><span>Sleep</span>
@@ -519,6 +520,15 @@
 						<ol id="lyrics-list" class="lyrics-list"></ol>
 					</div>
 					<div id="plugin-panels"></div>
+					<div id="transcript" class="side-panel transcript-panel" hidden>
+						<h3>Transcript <span id="transcript-source" class="muted"></span></h3>
+						<div class="transcript-tools">
+							<input id="transcript-search" type="search" placeholder="Search the transcript" aria-label="Search the transcript" />
+							<select id="transcript-lang" aria-label="Transcript language" hidden></select>
+						</div>
+						<p id="transcript-status" class="fine" hidden></p>
+						<ol id="transcript-list" class="lyrics-list transcript-list"></ol>
+					</div>
 					<div id="chapters" class="side-panel" hidden>
 						<h3>Chapters <span id="chapters-source" class="muted"></span></h3>
 						<input id="chapters-search" type="search" placeholder="Search chapters and description" aria-label="Search chapters and description" />

@@ -867,3 +867,11 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .send-qr .qr { display: block; width: 100%; height: auto; border-radius: 6px; }
 .send-code { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .send-code code { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 6px 8px; border-radius: 6px; background: var(--surface-2); font-size: 15px; }
+
+/* Transcript panel */
+.transcript-tools { display: flex; gap: 8px; margin-bottom: 8px; }
+.transcript-tools input { flex: 1; min-width: 0; }
+.transcript-list .transcript-line { text-align: left; }
+.transcript-time { display: inline-block; min-width: 3.2em; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; }
+#transcript-search, #transcript-lang { min-width: 0; padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--btn-radius); background: var(--bg); color: var(--text); font: inherit; font-size: 14px; }
+#transcript-search:focus, #transcript-lang:focus { outline: none; border-color: var(--primary); }
