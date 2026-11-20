@@ -23,6 +23,7 @@ import { appRedirect, authorizeUrl, CALLBACK_PATH, googleConfig, googleToken, va
 import { lrclib, songOf } from "./lib/lyrics.ts";
 import { toProTVPlaylist } from "./lib/protv.ts";
 import { frontPageMeta, rewriteFrontPage } from "./lib/seo.ts";
+import { bestMatch, fetchSpotify, SpotifyError, spotifyRef } from "./lib/spotify.ts";
 import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 
 export { VrcPool } from "./vrc/pool.ts";
@@ -328,6 +329,61 @@ async function vrcProTVPlaylist(url: URL, ctx: ExecutionContext): Promise<Respon
 	});
 }
 
+/** /api/spotify?url=… or /api/spotify/{playlist|album}/{id}: a public Spotify playlist or album's tracks. */
+async function apiSpotify(url: URL, path: string, ctx: ExecutionContext): Promise<Response> {
+	const m = /^\/api\/spotify\/(playlist|album)\/([A-Za-z0-9]{22})$/.exec(path);
+	const ref = m ? { kind: m[1] as "playlist" | "album", id: m[2] } : spotifyRef(url.searchParams.get("url") ?? "");
+	if (!ref) return errorJson("Paste a Spotify playlist or album link", 400);
+	return cached(`spotify/${ref.kind}/${ref.id}`, ctx, async () => {
+		try {
+			return json(await fetchSpotify(ref.kind, ref.id), 200, 3600);
+		} catch (err) {
+			if (err instanceof SpotifyError) return errorJson(err.message, err.status);
+			throw err;
+		}
+	});
+}
+
+/**
+ * /api/match?track=&artist=&duration=: the YouTube video that best matches one song (used by
+ * the Spotify importers). One small search per call keeps each request well under the CPU limit,
+ * and the day-long cache means a popular song is only matched once for everyone.
+ */
+async function apiMatch(url: URL, ctx: ExecutionContext): Promise<Response> {
+	const p = url.searchParams;
+	const track = (p.get("track") ?? "").trim().slice(0, 200);
+	const artist = (p.get("artist") ?? "").trim().slice(0, 200);
+	if (!track) return errorJson("Pass track (and ideally artist and duration in seconds)", 400);
+	const duration = Math.round(Number(p.get("duration")) || 0) || undefined;
+	const opts = clientOptions(url);
+	const key = `match/${artist.toLowerCase()}|${track.toLowerCase()}|${duration ?? ""}|${opts.gl}`;
+	return cached(key, ctx, async () => {
+		const r = await search(`${artist} ${track}`.trim(), { type: "video" }, opts);
+		const ranked = bestMatch({ title: track, artist, duration }, r.results.filter(isVideo));
+		const slim = (x: { video: VideoItem; score: number }) => ({
+			id: x.video.id,
+			title: x.video.title,
+			channel: x.video.channel?.name ?? null,
+			duration: x.video.duration,
+			durationSeconds: x.video.durationSeconds,
+			thumbnail: x.video.thumbnail,
+			score: x.score,
+		});
+		const best = ranked[0];
+		return json(
+			{
+				track,
+				artist,
+				match: best ? slim(best) : null,
+				confidence: !best ? "none" : best.score >= 60 ? "high" : best.score >= 35 ? "low" : "none",
+				alternatives: ranked.slice(1, 4).map(slim),
+			},
+			200,
+			best ? 86400 : 3600,
+		);
+	});
+}
+
 function apiIndex(origin: string): Response {
 	return json(
 		{
@@ -350,6 +406,8 @@ function apiIndex(origin: string): Response {
 				"GET /api/channel/{id|@handle}": "A channel's details and videos. tab=videos|live|shorts|playlists, page=",
 				"GET /vrc/protv.playlist?q=|list=": "ProTV playlist file from a search or playlist (n=1..500)",
 				"GET /vrc/search?q=": "In-world search for VRChat (see docs/vrchat-protocol.md)",
+				"GET /api/spotify?url=": "A public Spotify playlist or album's tracks (also /api/spotify/{playlist|album}/{id})",
+				"GET /api/match?track=&artist=&duration=": "The YouTube video that best matches a song (Spotify importer)",
 				"GET /api/rooms/new": "Create a watch-party room: returns its code and the creator's hostKey",
 				"GET /api/rooms/{code}": "Room state (what's playing, position, queue, members)",
 				"WS /api/rooms/{code}/ws": "Join a room: synced playback and shared queue",
@@ -476,6 +534,9 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 			return json({ ...song, lyrics: found }, 200, found ? 86400 : 3600);
 		});
 	}
+
+	if (path === "/api/spotify" || path.startsWith("/api/spotify/")) return apiSpotify(url, path, ctx);
+	if (path === "/api/match") return apiMatch(url, ctx);
 
 	const apiId = /^\/api\/(video|segments|dislikes|branding)\/([^/]+)$/.exec(path);
 	if (apiId) {

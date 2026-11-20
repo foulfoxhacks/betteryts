@@ -6,6 +6,7 @@ import { currentTheme, initChrome, setTheme, THEMES } from "./chrome.js";
 import { $, $$, api, copy, fmtCount, fmtTime, h, isVideoId, minVideo, safeUrl, toast } from "./lib.js";
 import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
+import { importSpotify } from "./spotify.js";
 import { store } from "./store.js";
 
 initChrome();
@@ -540,6 +541,7 @@ function renderLibrary() {
 		const nameInput = h("input", { type: "text", maxlength: 80, placeholder: "New playlist name", "aria-label": "New playlist name" });
 		libBody.replaceChildren(
 			h("form", { class: "lib-actions", onsubmit: (e) => (e.preventDefault(), nameInput.value.trim() && (store.createPlaylist(nameInput.value.trim()), toast("Playlist created"))) }, nameInput, h("button", { type: "submit", class: "button small primary" }, "Create playlist")),
+			spotifyPanel(),
 			d.playlists.length
 				? h(
 						"div",
@@ -686,6 +688,79 @@ store.onChange(() => {
 	renderUpNext();
 	updateSubButton();
 });
+
+// ---------- Import from Spotify ----------
+
+// Lives outside renderLibrary so the Library re-rendering (it does on every store change)
+// doesn't lose an import in progress.
+const spotifyJob = { running: false, done: 0, total: 0, controller: null, result: null, error: "", link: "" };
+
+function spotifyPanel() {
+	const wrap = h("div", { id: "spotify-import", class: "side-panel spotify-import" });
+	fillSpotifyPanel(wrap);
+	return wrap;
+}
+
+function refreshSpotifyPanel() {
+	const el = $("#spotify-import");
+	if (el) fillSpotifyPanel(el);
+}
+
+function fillSpotifyPanel(wrap) {
+	const j = spotifyJob;
+	const input = h("input", { type: "url", placeholder: "https://open.spotify.com/playlist/…", "aria-label": "Spotify playlist or album link", value: j.link, disabled: j.running });
+	const kids = [
+		h("h3", {}, "Import from Spotify"),
+		h("p", { class: "muted" }, "Paste a public Spotify playlist or album link. Each song is matched to its YouTube version and saved as one of your playlists."),
+		h(
+			"form",
+			{ class: "lib-actions", onsubmit: (e) => (e.preventDefault(), startSpotifyImport(input.value)) },
+			input,
+			j.running
+				? h("button", { type: "button", class: "button small secondary", onclick: () => j.controller?.abort() }, "Cancel")
+				: h("button", { type: "submit", class: "button small primary" }, "Import"),
+		),
+	];
+	if (j.running) {
+		const pct = j.total ? Math.round((j.done / j.total) * 100) : 0;
+		kids.push(h("p", { class: "muted", role: "status" }, j.total ? `Matching songs… ${j.done} / ${j.total}` : "Reading the playlist…"), h("div", { class: "vote-bar import-progress" }, h("span", { style: `width:${pct}%` })));
+	} else if (j.error) {
+		kids.push(h("p", { class: "import-error", role: "alert" }, j.error));
+	} else if (j.result) {
+		const r = j.result;
+		kids.push(
+			h("p", { role: "status" }, `Saved “${r.name}”: ${r.videos.length} of ${r.total} songs found.`),
+			r.mayBeTruncated ? h("p", { class: "muted" }, "Spotify only shows the first 100 songs of long playlists, so later songs weren't imported.") : null,
+			r.unsure.length ? h("details", {}, h("summary", {}, `${r.unsure.length} guessed — check these`), h("ul", { class: "import-list" }, r.unsure.map((s) => h("li", {}, s)))) : null,
+			r.unmatched.length ? h("details", {}, h("summary", {}, `${r.unmatched.length} not found on YouTube`), h("ul", { class: "import-list" }, r.unmatched.map((s) => h("li", {}, s)))) : null,
+		);
+	}
+	wrap.replaceChildren(...kids.filter(Boolean));
+}
+
+async function startSpotifyImport(link) {
+	const j = spotifyJob;
+	if (j.running || !link.trim()) return;
+	Object.assign(j, { running: true, done: 0, total: 0, result: null, error: "", link: link.trim(), controller: new AbortController() });
+	refreshSpotifyPanel();
+	try {
+		const r = await importSpotify(link, (done, total) => {
+			j.done = done;
+			j.total = total;
+			refreshSpotifyPanel();
+		}, j.controller.signal);
+		if (!r.videos.length) throw new Error("None of the songs could be found on YouTube.");
+		const saved = store.createPlaylist(r.name, r.videos);
+		if (!saved) throw new Error("You've reached the playlist limit. Delete one and try again.");
+		Object.assign(j, { result: r, link: "" });
+		toast(`Imported “${r.name}” from Spotify`);
+	} catch (err) {
+		j.error = err.name === "AbortError" ? "Import cancelled." : `Couldn't import: ${err.message}`;
+	} finally {
+		j.running = false;
+		refreshSpotifyPanel();
+	}
+}
 
 async function renderShared(name, ids) {
 	libBody.replaceChildren(h("p", { class: "muted" }, "Loading shared playlist…"));

@@ -815,3 +815,11 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .lyric.active { color: var(--primary); font-size: 18px; font-weight: 900; }
 .lyric.plain { cursor: default; color: var(--text); font-weight: 500; }
 .sleep-select { padding-top: 0; padding-bottom: 0; }
+
+/* ---------- Spotify import ---------- */
+.spotify-import { margin: 0 0 16px; }
+.spotify-import input[type="url"] { flex: 1; min-width: 220px; }
+.import-progress { max-width: 420px; height: 6px; }
+.import-progress span { background: var(--primary); transition: width 0.2s; }
+.import-error { color: var(--danger); }
+.import-list { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
