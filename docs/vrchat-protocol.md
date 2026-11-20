@@ -105,47 +105,64 @@ Editor tools read this to bake the pool and pre-fill the input field.
 
 ## Linking
 
-Players can send their own playlists (YouTube via Google sign-in, Spotify links, or their
-BetterYTS library) into a world, and the world can keep them across visits with PlayerData.
-It works like a TV sign-in, using only baked URLs.
+Linking protocol **v2** (responses carry `"v": 2`). Players can send their own playlists
+(YouTube via Google sign-in, Spotify, or their BetterYTS library) into a world. By default
+that's **for this visit only**; if they tick "Save for my next visit", the world gets a
+two-part key to keep in PlayerData. Everything uses baked URLs. Privacy policy:
+https://yts.foulfoxhacks.dev/privacy#vrchat
 
 ### Constants to bake
 
 | What | URLs |
 |---|---|
 | Start buttons | `{base}/vrc/link/start/youtube`, `{base}/vrc/link/start/spotify` |
-| Saved libraries | `{base}/vrc/l/{n}` for `n = 0 … 9999` (`LIBRARY_SLOTS = 10000`) |
+| Saved library, step 1 | `{base}/vrc/l/{a}` for `a = 0 … 9999` |
+| Saved library, step 2 | `{base}/vrc/k/{b}` for `b = 0 … 9999` |
+| Unlink (delete) | `{base}/vrc/forget` |
 | Polling | the existing pool `{base}/vrc/p/{slot}` |
 
-### Flow
+All `/vrc/*` linking responses are HTTP 200 JSON, `Cache-Control: no-store`. Errors are
+`{ "v": 2, "ok": false, "error": "…" }` (rate limits included), so the world can always read them.
 
-1. The player presses **Link YouTube** (or Spotify). The world loads the start URL with
-   `VRCStringDownloader` and gets:
-   `{ "v": 1, "ok": true, "service": "youtube", "code": "K7QX-M2PA", "url": "yts.foulfoxhacks.dev/inworld/youtube/auth", "expiresIn": 600, "poll": 4127 }`
-2. The world shows the `code` and `url` large, with the expiry. The player opens the URL on
-   a phone or PC, enters the code, signs in or picks a source, and chooses playlists.
-3. The world polls `pool[poll]` every 5 s (the string-download rate limit), and only while the
-   code is on screen:
-   - `{ "status": "waiting", "code": … }`: keep polling.
-   - `{ "status": "expired" }`: stop and offer a new code.
-   - `{ "status": "linked", "service", "account", "playlists": [{ "name", "tracks": [{ "title", "channel", "slot" }] }], "library": 2227 }`: done.
-4. Play a track by loading `pool[track.slot]` into the video player (it's a `302` to YouTube,
-   like search results).
-5. Save `library` (an int) in the player's PlayerData, e.g. key `betteryts.library.youtube`.
+### Link
+
+1. **Link YouTube / Link Spotify** → load the start URL:
+   `{ "v": 2, "ok": true, "service": "youtube", "code": "K7QX-M2PA", "url": "yts.foulfoxhacks.dev/inworld/youtube/auth", "expiresIn": 600, "poll": 4127 }`
+2. Show `code` and `url` large, with a countdown.
+3. Poll `pool[poll]` every 5 s while the code is shown:
+   - `{ "status": "waiting" }`: keep polling. `{ "status": "expired" }`: stop, offer a new code.
+   - `{ "v": 2, "ok": true, "status": "linked", "service", "playlists": [{ "name", "tracks": [{ "title", "channel", "slot" }] }], "library": { "a": 7236, "b": 6240 } | null, "expiresAt": <ms> | null }`
+4. Play a track by loading `pool[track.slot]` (a `302` to YouTube).
+5. If `library` isn't null, save `a` and `b` (ints) in PlayerData, e.g.
+   `betteryts.lib.youtube.a` / `.b`. `null` means "just this visit": save nothing.
 
 ### Next visit
 
-Load `{base}/vrc/l/{library}`. You get the same `linked` shape with fresh slots and a **new**
-`library` number. Save it straight away. The old number keeps working only until the new
-one is used once, so a world that crashes before saving can still recover with the old number.
-`{ "status": "missing" }` means the library expired (180 days unused) or was replaced:
-clear the saved number and offer **Link** again.
+1. Load `{base}/vrc/l/{a}` → `{ "status": "next" }` (it never says whether the key exists).
+2. Within 60 s, load `{base}/vrc/k/{b}` → the same `linked` shape with fresh slots and a **new**
+   `library` key. Save it straight away. The old key keeps working only until the new one is
+   used once, so a world that crashes before saving can recover.
+3. `{ "status": "missing" }`: expired (30 days after saving), deleted, or replaced. Clear the
+   saved key and offer Link again.
+
+Both steps are per caller (keyed IP hash), so load them back to back from the same client.
+After 5 wrong pairs in an hour the caller is locked out for the hour.
+
+### Unlink
+
+Load `{base}/vrc/forget` right after a successful load or link (within 60 s; the server
+remembers what this caller last received). `{ "status": "forgotten" }` deletes the library on
+the server; `{ "status": "nothing" }` means there was nothing recent to delete. Clear the
+PlayerData keys either way. Players can also view, download or delete a library on the site
+(`/?view=link#manage`) by entering the key as `AAAA-BBBB`; show it in the world's settings.
 
 ### Limits and safety
 
-- Codes: 8 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (CSPRNG), valid 10 minutes, one use.
-- Rate limits per IP: 30 codes/hour, 60 library loads/hour, 20 code entries per 10 minutes.
-- A library has at most 20 playlists and 1,000 songs (200 per playlist). It holds only what
-  the player chose; no account tokens are ever stored (the import runs in the player's browser).
-- Tell players: anyone who gets their library number could load those playlists, so they
-  shouldn't send anything private.
+- Codes: 8 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (CSPRNG, 40 bits), 10 minutes, one use.
+- Keys: two halves of 0…9999 (10⁸ combinations), CSPRNG, rotated on every load, lockout after failed pairs.
+- Stored: playlist names and song video IDs, titles, channels. No account names, emails or tokens.
+- "Just this visit" data is deleted when the code expires; saved libraries 30 days after saving
+  (rotation doesn't extend that).
+- Rate limits per caller: 30 codes/hour, 120 key steps/hour, 20 code entries per 10 minutes,
+  30 forgets/hour. Callers are identified by HMAC-SHA-256 of the IP with a secret key replaced
+  daily, kept 24 hours.

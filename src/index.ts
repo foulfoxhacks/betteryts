@@ -470,7 +470,7 @@ function apiIndex(origin: string): Response {
 
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
-	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
+	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "privacy", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
 	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
 ]);
 
@@ -545,7 +545,7 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 		return typeof target === "string" ? new Response(null, { status: 302, headers: { Location: target, ...nostore } }) : errorJson(target.error, 400);
 	}
 	// The site posts an import to the world waiting on an activation code (src/vrc/linking.ts).
-	if (path === "/api/inworld/complete") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
+	if (path === "/api/inworld/complete" || path === "/api/inworld/library") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 	if (req.method !== "GET" && req.method !== "HEAD") return errorJson("Method not allowed", 405);
 
@@ -644,7 +644,7 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	if (path === "/vrc/info") return vrcInfo(url.origin);
 	if (path === "/vrc/search") return vrcSearch(url, env, ctx, clientOptions(url));
 	const slotMatch = /^\/vrc\/p\/(\d{1,6})$/.exec(path);
-	if (slotMatch) return vrcSlot(slotMatch[1], env, ctx, url.origin, clientOptions(url).clientVersion);
+	if (slotMatch) return vrcSlot(slotMatch[1], env, ctx, url.origin, clientOptions(url).clientVersion, req.headers.get("CF-Connecting-IP") ?? "unknown");
 	if (path.startsWith("/vrc/")) return text("BetterYTS: unknown /vrc endpoint. See /docs#vrchat-world\n", 404);
 
 	// ---- Redirect endpoints ----
@@ -682,9 +682,15 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 export default {
 	async fetch(req, _env, ctx) {
 		try {
-			return await route(req, ctx);
+			const res = await route(req, ctx);
+			// WebSocket upgrades go back untouched; everything else gets HSTS.
+			if (res.status === 101 || res.webSocket) return res;
+			const out = new Response(res.body, res);
+			out.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+			return out;
 		} catch (err) {
-			console.error("request failed", req.url, err);
+			// Saved-library key halves are in /vrc/l/{a} and /vrc/k/{b}: never log them.
+			console.error("request failed", req.url.replace(/\/vrc\/(l|k)\/\d+/, "/vrc/$1/…"), err);
 			const status = err instanceof UpstreamError ? err.status : 502;
 			const message = err instanceof Error ? err.message : "Upstream error";
 			const accept = req.headers.get("Accept") ?? "";

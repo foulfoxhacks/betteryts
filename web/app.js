@@ -804,7 +804,6 @@ async function handleGoogleReturn(p) {
 				...(lib.liked.length ? [{ name: "Liked videos", items: lib.liked, on: true }] : []),
 				...lib.playlists.map((x, i) => ({ name: x.name, items: x.items, on: i < 19 })),
 			];
-			linkState.account = "";
 			navigate(`/?view=link&code=${encodeURIComponent(code)}`, { replace: true });
 			return;
 		}
@@ -827,7 +826,7 @@ async function handleGoogleReturn(p) {
 }
 
 // ---- Send music to a VRChat world (/inworld/{service}/auth → /?view=link): src/vrc/links.ts ----
-let linkState = { code: "", service: "", checked: false, error: "", note: "", picker: null, sent: null, busy: false, account: "" };
+let linkState = { code: "", service: "", checked: false, error: "", note: "", picker: null, sent: null, busy: false, save: false, manage: { key: "", busy: false, error: "", note: "" } };
 
 function openLinkView(code, service) {
 	if (code && code !== linkState.code) linkState = { ...linkState, code, checked: false, sent: null, error: "" };
@@ -870,7 +869,9 @@ async function sendToWorld() {
 			body: JSON.stringify({
 				code: linkState.code,
 				service: linkState.service,
-				library: { account: linkState.account, playlists: chosen.map((p) => ({ name: p.name, tracks: p.items.map((v) => ({ id: v.id, title: v.title, channel: v.channel || "" })) })) },
+				// Only public video IDs, titles and channels; never account details.
+				library: { playlists: chosen.map((p) => ({ name: p.name, tracks: p.items.map((v) => ({ id: v.id, title: v.title, channel: v.channel || "" })) })) },
+				save: linkState.save === true,
 			}),
 		});
 		const body = await res.json().catch(() => null);
@@ -893,11 +894,16 @@ function renderLinkView() {
 	const parts = [
 		h("p", { class: "eyebrow" }, "BetterYTS for VRChat"),
 		h("h1", { class: "page-title" }, "Send music to a VRChat world"),
-		h("p", { class: "muted" }, "In a world with BetterYTS, press Link YouTube or Link Spotify. It shows a code: enter it here, pick playlists, and they appear in the world. The world remembers them for your next visit."),
+		h("p", { class: "muted" }, "In a world with BetterYTS, press Link YouTube or Link Spotify. It shows a code: enter it here, pick playlists, and they appear in the world."),
+		h("p", { class: "fine" }, "Sign-ins happen in your browser and no account tokens are ever stored. ", h("a", { href: "/privacy#vrchat" }, "What's kept, and for how long")),
 	];
 	if (s.sent) {
 		parts.push(
-			step("✓", "Sent", h("p", {}, `Sent ${s.sent.playlists} playlist${s.sent.playlists === 1 ? "" : "s"} (${s.sent.tracks} songs). Look at the world: they show up within a few seconds.`), h("button", { type: "button", class: "button small secondary", onclick: () => { linkState = { ...linkState, code: "", checked: false, sent: null }; navigate("/?view=link"); } }, "Link another world")),
+			step(
+				"✓",
+				"Sent",
+				h("p", {}, `Sent ${s.sent.playlists} playlist${s.sent.playlists === 1 ? "" : "s"} (${s.sent.tracks} songs). Look at the world: they show up within a few seconds.`),
+				h("p", { class: "fine" }, s.sent.saved ? "Saved for your next visit for up to 30 days. The world shows your library key; you can view or delete the library below, or press Unlink in the world." : "Just this visit: nothing is kept once the code expires."), h("button", { type: "button", class: "button small secondary", onclick: () => { linkState = { ...linkState, code: "", checked: false, sent: null }; navigate("/?view=link"); } }, "Link another world")),
 		);
 		root.replaceChildren(...parts);
 		return;
@@ -974,13 +980,64 @@ function renderLinkView() {
 						),
 					),
 				),
-				h("p", { class: "fine" }, `Up to ${MAX_SEND_PLAYLISTS} playlists and 1,000 songs (200 per playlist). Selected: ${total} songs. Only what you pick goes to the world, and anyone who learns your world library number could load it, so leave out anything private.`),
+				h("p", { class: "fine" }, `Up to ${MAX_SEND_PLAYLISTS} playlists and 1,000 songs (200 per playlist). Selected: ${total} songs. Only the songs' video IDs, titles and channels are sent; never your account.`),
+				h(
+					"label",
+					{ class: "toggle link-save" },
+					h("input", { type: "checkbox", checked: s.save, onchange: (e) => (linkState.save = e.target.checked) }),
+					" Save for my next visit",
+					h("span", { class: "fine" }, " (kept up to 30 days under a key only the world gets; delete anytime). Off: just this visit, deleted when the code expires."),
+				),
 				h("button", { type: "button", class: "button primary", disabled: s.busy, onclick: sendToWorld }, s.busy ? "Sending…" : "Send to the world"),
 			),
 		);
 	}
 	if (s.error) parts.push(h("p", { class: "import-error", role: "alert" }, s.error));
+	parts.push(manageLibraryStep());
 	root.replaceChildren(...parts.filter(Boolean));
+}
+
+/** See, download or delete a saved world library by the key the world shows. */
+function manageLibraryStep() {
+	const m = linkState.manage;
+	const key = h("input", { type: "text", class: "room-code-input link-code-input", maxlength: 9, placeholder: "1234-5678", "aria-label": "Library key", value: m.key, inputmode: "numeric", spellcheck: "false" });
+	const act = async (action) => {
+		m.key = key.value.trim();
+		if (action === "delete" && !window.confirm("Delete this saved library? Worlds won't be able to load it again. This can't be undone.")) return;
+		m.busy = true;
+		m.error = "";
+		m.note = "";
+		renderLinkView();
+		try {
+			const res = await fetch("/api/inworld/library", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: m.key, action }) });
+			const body = await res.json().catch(() => null);
+			if (!res.ok || !body?.ok) throw new Error(body?.error || `Failed (${res.status})`);
+			if (action === "delete") m.note = `Deleted library ${body.deleted}.`;
+			else {
+				const blob = new Blob([JSON.stringify(body, null, 1)], { type: "application/json" });
+				const a = h("a", { href: URL.createObjectURL(blob), download: `betteryts-world-library-${body.key}.json` });
+				document.body.append(a);
+				a.click();
+				a.remove();
+				const n = body.library.playlists.reduce((t, p) => t + p.tracks.length, 0);
+				m.note = `Library ${body.key}: ${body.library.playlists.length} playlists, ${n} songs, saved ${body.savedAt.slice(0, 10)}, deleted automatically ${body.expiresAt.slice(0, 10)}. Downloaded a copy.`;
+			}
+		} catch (err) {
+			m.error = err.message;
+		} finally {
+			m.busy = false;
+			renderLinkView();
+		}
+	};
+	return h(
+		"section",
+		{ class: "link-step side-panel", id: "manage" },
+		h("h3", {}, "Manage a saved library"),
+		h("p", { class: "fine" }, "A world that saved your playlists shows your library key (it changes each visit). Enter it to download what's stored or delete it. In the world, Unlink deletes it too."),
+		h("div", { class: "lib-actions" }, key, h("button", { type: "button", class: "button small secondary", disabled: m.busy, onclick: () => act("view") }, "View & download"), h("button", { type: "button", class: "button small secondary", disabled: m.busy, onclick: () => act("delete") }, "Delete")),
+		m.note ? h("p", { class: "import-progress" }, m.note) : null,
+		m.error ? h("p", { class: "import-error", role: "alert" }, m.error) : null,
+	);
 }
 
 // ---- Sign in with Spotify: pick playlists (and Liked Songs), match them, import or send ----

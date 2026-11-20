@@ -21,7 +21,7 @@ export default defineConfig({
 			build: {
 				rollupOptions: {
 					// Static pages: search front page, API docs, visual site map.
-					input: { main: "index.html", docs: "docs.html", sitemap: "sitemap.html", ecosystem: "ecosystem.html" },
+					input: { main: "index.html", docs: "docs.html", sitemap: "sitemap.html", ecosystem: "ecosystem.html", privacy: "privacy.html" },
 				},
 			},
 		},

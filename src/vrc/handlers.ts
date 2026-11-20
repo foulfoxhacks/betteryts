@@ -150,7 +150,7 @@ export async function vrcSearch(url: URL, env: Env, ctx: ExecutionContext, opts:
 	}
 }
 
-export async function vrcSlot(slotText: string, env: Env, ctx: ExecutionContext, origin: string, clientVersion: string): Promise<Response> {
+export async function vrcSlot(slotText: string, env: Env, ctx: ExecutionContext, origin: string, clientVersion: string, ip = "unknown"): Promise<Response> {
 	const slot = Number(slotText);
 	if (!Number.isInteger(slot) || slot < 0 || slot >= POOL_SIZE) return text("BetterYTS: no such slot\n", 404);
 	const entry = await pool(env).lookup(slot);
@@ -175,7 +175,7 @@ export async function vrcSlot(slotText: string, env: Env, ctx: ExecutionContext,
 			}
 		}
 		case "link":
-			return linkSlot(entry.payload, env);
+			return linkSlot(entry.payload, env, ip);
 		default:
 			return text("BetterYTS: unknown slot type\n", 500);
 	}

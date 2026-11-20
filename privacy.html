@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Privacy — What BetterYTS Keeps and Why · BetterYTS by FoulFoxHacks</title>
+		<meta name="description" content="What BetterYTS, BetterYTS Music and the VRChat integration keep, why, for how long, and how to see or delete it." />
+		<meta name="keywords" content="BetterYTS privacy, BetterYTS data, VRChat linking privacy" />
+		<meta name="author" content="Sammy The Femboy Puppy (FoulFoxHacks)" />
+		<meta name="publisher" content="FoulFoxHacks" />
+		<meta name="robots" content="index, follow, max-image-preview:large" />
+		<link rel="canonical" href="https://yts.foulfoxhacks.dev/privacy" />
+		<link rel="author" href="https://akasammythepuppy.me" />
+		<link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
+		<link rel="search" type="application/opensearchdescription+xml" title="BetterYTS" href="/opensearch.xml" />
+		<link rel="icon" href="/favicon.ico" sizes="any" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16x16.png" />
+		<link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+		<link rel="manifest" href="/site.webmanifest" />
+		<meta name="theme-color" content="#242526" />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="BetterYTS by FoulFoxHacks" />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:url" content="https://yts.foulfoxhacks.dev/privacy" />
+		<meta property="og:title" content="BetterYTS Privacy" />
+		<meta property="og:description" content="What BetterYTS keeps, why, for how long, and how to delete it." />
+		<meta property="og:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content="BetterYTS — ad-free YouTube search for the web and VRChat, with Sammy The Femboy Puppy" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="BetterYTS Privacy" />
+		<meta name="twitter:description" content="What BetterYTS keeps, why, for how long, and how to delete it." />
+		<meta name="twitter:image" content="https://yts.foulfoxhacks.dev/brand/og-image.png" />
+		<link rel="stylesheet" href="/web/styles.css" />
+	</head>
+	<body>
+		<div id="announce" class="announce" hidden>
+			<p><b>Beta</b> Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
+			<button type="button" class="announce-close" aria-label="Dismiss announcement">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4 6.3-6.3-6.3-6.3 1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
+			</button>
+		</div>
+
+		<nav class="navbar" id="navbar" aria-label="Main">
+			<div class="navbar-inner">
+				<button type="button" class="icon-btn menu-btn" id="menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="nav-links">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" /></svg>
+				</button>
+				<a class="brand" href="/" aria-label="BetterYTS home">
+					<img src="/brand/logo-64.png" alt="BetterYTS logo — Sammy The Femboy Puppy" width="32" height="32" />
+					<span class="brand-text"><b>BetterYTS</b><small>by FoulFoxHacks</small></span>
+				</a>
+				<div class="nav-links" id="nav-links">
+					<a class="nav-link" href="/">Search</a>
+					<a class="nav-link" href="/docs">API Docs</a>
+					<a class="nav-link" href="/docs#redirects">VRChat</a>
+					<a class="nav-link" href="/docs#addons">Add-ons</a>
+					<a class="nav-link" href="/ecosystem">Ecosystem</a>
+				</div>
+				<div class="nav-right">
+					<a class="nav-link github" href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">
+						GitHub
+						<svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" /></svg>
+					</a>
+					<a class="button small primary" href="/">Try it</a>
+				</div>
+			</div>
+		</nav>
+		<header class="hero hero-compact">
+			<div class="container">
+				<p class="breadcrumbs hero-crumbs"><a href="/">Home</a> › Privacy</p>
+				<h1 class="hero-title">Privacy</h1>
+				<p class="hero-subtitle">What BetterYTS keeps, why, for how long, and how to see or delete it. Last updated 2026-11-20.</p>
+			</div>
+		</header>
+
+		<main class="container doc privacy">
+			<h2 id="short">The short version</h2>
+			<ul>
+				<li>No accounts. Your library, history, settings and plugins live in <b>your browser</b> (or on your phone in the app), not on our servers.</li>
+				<li>When you sign in to Google or Spotify to import playlists, it happens <b>in your browser or app</b>. We never store your passwords or account tokens; the website signs out of Google right after an import.</li>
+				<li>Linking music into VRChat is <b>opt-in</b>. By default nothing is kept after that visit. If you choose to save it, we keep only song IDs, titles and channels, for up to <b>30 days</b>, and you can delete it any time.</li>
+			</ul>
+
+			<h2 id="site">The website and API</h2>
+			<ul>
+				<li><b>Searches and requests</b> are sent to YouTube (and the add-on services below) to answer them. Responses may be cached briefly by Cloudflare. We don't build profiles or sell anything.</li>
+				<li><b>Request logs:</b> Cloudflare keeps request logs for this site (the address requested, time, status, and the network details Cloudflare records) for a few days, visible only to the site owner, for fixing problems. Saved-library keys are removed from our own error logs.</li>
+				<li><b>Analytics:</b> no tracking or advertising scripts. Cloudflare may count page views with its cookieless Web Analytics.</li>
+				<li><b>Your browser's storage</b> holds your library, settings, community plugins and watch-party host keys. Clear your site data to remove them; Settings › Backup lets you export first.</li>
+				<li><b>Watch-party rooms</b> keep what's playing, the queue and the names people choose, and are deleted after 24 hours with nobody in them.</li>
+			</ul>
+
+			<h2 id="accounts">Google and Spotify sign-in</h2>
+			<ul>
+				<li><b>What's requested:</b> read-only access to your YouTube playlists, liked videos and subscriptions (Google), or your playlists and Liked Songs (Spotify). Nothing is posted or changed.</li>
+				<li><b>Where it goes:</b> the import runs in your browser or the app and is saved there (or sent to a VRChat world if you choose). Our server only passes the sign-in along; for Google it adds the site's client secret to the exchange. Tokens are never stored on our servers. The website revokes its Google token right after the import; the app keeps its Google sign-in on your phone (encrypted) until you disconnect, and its Spotify token only in memory for one import.</li>
+				<li>BetterYTS's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google API Services User Data Policy</a>, including the Limited Use requirements. YouTube data is also subject to <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener">YouTube's Terms of Service</a> and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>; you can remove access at <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google account permissions</a>.</li>
+				<li>Spotify data is used only to find the same songs on YouTube for you, and you can remove access at <a href="https://www.spotify.com/account/apps/" target="_blank" rel="noopener">Spotify › Manage apps</a>.</li>
+			</ul>
+
+			<h2 id="vrchat">VRChat linking</h2>
+			<table class="table">
+				<thead><tr><th>What</th><th>Kept for</th></tr></thead>
+				<tbody>
+					<tr><td>Activation code (shown in the world)</td><td>10 minutes, works once</td></tr>
+					<tr><td>Songs sent for <b>just this visit</b> (the default)</td><td>Deleted when the code expires (10 minutes)</td></tr>
+					<tr><td>A <b>saved</b> library (only if you tick "Save for my next visit"): playlist names and each song's video ID, title and channel. No account name, email or token.</td><td>Up to 30 days from saving, then deleted automatically</td></tr>
+					<tr><td>Abuse protection: a keyed hash of your IP address (HMAC with a secret that's replaced every day, so it can't be reversed or linked across days) and request times</td><td>24 hours</td></tr>
+				</tbody>
+			</table>
+			<ul>
+				<li>A saved library is reached with a two-part key that only the world receives and keeps in your VRChat player data. It changes every time the world loads it, and repeated wrong keys are locked out.</li>
+				<li><b>See or delete it:</b> press Unlink in the world, or enter the key on the <a href="/?view=link#manage">linking page</a> to download or delete it.</li>
+			</ul>
+
+			<h2 id="app">BetterYTS Music (Android)</h2>
+			<ul>
+				<li>Your library, history and settings stay on your phone. The app talks to this site's API and YouTube's player like the website does.</li>
+				<li>The sideloaded app checks <code>/app/update.json</code> every few hours for updates; that request carries no personal data.</li>
+			</ul>
+
+			<h2 id="processors">Services involved</h2>
+			<ul>
+				<li><b>Cloudflare</b> hosts the site, API and storage (encrypted at rest).</li>
+				<li><b>YouTube</b> plays videos through its official embedded player; YouTube's own policies apply to playback.</li>
+				<li><b>Google</b> and <b>Spotify</b>, only when you choose to sign in.</li>
+				<li>Add-ons, only for the videos you look at: SponsorBlock, DeArrow, Return YouTube Dislike and LRCLIB receive video IDs or song names.</li>
+			</ul>
+
+			<h2 id="rights">Your choices and requests</h2>
+			<ul>
+				<li>Everything in your browser: export with Settings › Backup, delete by clearing site data. Saved VRChat libraries: Unlink in the world or delete on the <a href="/?view=link#manage">linking page</a>.</li>
+				<li>For anything else (access, deletion or questions), open an issue at <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">github.com/foulfoxhacks/betteryts</a>, or for private requests use the contact on <a href="https://akasammythepuppy.me" target="_blank" rel="noopener">akasammythepuppy.me</a>. We aim to answer within 30 days.</li>
+				<li>BetterYTS isn't directed at children under 13. VRChat itself requires users to be 13 or older.</li>
+				<li>If we ever learn of a breach affecting stored data, we'll post a notice on this site and on GitHub without undue delay (within 72 hours where the law requires).</li>
+				<li>Changes to this page are dated above and tracked in the site's public source.</li>
+			</ul>
+		</main>
+
+		<footer class="footer">
+			<div class="container">
+				<div class="footer-cols">
+					<div>
+						<p class="footer-title">Docs</p>
+						<ul>
+							<li><a href="/docs">API reference</a></li>
+							<li><a href="/docs#redirects">VRChat redirects</a></li>
+							<li><a href="/docs#search">Search options</a></li>
+							<li><a href="/docs#fair-use">Fair use</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Community</p>
+						<ul>
+							<li><a href="https://akasammythepuppy.me" target="_blank" rel="noopener author">Creator: akasammythepuppy</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts" target="_blank" rel="noopener">GitHub</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Report an issue</a></li>
+							<li><a href="https://github.com/foulfoxhacks/betteryts/blob/main/README.md" target="_blank" rel="noopener">Self-host it</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Powered by</p>
+						<ul>
+							<li><a href="https://sponsor.ajay.app" target="_blank" rel="noopener">SponsorBlock</a></li>
+							<li><a href="https://dearrow.ajay.app" target="_blank" rel="noopener">DeArrow</a></li>
+							<li><a href="https://returnyoutubedislike.com" target="_blank" rel="noopener">Return YouTube Dislike</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Ecosystem</p>
+						<ul class="footer-versions">
+							<li><a href="/">BetterYTS Web</a> <span class="ver" data-version="web">v1.1.0</span></li>
+							<li><a href="/docs">API</a> <span class="ver" data-version="api">v1.1.0</span></li>
+							<li><a href="/ecosystem#vrchat">VRChat packages</a> <span class="ver" data-version="vrchat">v1.0.1</span></li>
+							<li><a href="/ecosystem#music">BetterYTS Music</a> <span class="ver" data-version="music">v0.9.1</span></li>
+							<li><a href="/ecosystem">All projects</a></li>
+						</ul>
+					</div>
+					<div>
+						<p class="footer-title">Site</p>
+						<ul>
+							<li><a href="/privacy">Privacy</a></li>
+							<li><a href="/sitemap">Site map</a></li>
+							<li><a href="/sitemap.xml">sitemap.xml</a></li>
+							<li><a href="/robots.txt">robots.txt</a></li>
+							<li><a href="/llms.txt">llms.txt</a></li>
+						</ul>
+					</div>
+				</div>
+				<p class="copyright">Copyright © 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google.<br />SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.<br /><span class="footer-build">BetterYTS Web <span data-version="web">v1.1.0</span> · build <span data-build>…</span> · <a href="/ecosystem">every project &amp; version</a></span></p>
+			</div>
+		</footer>
+
+		<script type="module" src="/web/chrome-entry.js"></script>
+	</body>
+</html>

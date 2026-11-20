@@ -295,7 +295,7 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 				<p class="fine">Rooms are deleted after 24 hours without anyone connected. Up to 50 people per room.</p>
 
 				<h2 id="linking">Linking accounts in VRChat</h2>
-				<p>Players can bring their own music into a world: YouTube playlists (Google sign-in), Spotify playlist links, or their BetterYTS library. The world shows a code; the player enters it at <a href="/inworld/youtube/auth"><code>yts.foulfoxhacks.dev/inworld/youtube/auth</code></a> (or <code>/inworld/spotify/auth</code>) and picks playlists; the world saves a library number in PlayerData to get them back next visit. Everything uses baked URLs: <code>/vrc/link/start/{youtube|spotify}</code>, the pool <code>/vrc/p/{slot}</code> and <code>/vrc/l/{0…9999}</code>. Full protocol: <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-protocol.md#linking">docs/vrchat-protocol.md › Linking</a>.</p>
+				<p>Players can bring their own music into a world: YouTube playlists (Google sign-in), Spotify playlist links, or their BetterYTS library. The world shows a code; the player enters it at <a href="/inworld/youtube/auth"><code>yts.foulfoxhacks.dev/inworld/youtube/auth</code></a> (or <code>/inworld/spotify/auth</code>) and picks playlists; it's for this visit unless they choose to save it (kept up to 30 days under a two-part key the world keeps in PlayerData; Unlink deletes it). Everything uses baked URLs: <code>/vrc/link/start/{youtube|spotify}</code>, the pool <code>/vrc/p/{slot}</code>, <code>/vrc/l/{0…9999}</code> + <code>/vrc/k/{0…9999}</code> and <code>/vrc/forget</code>. See the <a href="/privacy#vrchat">privacy policy</a>. Full protocol: <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-protocol.md#linking">docs/vrchat-protocol.md › Linking</a>.</p>
 
 				<h2 id="plugins">Community plugins</h2>
 				<p>Plugins on the site and in BetterYTS Music are grouped into categories, each with its own switch: <b>Playback</b>, <b>Player</b>, <b>Look</b> and <b>BetterYTS</b>. Anyone can write a community plugin for <b>Player</b> or <b>Look</b>; Playback and BetterYTS are built-in only, because what they do (control playback, rooms, the network) can't be sandboxed safely. Install one in Settings › Plugins › Add a community plugin, by pasting its manifest.</p>
@@ -380,6 +380,7 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 					<div>
 						<p class="footer-title">Site</p>
 						<ul>
+							<li><a href="/privacy">Privacy</a></li>
 							<li><a href="/sitemap">Site map</a></li>
 							<li><a href="/sitemap.xml">sitemap.xml</a></li>
 							<li><a href="/robots.txt">robots.txt</a></li>
