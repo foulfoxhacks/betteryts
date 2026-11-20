@@ -854,3 +854,16 @@ dialog::backdrop { background: rgb(0 0 0 / 0.75); }
 .eco-packages { margin: 0; padding-left: 18px; font-size: 13px; }
 .eco-packages code { color: var(--muted); font-size: 12px; }
 .eco-build { margin-top: 20px; }
+
+/* Send to phone / VR */
+.send-dlg { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 18px; border: 1px solid var(--line-gold); border-radius: 14px; background: var(--surface); color: inherit; }
+.send-dlg::backdrop { background: rgb(0 0 0 / 0.6); }
+.send-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.send-head h2 { margin: 0; font-size: 20px; }
+.send-title { margin: 4px 0 8px; }
+.send-panel { padding: 12px 0; border-top: 1px solid var(--border); }
+.send-panel h3 { margin: 0 0 8px; font-size: 15px; }
+.send-qr { width: 200px; max-width: 70vw; }
+.send-qr .qr { display: block; width: 100%; height: auto; border-radius: 6px; }
+.send-code { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.send-code code { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 6px 8px; border-radius: 6px; background: var(--surface-2); font-size: 15px; }

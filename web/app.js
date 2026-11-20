@@ -8,6 +8,7 @@ import { mapLimit, mergeFeed } from "./feed.js";
 import { hostKeys, RoomClient } from "./room.js";
 import { activeCommunity, applyPalette, BUILTIN, builtinOn, CATEGORIES, categoryOn, community, PERMISSIONS, Sandbox, validateManifest } from "./plugins.js";
 import { importSpotify } from "./spotify.js";
+import { qrSvg } from "./qr.js";
 import { store } from "./store.js";
 
 initChrome();
@@ -80,6 +81,8 @@ const params = () => new URLSearchParams(location.search);
 /** Current URL with some params changed (null removes). */
 function withParams(patch) {
 	const p = params();
+	// A start time (?t=) belongs to the video it came with.
+	if ("v" in patch && !("t" in patch)) p.delete("t");
 	for (const [k, v] of Object.entries(patch)) {
 		if (v == null || v === "") p.delete(k);
 		else p.set(k, v);
@@ -1384,6 +1387,63 @@ function renderUpNext() {
 
 // ---------- Watch party ----------
 
+// ---- Send to phone / VR: a QR code, a short link to type in VRChat, or a watch party ----
+function sendDialog() {
+	let dlg = $("#send-dlg");
+	if (dlg) return dlg;
+	dlg = h("dialog", { id: "send-dlg", class: "send-dlg", "aria-label": "Send to phone or VR" });
+	dlg.addEventListener("click", (e) => e.target === dlg && dlg.close());
+	document.body.append(dlg);
+	return dlg;
+}
+
+function openSendTo() {
+	if (!current) return;
+	const id = current.id;
+	const title = current.video?.title || id;
+	let t = 0;
+	try {
+		t = Math.floor(player?.getCurrentTime?.() || 0);
+	} catch {
+		/* player not ready */
+	}
+	const here = `${location.origin}/?v=${id}${t > 5 ? `&t=${t}` : ""}`;
+	const vr = `${location.host}/v/${id}`;
+	const panel = (heading, ...kids) => h("section", { class: "send-panel" }, h("h3", {}, heading), ...kids);
+	const code = (text, label) => h("div", { class: "send-code" }, h("code", {}, text), h("button", { type: "button", class: "button tiny secondary", onclick: () => copy(text.startsWith("http") ? text : `https://${text}`, label) }, "Copy"));
+
+	const parts = [
+		h("header", { class: "send-head" }, h("h2", {}, "Send to phone or VR"), h("button", { type: "button", class: "icon-btn", "aria-label": "Close", onclick: () => sendDialog().close() }, "✕")),
+		h("p", { class: "fine send-title" }, title),
+		panel("Phone or another computer", h("div", { class: "send-qr" }, qrSvg(here, { label: `QR code: open this video${t > 5 ? ` at ${fmtTime(t)}` : ""}` })), h("p", { class: "fine" }, `Scan to open it on BetterYTS${t > 5 ? ` at ${fmtTime(t)}` : ""}.`), code(here, "Link")),
+		panel("VRChat", h("p", { class: "fine" }, "Type or paste into any in-world video player:"), code(vr, "VRChat link")),
+	];
+	if (room) {
+		const invite = `${location.origin}/?room=${room.code}`;
+		const vrRoom = `${location.host}/room/${room.code}`;
+		parts.push(
+			panel(
+				`Watch party ${room.code}`,
+				h("div", { class: "send-qr" }, qrSvg(invite, { label: `QR code: join room ${room.code}` })),
+				h("p", { class: "fine" }, "Scan to join. In VRChat, put this in a video player: it plays whatever the room plays."),
+				code(vrRoom, "Room VRChat link"),
+			),
+		);
+	} else {
+		parts.push(
+			panel(
+				"Keep VR in sync",
+				h("p", { class: "fine" }, "Start a watch party, then put its short link in an in-world player once: everything you play here follows in VR."),
+				h("button", { type: "button", class: "button small primary", onclick: () => { sendDialog().close(); startParty(); } }, "Start a watch party"),
+			),
+		);
+	}
+	const dlg = sendDialog();
+	dlg.replaceChildren(...parts);
+	if (!dlg.open) dlg.showModal();
+}
+$("#send-to").addEventListener("click", openSendTo);
+
 async function startParty() {
 	let code;
 	try {
@@ -2057,7 +2117,9 @@ function syncFromUrl() {
 		if (isVideoId(v)) {
 			if (current?.id !== v) {
 				const card = $(`.card.video[data-id="${CSS.escape(v)}"]`);
-				openWatch(v, card?._item || store.get().queue.find((x) => x.id === v) || {});
+				// ?t= (seconds) starts there: QR codes from "Send to phone" carry it.
+				const start = Math.max(0, Math.floor(Number(p.get("t")) || 0));
+				openWatch(v, card?._item || store.get().queue.find((x) => x.id === v) || {}, { start });
 			}
 		} else if (watch.open) {
 			closeWatch();
