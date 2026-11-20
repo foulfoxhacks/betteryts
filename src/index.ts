@@ -9,6 +9,7 @@
 import { ecosystem, SITE_VERSION, VPM_LISTING } from "./lib/ecosystem.ts";
 import { matchesOperators, mergeFilters, parseOperators } from "./lib/operators.ts";
 import { transcript } from "./lib/transcript.ts";
+import { openapi } from "./lib/openapi.ts";
 import { env } from "cloudflare:workers";
 import { branding, dislikes, sponsorSegments, SB_CATEGORIES, suggestions } from "./lib/addons.ts";
 import { cached, CORS_HEADERS, errorJson, json, redirect, text } from "./lib/http.ts";
@@ -422,6 +423,7 @@ function apiIndex(origin: string): Response {
 			name: "BetterYTS by FoulFoxHacks",
 			version: VERSION,
 			docs: `${origin}/docs`,
+			openapi: `${origin}/api/openapi.json`,
 			source: "https://github.com/foulfoxhacks/betteryts",
 			endpoints: {
 				"GET /search?q=": "VRChat & media players: 302 to the top video. Browsers: results page.",
@@ -441,6 +443,7 @@ function apiIndex(origin: string): Response {
 				"GET /api/spotify?url=": "A public Spotify playlist or album's tracks (also /api/spotify/{playlist|album}/{id})",
 				"GET /api/match?track=&artist=&duration=": "The YouTube video that best matches a song (Spotify importer)",
 				"GET /api/transcript/{id}?lang=": "A video's captions as timed lines { start, dur, text }, with the available languages",
+				"GET /api/openapi.json": "OpenAPI 3.1 description of this API (generate clients from it)",
 				"GET /api/ecosystem": "Every BetterYTS project (web, API, VRChat packages, Music app) and its current version",
 				"GET /api/rooms/new": "Create a watch-party room: returns its code and the creator's hostKey",
 				"GET /api/rooms/{code}": "Room state (what's playing, position, queue, members)",
@@ -542,6 +545,7 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	if (path === "/api" || path === "/api/") return apiIndex(url.origin);
 	if (path === "/api/health") return json({ ok: true, version: VERSION, build: BUILD });
 	if (path === "/api/ecosystem") return apiEcosystem(ctx);
+	if (path === "/api/openapi.json") return json(openapi(url.origin, VERSION), 200, 3600);
 	if (path === "/api/search") return apiSearch(url, ctx);
 	if (path === "/api/suggest") {
 		const q = queryFromSearchParams(url);
