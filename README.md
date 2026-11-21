@@ -2,6 +2,12 @@
 
 **YouTube search without the junk.** An ad-free YouTube search API, a clean front page, and VRChat-ready search links, all running on one Cloudflare Worker.
 
+BetterYTS by FoulFoxHacks — created by Sammy The Femboy Puppy.
+
+> "Ad-free" means ad-free **search results**: ad slots and promoted videos are removed from what
+> BetterYTS returns. Videos still play from YouTube (in YouTube's embedded player on the web, or
+> through your VRChat video player), and YouTube may show its own ads there.
+
 ```
 https://yts.foulfoxhacks.dev/search?q=lofi hip hop
 ```
