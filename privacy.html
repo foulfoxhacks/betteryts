@@ -4,7 +4,7 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Privacy — What BetterYTS Keeps and Why · BetterYTS by FoulFoxHacks</title>
-		<meta name="description" content="What BetterYTS, BetterYTS Music and the VRChat integration keep, why, for how long, and how to see or delete it." />
+		<meta name="description" content="What BetterYTS, BetterYTS Music and the VRChat integration (YouTube, Spotify and TikTok linking) keep, why, for how long, and how to see or delete it." />
 		<meta name="keywords" content="BetterYTS privacy, BetterYTS data, VRChat linking privacy" />
 		<meta name="author" content="Sammy The Femboy Puppy (FoulFoxHacks)" />
 		<meta name="publisher" content="FoulFoxHacks" />
@@ -72,7 +72,7 @@
 			<div class="container">
 				<p class="breadcrumbs hero-crumbs"><a href="/">Home</a> › Privacy</p>
 				<h1 class="hero-title">Privacy</h1>
-				<p class="hero-subtitle">What BetterYTS keeps, why, for how long, and how to see or delete it. Last updated 2026-11-20.</p>
+				<p class="hero-subtitle">What BetterYTS keeps, why, for how long, and how to see or delete it. Last updated 2026-11-21.</p>
 			</div>
 		</header>
 
@@ -81,6 +81,7 @@
 			<ul>
 				<li>No accounts. Your library, history, settings and plugins live in <b>your browser</b> (or on your phone in the app), not on our servers.</li>
 				<li>When you sign in to Google or Spotify to import playlists, it happens <b>in your browser or app</b>. We never store your passwords or account tokens; the website signs out of Google right after an import.</li>
+				<li>When you link <b>TikTok</b> to a VRChat world, our server reads your display name and your public video list once, then ends the TikTok sign-in. No TikTok token is stored.</li>
 				<li>Linking music into VRChat is <b>opt-in</b>. By default nothing is kept after that visit. If you choose to save it, we keep only song IDs, titles and channels, for up to <b>30 days</b>, and you can delete it any time.</li>
 			</ul>
 
@@ -101,13 +102,23 @@
 				<li>Spotify data is used only to find the same songs on YouTube for you, and you can remove access at <a href="https://www.spotify.com/account/apps/" target="_blank" rel="noopener">Spotify › Manage apps</a>.</li>
 			</ul>
 
+			<h2 id="tiktok">TikTok sign-in (VRChat linking)</h2>
+			<ul>
+				<li><b>What's requested:</b> two TikTok permissions only. <code>user.info.basic</code>: your display name and profile picture. <code>video.list</code>: the list of your <b>public</b> videos (ID, title, cover image, length and TikTok's embed link). Nothing is posted or changed on your account, and we never get your password.</li>
+				<li><b>How it works:</b> you enter the world's code on <a href="/inworld/tiktok">/inworld/tiktok</a> and sign in on TikTok's own page. TikTok's sign-in has to be finished on our server (it needs the app's secret), so our server receives a TikTok access token, uses it once to read your name and video list, and then revokes it. The token, your TikTok user ID (open_id) and your profile picture are never stored. Your picture is only shown to you on the confirmation page, loaded from TikTok.</li>
+				<li><b>What's kept:</b> the video list (ID, title, cover image link, length, embed link) and your display name, so the world can show them. Like every link, this is deleted when the code expires (10 minutes) unless you tick "Save for my next visit", in which case it's kept up to 30 days. Cover image links come from TikTok and stop working after a while.</li>
+				<li><b>What the world does with it:</b> it lists your videos. We don't download, copy or re-host any TikTok video; TikTok doesn't provide a playable file, and the embed link points to TikTok's own player.</li>
+				<li><b>Removing it:</b> press Unlink in the world or delete a saved library on the <a href="/?view=link#manage">linking page</a> (see below). You can also remove BetterYTS from your TikTok account in TikTok's settings under the apps and services you've given permission to. TikTok's own <a href="https://www.tiktok.com/legal/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a> applies to your TikTok account.</li>
+			</ul>
+
 			<h2 id="vrchat">VRChat linking</h2>
 			<table class="table">
 				<thead><tr><th>What</th><th>Kept for</th></tr></thead>
 				<tbody>
 					<tr><td>Activation code (shown in the world)</td><td>10 minutes, works once</td></tr>
 					<tr><td>Songs sent for <b>just this visit</b> (the default)</td><td>Deleted when the code expires (10 minutes)</td></tr>
-					<tr><td>A <b>saved</b> library (only if you tick "Save for my next visit"): playlist names and each song's video ID, title and channel. No account name, email or token.</td><td>Up to 30 days from saving, then deleted automatically</td></tr>
+					<tr><td>A <b>saved</b> library (only if you tick "Save for my next visit"): playlist names and each song's video ID, title and channel. No account name, email or token. For TikTok: your display name and your public videos' ID, title, cover link, length and embed link.</td><td>Up to 30 days from saving, then deleted automatically</td></tr>
+					<tr><td>A TikTok sign-in in progress: a random value that ties TikTok's reply to your code (also in a short-lived cookie in your browser)</td><td>10 minutes, works once</td></tr>
 					<tr><td>Abuse protection: a keyed hash of your IP address (HMAC with a secret that's replaced every day, so it can't be reversed or linked across days) and request times</td><td>24 hours</td></tr>
 				</tbody>
 			</table>
@@ -126,7 +137,7 @@
 			<ul>
 				<li><b>Cloudflare</b> hosts the site, API and storage (encrypted at rest).</li>
 				<li><b>YouTube</b> plays videos through its official embedded player; YouTube's own policies apply to playback.</li>
-				<li><b>Google</b> and <b>Spotify</b>, only when you choose to sign in.</li>
+				<li><b>Google</b>, <b>Spotify</b> and <b>TikTok</b>, only when you choose to sign in.</li>
 				<li>Add-ons, only for the videos you look at: SponsorBlock, DeArrow, Return YouTube Dislike and LRCLIB receive video IDs or song names.</li>
 			</ul>
 
@@ -136,7 +147,7 @@
 				<li>For anything else (access, deletion or questions), open an issue at <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">github.com/foulfoxhacks/betteryts</a>, or for private requests use the contact on <a href="https://akasammythepuppy.me" target="_blank" rel="noopener">akasammythepuppy.me</a>. We aim to answer within 30 days.</li>
 				<li>BetterYTS isn't directed at children under 13. VRChat itself requires users to be 13 or older.</li>
 				<li>If we ever learn of a breach affecting stored data, we'll post a notice on this site and on GitHub without undue delay (within 72 hours where the law requires).</li>
-				<li>Changes to this page are dated above and tracked in the site's public source.</li>
+				<li>Changes to this page are dated above and tracked in the site's public source. See also the <a href="/terms">Terms of Service</a>.</li>
 			</ul>
 		</main>
 
@@ -194,7 +205,7 @@
 				</div>
 				<div class="footer-bottom">
 					<p class="copyright">© 2026 BetterYTS by FoulFoxHacks · Sammy The Femboy Puppy. Not affiliated with YouTube or Google. SponsorBlock &amp; DeArrow data is CC BY-NC-SA 4.0.</p>
-					<p class="footer-legal"><a href="/privacy">Privacy</a><a href="/sitemap">Site map</a><a href="/sitemap.xml">sitemap.xml</a><a href="/llms.txt">llms.txt</a></p>
+					<p class="footer-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/sitemap">Site map</a><a href="/sitemap.xml">sitemap.xml</a><a href="/llms.txt">llms.txt</a></p>
 				</div>
 			</div>
 		</footer>

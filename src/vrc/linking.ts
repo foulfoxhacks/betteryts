@@ -5,6 +5,29 @@ import { cleanLibrary, formatKey, KEY_SPACE, LINK_SERVICES, LINK_VERSION, type L
 import type { VrcLinks } from "./links.ts";
 import type { VrcPool } from "./pool.ts";
 import { originAllowed } from "../rooms/protocol.ts";
+import { exchangeCode, fetchUser, fetchVideos, newState, revokeToken, TIKTOK_CALLBACK, TikTokError, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokErrorPage, tiktokLibrary, validState } from "../lib/tiktok.ts";
+
+const TT_COOKIE = "__Host-tt_state";
+const html = (body: string, status = 200, extra: Record<string, string> = {}) =>
+	new Response(body, {
+		status,
+		headers: {
+			"Content-Type": "text/html; charset=utf-8",
+			"Cache-Control": "no-store",
+			"Referrer-Policy": "no-referrer",
+			"X-Content-Type-Options": "nosniff",
+			"X-Frame-Options": "DENY",
+			"X-Robots-Tag": "noindex",
+			...extra,
+		},
+	});
+const cookieOf = (req: Request, name: string) =>
+	(req.headers.get("Cookie") ?? "")
+		.split(";")
+		.map((c) => c.trim())
+		.find((c) => c.startsWith(`${name}=`))
+		?.slice(name.length + 1) ?? null;
+const clearTtCookie = `${TT_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=0`;
 
 const links = (env: Env) => (env as unknown as { VRC_LINKS: DurableObjectNamespace<VrcLinks> }).VRC_LINKS.getByName("links-v1");
 const pool = (env: Env) => (env.VRC_POOL as unknown as DurableObjectNamespace<VrcPool>).getByName("pool-v1");
@@ -46,7 +69,9 @@ export async function linkRoutes(req: Request, url: URL, env: Env): Promise<Resp
 		if (!(await l.limit(ip, "start", 30, 3_600_000))) return vrcFail("Too many codes from here; try again later");
 		const { code, expiresIn } = await l.start(start[1]);
 		const [poll] = await pool(env).assign([{ kind: "link", key: `l:${code}`, payload: code }]);
-		return noStore({ v: LINK_VERSION, ok: true, service: start[1], code, url: `${url.host}/inworld/${start[1]}/auth`, expiresIn, poll });
+		// TikTok signs in on a server page (/inworld/tiktok); the others use the site's link view.
+		const page = start[1] === "tiktok" ? "/inworld/tiktok" : `/inworld/${start[1]}/auth`;
+		return noStore({ v: LINK_VERSION, ok: true, service: start[1], code, url: `${url.host}${page}`, expiresIn, poll });
 	}
 
 	// World: saved library, step 1 of 2 (first half of the key).
@@ -130,6 +155,13 @@ export async function linkRoutes(req: Request, url: URL, env: Env): Promise<Resp
 		return noStore({ ok: true, key: formatKey(key), savedAt: new Date(r.created).toISOString(), expiresAt: new Date(r.created + 30 * 86_400_000).toISOString(), library: r.lib });
 	}
 
+	// ---- TikTok (src/lib/tiktok.ts): server-side sign-in, token revoked after the import ----
+	if (path === "/inworld/tiktok" || path === "/inworld/tiktok/" || path === "/inworld/tiktok/auth") {
+		return html(tiktokCodePage(normalizeCode(url.searchParams.get("code")) ?? "", "", !!tiktokConfig(env)));
+	}
+	if (path === "/tt/start") return tiktokStart(req, url, env, ip);
+	if (path === TIKTOK_CALLBACK) return tiktokCallback(req, url, env, ip);
+
 	// People: the page that takes the code (front-end view).
 	const page = /^\/inworld\/([a-z]+)\/auth\/?$/.exec(path);
 	if (page && isService(page[1])) {
@@ -149,4 +181,64 @@ export async function linkSlot(code: string, env: Env, ip: string): Promise<Resp
 	const got = await l.delivered(code, ip);
 	if (!got) return noStore({ v: LINK_VERSION, ok: true, status: "expired" });
 	return noStore(renderLibrary(got.lib, await slotsFor(env, got.lib), got.key, got.expiresAt));
+}
+
+/** POST /tt/start (the form on /inworld/tiktok): check the code, then off to TikTok's consent page. */
+async function tiktokStart(req: Request, url: URL, env: Env, ip: string): Promise<Response> {
+	if (req.method !== "POST") return redirect("/inworld/tiktok", 0);
+	const cfg = tiktokConfig(env);
+	if (!cfg) return html(tiktokCodePage("", "", false), 503);
+	const origin = req.headers.get("Origin");
+	if (origin && origin !== url.origin) return html(tiktokErrorPage("Please start from this site's TikTok linking page."), 403);
+	const formData = await req.formData().catch(() => null);
+	const raw = formData?.get("code");
+	const code = normalizeCode(typeof raw === "string" ? raw : null);
+	const save = formData?.get("save") === "1";
+	if (!code) return html(tiktokCodePage(typeof raw === "string" ? raw.slice(0, 12) : "", "Enter the 8-character code shown in the world."), 400);
+	const l = links(env);
+	if (!(await l.limit(ip, "enter", 20, 600_000))) return html(tiktokCodePage(code, "Too many tries; wait a few minutes."), 429);
+	const state = newState();
+	const r = await l.ttBegin(state, code, save);
+	if ("error" in r) return html(tiktokCodePage(code, r.error), 400);
+	// The state is also kept in a cookie so the callback must come back to the same browser.
+	return new Response(null, {
+		status: 302,
+		headers: {
+			Location: tiktokAuthorizeUrl(url.origin, cfg.clientKey, state),
+			"Set-Cookie": `${TT_COOKIE}=${state}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=600`,
+			"Cache-Control": "no-store",
+			"Referrer-Policy": "no-referrer",
+		},
+	});
+}
+
+/** GET /tt/callback: check state, exchange the code, read profile + public videos, revoke, link. */
+async function tiktokCallback(req: Request, url: URL, env: Env, ip: string): Promise<Response> {
+	const fail = (msg: string, status = 400) => html(tiktokErrorPage(msg), status, { "Set-Cookie": clearTtCookie });
+	const cfg = tiktokConfig(env);
+	if (!cfg) return fail("TikTok linking isn't set up on this server yet.", 503);
+	const l = links(env);
+	if (!(await l.limit(ip, "enter", 20, 600_000))) return fail("Too many tries; wait a few minutes.", 429);
+	const state = url.searchParams.get("state");
+	const cookie = cookieOf(req, TT_COOKIE);
+	if (!validState(state) || cookie !== state) return fail("This sign-in didn't start in this browser, or it took too long. Start again from the page with your code.");
+	const pending = await l.ttTake(state);
+	if (!pending) return fail("This sign-in expired or was already used. Get a new code in the world.");
+	if (url.searchParams.get("error")) return fail(url.searchParams.get("error") === "access_denied" ? "You cancelled the TikTok sign-in, so nothing was sent." : "TikTok didn't complete the sign-in, so nothing was sent.");
+	const code = url.searchParams.get("code");
+	if (!code || code.length > 2048) return fail("TikTok didn't send a sign-in code.");
+	let token: string | null = null;
+	try {
+		token = await exchangeCode(cfg, url.origin, code);
+		const user = await fetchUser(token);
+		const videos = await fetchVideos(token);
+		const r = await l.complete(pending.code, tiktokLibrary(user, videos), pending.save);
+		if (!("ok" in r)) return fail(r.error, r.status);
+		return html(tiktokDonePage(user, videos, pending.save), 200, { "Set-Cookie": clearTtCookie });
+	} catch (err) {
+		// Never log the code, token or secret; the message is TikTok's or ours.
+		return fail(err instanceof TikTokError ? err.message : "Couldn't reach TikTok. Try again in a moment.", 502);
+	} finally {
+		if (token) await revokeToken(cfg, token);
+	}
 }
