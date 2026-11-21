@@ -127,7 +127,8 @@ test("routes: TikTok linking page says when it's in testing, and has a strict CS
 	assert.equal(r.status, 200);
 	const csp = r.headers.get("Content-Security-Policy") ?? "";
 	assert.match(csp, /default-src 'none'/);
-	assert.match(csp, /form-action 'self'/);
+	// Chrome applies form-action to the redirect after a form post: /tt/start → TikTok's consent page.
+	assert.match(csp, /form-action 'self' https:\/\/www\.tiktok\.com;/);
 	assert.doesNotMatch(csp, /script-src/, "no scripts at all");
 	const page = await r.text();
 	// Without the sandbox secret it's "not set up"; with it, the testing note shows.

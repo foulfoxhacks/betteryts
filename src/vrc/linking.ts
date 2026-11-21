@@ -18,7 +18,7 @@ const html = (body: string, status = 200, extra: Record<string, string> = {}) =>
 			"X-Content-Type-Options": "nosniff",
 			"X-Frame-Options": "DENY",
 			// Server-rendered pages (TikTok linking): no scripts, forms only back to this site.
-			"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+			"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https:; form-action 'self' https://www.tiktok.com; base-uri 'none'; frame-ancestors 'none'",
 			"X-Robots-Tag": "noindex",
 			...extra,
 		},
