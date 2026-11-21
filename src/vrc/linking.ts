@@ -5,7 +5,7 @@ import { cleanLibrary, formatKey, KEY_SPACE, LINK_SERVICES, LINK_VERSION, type L
 import type { VrcLinks } from "./links.ts";
 import type { VrcPool } from "./pool.ts";
 import { originAllowed } from "../rooms/protocol.ts";
-import { exchangeCode, fetchUser, fetchVideos, newState, revokeToken, TIKTOK_CALLBACK, TikTokError, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokErrorPage, tiktokLibrary, validState } from "../lib/tiktok.ts";
+import { exchangeCode, fetchUser, fetchVideos, newState, revokeToken, sameSitePost, TIKTOK_CALLBACK, TikTokError, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokErrorPage, tiktokLibrary, validState } from "../lib/tiktok.ts";
 
 const TT_COOKIE = "__Host-tt_state";
 const html = (body: string, status = 200, extra: Record<string, string> = {}) =>
@@ -188,8 +188,8 @@ async function tiktokStart(req: Request, url: URL, env: Env, ip: string): Promis
 	if (req.method !== "POST") return redirect("/inworld/tiktok", 0);
 	const cfg = tiktokConfig(env);
 	if (!cfg) return html(tiktokCodePage("", "", false), 503);
-	const origin = req.headers.get("Origin");
-	if (origin && origin !== url.origin) return html(tiktokErrorPage("Please start from this site's TikTok linking page."), 403);
+	if (!sameSitePost(req.headers.get("Origin"), req.headers.get("Sec-Fetch-Site"), url.origin))
+		return html(tiktokErrorPage("Please start from this site's TikTok linking page."), 403);
 	const formData = await req.formData().catch(() => null);
 	const raw = formData?.get("code");
 	const code = normalizeCode(typeof raw === "string" ? raw : null);

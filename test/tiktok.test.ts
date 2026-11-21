@@ -1,7 +1,7 @@
 // TikTok linking: consent URL, token exchange, profile + video list, revoke, library shape.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cleanVideo, exchangeCode, fetchUser, fetchVideos, newState, revokeToken, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokLibrary, validState } from "../src/lib/tiktok.ts";
+import { cleanVideo, exchangeCode, sameSitePost, fetchUser, fetchVideos, newState, revokeToken, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokLibrary, validState } from "../src/lib/tiktok.ts";
 import { cleanLibrary, libraryTrackIds, renderLibrary } from "../src/vrc/links-core.ts";
 
 const origin = "https://yts.foulfoxhacks.dev";
@@ -120,4 +120,15 @@ test("tiktok: pages escape what TikTok sends", () => {
 	assert.ok(!form.includes('"><x>'));
 	assert.match(form, /Continue with TikTok/);
 	assert.match(tiktokCodePage("", "", false), /isn't set up/);
+});
+
+test("tiktok: the code form accepts our own pages, Brave/Chrome's Origin: null included", () => {
+	assert.equal(sameSitePost(origin, "same-origin", origin), true, "normal same-site post");
+	assert.equal(sameSitePost("null", "same-origin", origin), true, "Chrome-family post from a no-referrer page");
+	assert.equal(sameSitePost(null, null, origin), true, "no Origin at all (old browser)");
+	assert.equal(sameSitePost("https://evil.example", "cross-site", origin), false, "another site");
+	assert.equal(sameSitePost("null", "cross-site", origin), false, "null from elsewhere");
+	assert.equal(sameSitePost("null", null, origin), false, "null without the browser's say-so");
+	assert.equal(sameSitePost(origin, "cross-site", origin), false, "the browser says cross-site");
+	assert.equal(sameSitePost("https://evil.example", null, origin), false, "a foreign Origin");
 });

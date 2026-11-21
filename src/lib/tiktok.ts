@@ -46,6 +46,19 @@ export function tiktokConfig(env: unknown): TikTokConfig | null {
 	return clientKey && clientSecret ? { clientKey, clientSecret } : null;
 }
 
+/**
+ * Did this form POST come from our own pages? Our TikTok pages use `Referrer-Policy: no-referrer`,
+ * and Chrome-family browsers (Chrome, Brave, Edge) then send `Origin: null` even on a same-site form
+ * post. So "null" counts only when the browser's own Sec-Fetch-Site (which a page can't set) says
+ * same-origin. No Origin at all (old browsers, curl) is allowed, as before; cross-site never is.
+ */
+export function sameSitePost(origin: string | null, secFetchSite: string | null, selfOrigin: string): boolean {
+	if (secFetchSite && secFetchSite !== "same-origin" && secFetchSite !== "none") return false;
+	if (!origin) return true;
+	if (origin === selfOrigin) return true;
+	return origin === "null" && secFetchSite === "same-origin";
+}
+
 /** A random OAuth state (32 bytes, base64url). */
 export function newState(): string {
 	const b = crypto.getRandomValues(new Uint8Array(32));
