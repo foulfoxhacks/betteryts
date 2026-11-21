@@ -1045,3 +1045,6 @@ button:disabled { opacity: 0.45; cursor: default; }
 /* Room between "Everywhere you listen" and the VRChat band below it. */
 .everywhere { padding-top: 56px; padding-bottom: 64px; }
 @media (max-width: 600px) { .everywhere { padding-top: 40px; padding-bottom: 48px; } }
+/* Pause/play the hero background (bottom-left; the credit is bottom-right) */
+.hero-video-toggle { position: absolute; left: 16px; bottom: 8px; z-index: 1; padding: 4px 10px; border: 1px solid rgb(255 243 228 / 0.2); border-radius: 999px; background: rgb(5 3 2 / 0.55); color: rgb(255 243 228 / 0.75); font: inherit; font-size: 11px; cursor: pointer; }
+.hero-video-toggle:hover { color: var(--primary); border-color: rgb(var(--accent-rgb) / 0.6); }

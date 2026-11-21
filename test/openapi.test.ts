@@ -11,14 +11,16 @@ test("openapi: valid shape and complete", () => {
 	const paths = Object.keys(doc.paths);
 	// Every "GET /path" in the /api index (src/index.ts) has a path here.
 	const index = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
-	const listed = [...index.matchAll(/"GET (\/[^"?\s<]*)/g)].map((m) => m[1].replace(/\{id\|@handle\}/, "{ref}"))
+	const listed = [...index.matchAll(/"(?:GET|POST) (\/[^"?\s<]*)/g)].map((m) => m[1].replace(/\{id\|@handle\}/, "{ref}"))
 		.filter((l) => l !== "/"); // "GET /<query>" is the u2b-style catch-all, not a fixed path
 	for (const l of listed) {
 		const ok = paths.some((p) => p === l || p.replace(/\{[^}]+\}/g, "{x}") === l.replace(/\{[^}]+\}/g, "{x}") || l.startsWith(p + "?") || (l.includes("|") && l.startsWith(p)));
 		assert.ok(ok, `/api lists ${l} but openapi.ts doesn't describe it`);
 	}
 	for (const [path, item] of Object.entries(doc.paths)) {
-		const params = (item as { get: { parameters: { in: string; name: string }[] } }).get.parameters;
+		const ops = item as { get?: { parameters?: { in: string; name: string }[] }; post?: { requestBody?: unknown } };
+		assert.ok(ops.get || ops.post?.requestBody, `${path} has a GET or a POST with a body`);
+		const params = ops.get?.parameters ?? [];
 		for (const name of [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1])) assert.ok(params.some((x) => x.in === "path" && x.name === name), `${path} declares {${name}}`);
 	}
 });

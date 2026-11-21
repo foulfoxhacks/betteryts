@@ -1916,14 +1916,39 @@ $("#backup-file").addEventListener("change", async (e) => {
 	const wide = matchMedia("(min-width: 700px)").matches;
 	const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 	const saveData = navigator.connection?.saveData === true;
+	// Moving content that plays by itself needs a way to stop it (WCAG 2.2.2); the choice is remembered.
+	const toggle = $("#hero-video-toggle");
+	let userPaused = false;
+	try {
+		userPaused = localStorage.getItem("betteryts.heroVideo") === "paused";
+	} catch {
+		/* storage blocked */
+	}
+	let visible = false;
+	const sync = () => {
+		if (visible && !userPaused) video.play().catch(() => {});
+		else video.pause();
+		toggle.textContent = userPaused ? "Play background" : "Pause background";
+		toggle.setAttribute("aria-pressed", String(userPaused));
+	};
 	if (video && wide && !calm && !saveData) {
 		video.src = video.dataset.src;
+		toggle.hidden = false;
 		// Only play while it can be seen: no decoding behind other views or below the fold.
 		new IntersectionObserver(([e]) => {
-			if (e.isIntersecting) video.play().catch(() => {});
-			else video.pause();
+			visible = e.isIntersecting;
+			sync();
 		}).observe(video);
 		video.addEventListener("playing", () => video.classList.add("playing"), { once: true });
+		toggle.addEventListener("click", () => {
+			userPaused = !userPaused;
+			try {
+				localStorage.setItem("betteryts.heroVideo", userPaused ? "paused" : "playing");
+			} catch {
+				/* storage blocked: still pauses for this visit */
+			}
+			sync();
+		});
 	}
 }
 

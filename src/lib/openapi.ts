@@ -23,6 +23,19 @@ const json = (description: string, schema: Record<string, unknown> = { type: "ob
 const redirect = (description: string) => ({ description, headers: { Location: { schema: { type: "string" } } } });
 const err = { $ref: "#/components/responses/Error" };
 
+/** A JSON POST operation. */
+function post(summary: string, body: Record<string, unknown>, responses: Record<string, unknown>, tag: string, description?: string) {
+	return {
+		post: {
+			summary,
+			...(description ? { description } : {}),
+			tags: [tag],
+			requestBody: { required: true, content: { "application/json": { schema: body } } },
+			responses: { ...responses, "4XX": err, "5XX": err },
+		},
+	};
+}
+
 function op(summary: string, parameters: Param[], responses: Record<string, unknown>, tag: string, description?: string) {
 	return { get: { summary, ...(description ? { description } : {}), tags: [tag], parameters, responses: { ...responses, "4XX": err, "5XX": err } } };
 }
@@ -73,6 +86,26 @@ export function openapi(origin: string, version: string) {
 			"/v/{id}": op("Redirect to a video by ID", [p("id", "Video ID", VIDEO_ID), q("to", "Target", { type: "string", enum: ["watch", "youtu.be", "embed", "music"] })], { 302: redirect("To the video") }, "VRChat"),
 			"/room/{code}": op("Redirect to what a room is playing now, at the current time", [p("code", "Room code", ROOM)], { 302: redirect("To the video") }, "VRChat"),
 			"/vrc/protv.playlist": op("ProTV playlist file", [q("q", "Search query"), q("list", "Playlist ID"), q("n", "Entries (1–500)", { type: "integer" })], { 200: { description: "ProTV playlist", content: { "text/plain": { schema: { type: "string" } } } } }, "VRChat"),
+			"/api/auth/config": op("Which sign-ins this server offers", [], { 200: json("{ google, spotify, spotifyClientId }") }, "Meta"),
+			"/auth/spotify/start": op("Sign in with Spotify (PKCE; no secret)", [q("state", "Your random state; start it with web_ for the site", { type: "string" }, true), q("code_challenge", "base64url(SHA-256(verifier))", { type: "string" }, true)], { 302: redirect("To Spotify's consent page") }, "Import", "Spotify answers at /auth/spotify/callback, which sends web_ states back to the site and others to the app. Exchange the code with Spotify directly using your verifier."),
+			"/vrc/link/start/{service}": op("Linking: get an activation code", [p("service", "youtube or spotify")], { 200: json("{ v:2, ok, service, code, url, expiresIn, poll }") }, "VRChat", "Errors are HTTP 200 { v:2, ok:false, error }. See docs/vrchat-protocol.md › Linking."),
+			"/vrc/l/{a}": op("Linking: first half of a saved library's key", [p("a", "0-9999", "^\\d{1,4}$")], { 200: json('{ status: "next" } (never reveals whether it exists)') }, "VRChat"),
+			"/vrc/k/{b}": op("Linking: second half of the key, from the same caller within 60 s", [p("b", "0-9999", "^\\d{1,4}$")], { 200: json('{ status: "linked", playlists, library: { a, b } } with a new key, or { status: "missing" }') }, "VRChat", "Five wrong pairs an hour lock the caller out."),
+			"/vrc/forget": op("Linking: delete the library this caller linked or loaded in the last minute", [], { 200: json('{ status: "forgotten" | "nothing" }') }, "VRChat"),
+			"/api/inworld/check": op("Is this activation code waiting?", [q("code", "AAAA-BBBB", { type: "string" }, true)], { 200: json("{ ok, code, service }") }, "VRChat"),
+			"/api/inworld/complete": post(
+				"Send playlists to the world waiting on a code",
+				{ type: "object", required: ["code", "service", "library"], properties: { code: { type: "string" }, service: { enum: ["youtube", "spotify"] }, save: { type: "boolean", description: "Keep for the player's next visit (30 days); default: this visit only" }, library: { type: "object", properties: { playlists: { type: "array", items: { type: "object", properties: { name: { type: "string" }, tracks: { type: "array", items: { type: "object", properties: { id: { type: "string" }, title: { type: "string" }, channel: { type: "string" } } } } } } } } } } },
+				{ 200: json("{ ok, saved, playlists, tracks }") },
+				"VRChat",
+				"Content-Type must be application/json; browsers must send this site's Origin.",
+			),
+			"/api/inworld/library": post(
+				"View (export) or delete a saved world library by its key",
+				{ type: "object", required: ["key", "action"], properties: { key: { type: "string", example: "0042-9001" }, action: { enum: ["view", "delete"] } } },
+				{ 200: json("{ ok, key, savedAt, expiresAt, library } or { ok, deleted }") },
+				"VRChat",
+			),
 			"/vrc/search": op("In-world search for VRChat worlds", [q("q", "Search query", { type: "string" }, true)], { 200: { description: "See docs/vrchat-protocol.md" } }, "VRChat"),
 		},
 		components: {
