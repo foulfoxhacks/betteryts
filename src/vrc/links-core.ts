@@ -9,13 +9,17 @@
 // world loads /vrc/l/{a} then /vrc/k/{b} (both baked, 0…9999), so there are 10^8 keys, failed
 // pairs lock the caller out, and the key changes on every load.
 //
+// TikTok (src/lib/tiktok.ts) signs in on the server instead (its token exchange needs the app
+// secret), revokes the token right after reading the public video list, and stores neither.
+//
 // Privacy by design: no account tokens are stored (imports run in the player's browser); only
-// video IDs, titles and channels are kept, never account names; libraries expire 30 days after
+// video IDs, titles and channels are kept, never account names (TikTok links keep the display
+// name the world shows); libraries expire 30 days after
 // saving (YouTube API data isn't kept longer without refreshing); /vrc/forget and the site can
 // delete a library; rate-limit records use IP hashes with a salt that changes daily, kept 24 h.
 
 export const LINK_VERSION = 2;
-export const LINK_SERVICES = ["youtube", "spotify"] as const;
+export const LINK_SERVICES = ["youtube", "spotify", "tiktok"] as const;
 export type LinkService = (typeof LINK_SERVICES)[number];
 export const KEY_SPACE = 10000; // each half of a library key: /vrc/l/{0…9999} and /vrc/k/{0…9999}
 export const CODE_TTL_MS = 10 * 60_000;
@@ -28,9 +32,13 @@ const MAX_TRACKS_PER_PLAYLIST = 200;
 const MAX_TRACKS = 1000;
 
 export interface LinkTrack {
-	id: string;
+	id: string; // YouTube video ID, or a TikTok video ID (tiktok libraries)
 	title: string;
 	channel: string;
+	// TikTok only: TikTok gives no playable file, so the world gets the official embed link to show.
+	embed?: string;
+	cover?: string | null;
+	duration?: number;
 }
 export interface LinkPlaylist {
 	name: string;
@@ -39,6 +47,8 @@ export interface LinkPlaylist {
 /** What's kept: playlists of public video IDs, titles and channels. No account details. */
 export interface LinkLibrary {
 	service: LinkService;
+	/** TikTok only: the display name the player signed in as (shown in the world). */
+	account?: string;
 	playlists: LinkPlaylist[];
 }
 export interface LibraryKey {
@@ -101,6 +111,8 @@ const clip = (s: unknown, n: number) =>
 
 /** Checks a library sent from the site. Throws with a reason. Anything else sent is dropped. */
 export function cleanLibrary(raw: unknown, service: LinkService): LinkLibrary {
+	// TikTok libraries are only made by the server's own sign-in (/tt/callback), never posted by a client.
+	if (service === "tiktok") throw new Error("TikTok links are made by signing in at /inworld/tiktok");
 	const r = raw as { playlists?: unknown };
 	if (!r || typeof r !== "object" || !Array.isArray(r.playlists)) throw new Error("Expected { playlists: [...] }");
 	let total = 0;
@@ -125,16 +137,33 @@ export function cleanLibrary(raw: unknown, service: LinkService): LinkLibrary {
 /** The world's view of a library: songs with pool slots instead of IDs (Udon can't build URLs). */
 export function renderLibrary(lib: LinkLibrary, slots: number[], key: LibraryKey | null, expiresAt: number | null) {
 	let i = 0;
+	if (lib.service === "tiktok") {
+		// No pool slots: TikTok videos can't be played through the pool. List them with TikTok's embed link.
+		return {
+			v: LINK_VERSION,
+			ok: true,
+			status: "linked",
+			service: lib.service,
+			account: lib.account ?? "",
+			playlists: lib.playlists.map((p) => ({
+				name: p.name,
+				tracks: p.tracks.map((t) => ({ title: t.title, channel: t.channel, slot: null, id: t.id, embed_link: t.embed ?? "", cover_image_url: t.cover ?? null, duration: t.duration ?? 0 })),
+			})),
+			library: key ? { a: key.a, b: key.b } : null,
+			expiresAt,
+		};
+	}
 	return {
 		v: LINK_VERSION,
 		ok: true,
 		status: "linked",
 		service: lib.service,
-		playlists: lib.playlists.map((p) => ({ name: p.name, tracks: p.tracks.map((t) => ({ title: t.title, channel: t.channel, slot: slots[i++] })) })),
+		playlists: lib.playlists.map((p) => ({ name: p.name, tracks: p.tracks.map((t) => ({ title: t.title, channel: t.channel, slot: slots[i++] as number | null })) })),
 		// Saved for next visit: keep these in PlayerData; they change on every load. Null = this visit only.
 		library: key ? { a: key.a, b: key.b } : null,
 		expiresAt,
 	};
 }
 
-export const libraryTrackIds = (lib: LinkLibrary) => lib.playlists.flatMap((p) => p.tracks.map((t) => t.id));
+/** YouTube video IDs to put in pool slots (none for TikTok: those aren't YouTube videos). */
+export const libraryTrackIds = (lib: LinkLibrary) => (lib.service === "tiktok" ? [] : lib.playlists.flatMap((p) => p.tracks.map((t) => t.id)));

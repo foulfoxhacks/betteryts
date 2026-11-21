@@ -39,12 +39,15 @@ export class VrcLinks extends DurableObject<Env> {
 		// Per caller (hashed): the first half of a key being entered, and the library last delivered (for /vrc/forget).
 		this.sql.exec("CREATE TABLE IF NOT EXISTS steps (who TEXT PRIMARY KEY, a INTEGER, a_at INTEGER, lib INTEGER, lib_at INTEGER)");
 		this.sql.exec("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL)");
+		// TikTok sign-ins in progress: OAuth state → the code it's for (10 minutes, one use). No tokens.
+		this.sql.exec("CREATE TABLE IF NOT EXISTS tt_states (state TEXT PRIMARY KEY, code TEXT NOT NULL, save INTEGER NOT NULL, created INTEGER NOT NULL)");
 	}
 
 	/** Expired codes, "this visit only" libraries, old libraries and day-old records go. */
 	private sweep(now: number) {
 		this.sql.exec("DELETE FROM libs WHERE a IS NULL AND id NOT IN (SELECT lib FROM codes2 WHERE lib IS NOT NULL AND created >= ?)", now - CODE_TTL_MS);
 		this.sql.exec("DELETE FROM codes2 WHERE created < ?", now - CODE_TTL_MS);
+		this.sql.exec("DELETE FROM tt_states WHERE created < ?", now - CODE_TTL_MS);
 		this.sql.exec("DELETE FROM libs WHERE created < ?", now - LIBRARY_TTL_MS);
 		this.sql.exec("DELETE FROM hits WHERE at < ?", now - 24 * 3_600_000);
 		this.sql.exec("DELETE FROM steps WHERE COALESCE(a_at, 0) < ? AND COALESCE(lib_at, 0) < ?", now - STEP_WINDOW_MS, now - STEP_WINDOW_MS);
@@ -110,6 +113,25 @@ export class VrcLinks extends DurableObject<Env> {
 		const id = this.sql.exec<{ id: number }>("SELECT last_insert_rowid() AS id").toArray()[0].id;
 		this.sql.exec("UPDATE codes2 SET lib = ? WHERE code = ?", id, code);
 		return { ok: true };
+	}
+
+	/** TikTok: remember which code a sign-in is for (the state goes to TikTok and comes back). */
+	ttBegin(state: string, code: string, save: boolean): { ok: true } | { error: string } {
+		const d = this.device(code);
+		if (!d) return { error: "That code expired or doesn't exist. Get a new one in the world." };
+		if (d.service !== "tiktok") return { error: `That code is for ${d.service === "spotify" ? "Spotify" : "YouTube"}; use the link shown in the world` };
+		if (d.lib !== null) return { error: "That code was already used" };
+		this.sql.exec("INSERT INTO tt_states (state, code, save, created) VALUES (?, ?, ?, ?)", state, code, save ? 1 : 0, Date.now());
+		return { ok: true };
+	}
+
+	/** TikTok callback: the code and choice for this state, once (it's deleted on read). */
+	ttTake(state: string): { code: string; save: boolean } | null {
+		this.sweep(Date.now());
+		const r = this.sql.exec<{ code: string; save: number }>("SELECT code, save FROM tt_states WHERE state = ?", state).toArray()[0];
+		if (!r) return null;
+		this.sql.exec("DELETE FROM tt_states WHERE state = ?", state);
+		return { code: r.code, save: r.save === 1 };
 	}
 
 	private row(id: number): LibRow | null {

@@ -489,7 +489,7 @@ function apiIndex(origin: string): Response {
 
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
-	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "privacy", "media", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
+	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "privacy", "terms", "tt", "media", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
 	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
 ]);
 
@@ -564,7 +564,7 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 		return typeof target === "string" ? new Response(null, { status: 302, headers: { Location: target, ...nostore } }) : errorJson(target.error, 400);
 	}
 	// The site posts an import to the world waiting on an activation code (src/vrc/linking.ts).
-	if (path === "/api/inworld/complete" || path === "/api/inworld/library") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
+	if (path === "/api/inworld/complete" || path === "/api/inworld/library" || path === "/tt/start") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 	if (req.method !== "GET" && req.method !== "HEAD") return errorJson("Method not allowed", 405);
 

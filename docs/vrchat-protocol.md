@@ -106,7 +106,8 @@ Editor tools read this to bake the pool and pre-fill the input field.
 ## Linking
 
 Linking protocol **v2** (responses carry `"v": 2`). Players can send their own playlists
-(YouTube via Google sign-in, Spotify, or their BetterYTS library) into a world. By default
+(YouTube via Google sign-in, Spotify, or their BetterYTS library), or a list of their own public
+TikTok videos, into a world. By default
 that's **for this visit only**; if they tick "Save for my next visit", the world gets a
 two-part key to keep in PlayerData. Everything uses baked URLs. Privacy policy:
 https://yts.foulfoxhacks.dev/privacy#vrchat
@@ -115,7 +116,7 @@ https://yts.foulfoxhacks.dev/privacy#vrchat
 
 | What | URLs |
 |---|---|
-| Start buttons | `{base}/vrc/link/start/youtube`, `{base}/vrc/link/start/spotify` |
+| Start buttons | `{base}/vrc/link/start/youtube`, `{base}/vrc/link/start/spotify`, `{base}/vrc/link/start/tiktok` |
 | Saved library, step 1 | `{base}/vrc/l/{a}` for `a = 0 … 9999` |
 | Saved library, step 2 | `{base}/vrc/k/{b}` for `b = 0 … 9999` |
 | Unlink (delete) | `{base}/vrc/forget` |
@@ -126,15 +127,53 @@ All `/vrc/*` linking responses are HTTP 200 JSON, `Cache-Control: no-store`. Err
 
 ### Link
 
-1. **Link YouTube / Link Spotify** → load the start URL:
+1. **Link YouTube / Link Spotify / Link TikTok** → load the start URL:
    `{ "v": 2, "ok": true, "service": "youtube", "code": "K7QX-M2PA", "url": "yts.foulfoxhacks.dev/inworld/youtube/auth", "expiresIn": 600, "poll": 4127 }`
 2. Show `code` and `url` large, with a countdown.
 3. Poll `pool[poll]` every 5 s while the code is shown:
    - `{ "status": "waiting" }`: keep polling. `{ "status": "expired" }`: stop, offer a new code.
    - `{ "v": 2, "ok": true, "status": "linked", "service", "playlists": [{ "name", "tracks": [{ "title", "channel", "slot" }] }], "library": { "a": 7236, "b": 6240 } | null, "expiresAt": <ms> | null }`
-4. Play a track by loading `pool[track.slot]` (a `302` to YouTube).
+4. Play a track by loading `pool[track.slot]` (a `302` to YouTube). TikTok tracks have `slot: null`: see [TikTok](#tiktok).
 5. If `library` isn't null, save `a` and `b` (ints) in PlayerData, e.g.
    `betteryts.lib.youtube.a` / `.b`. `null` means "just this visit": save nothing.
+
+### TikTok
+
+`/vrc/link/start/tiktok` answers the same shape, with `"service": "tiktok"` and
+`"url": "yts.foulfoxhacks.dev/inworld/tiktok"`. The player enters the code on that page, picks
+"just this visit" or "save", and presses **Continue with TikTok**:
+
+1. `POST /tt/start` (the page's form) checks the code, stores a random `state` (10 min, one use)
+   and sets it in an `HttpOnly; Secure; SameSite=Lax` cookie, then redirects to
+   `https://www.tiktok.com/v2/auth/authorize/` with `client_key`, `response_type=code`,
+   `scope=user.info.basic,video.list`, `redirect_uri={base}/tt/callback`, `state` and
+   `disable_auto_auth=1` (TikTok's consent page is always shown).
+2. `GET /tt/callback` requires the `state` to match both the cookie and the stored value, then
+   exchanges the code at `POST https://open.tiktokapis.com/v2/oauth/token/` (form-encoded, with the
+   client secret, server side only), reads `GET /v2/user/info/?fields=open_id,display_name,avatar_url`
+   and `POST /v2/video/list/?fields=id,title,cover_image_url,duration,embed_link` (20 per page, up
+   to 5 pages), **revokes the token** at `POST /v2/oauth/revoke/`, and completes the code. The
+   page then shows the display name, avatar and the videos that were sent.
+3. The world's poll gets the usual `linked` shape plus `account` (the TikTok display name), and
+   one playlist `"My TikTok videos"` of the user's public videos:
+   `{ "title", "channel", "slot": null, "id", "embed_link", "cover_image_url", "duration" }`.
+
+TikTok's Display API gives no playable video file, so the world can only **list** these videos
+(and show `embed_link`, TikTok's own player). BetterYTS doesn't scrape, download or re-host
+TikTok videos. `cover_image_url` is a signed TikTok CDN link that expires after a while.
+
+Stored: nothing from TikTok except the video list and display name, kept exactly like any other
+link (deleted with the code, or 30 days if saved; Unlink, `/vrc/forget` and the site's delete
+remove it). No TikTok access or refresh token, open_id or avatar is stored. `/api/inworld/complete`
+refuses `service: "tiktok"`: only the server's own callback can make a TikTok link.
+
+Credentials: `TIKTOK_MODE` (text binding, `"sandbox"` until the app is approved, then `"live"`)
+picks the pair. The client keys are public text bindings in `cloudflare.config.ts`
+(`TIKTOK_CLIENT_KEY` live, `TIKTOK_SANDBOX_CLIENT_KEY` sandbox). The secrets are Worker secrets
+only, never in the repo: `TIKTOK_CLIENT_SECRET` and `TIKTOK_SANDBOX_CLIENT_SECRET`. Without the
+chosen pair the page says TikTok linking isn't set up. Once live works, delete the sandbox key,
+its secret and the sandbox branch in `tiktokConfig`. The redirect URI registered with TikTok
+must be exactly `https://yts.foulfoxhacks.dev/tt/callback`.
 
 ### Next visit
 
@@ -160,7 +199,8 @@ PlayerData keys either way. Players can also view, download or delete a library 
 
 - Codes: 8 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (CSPRNG, 40 bits), 10 minutes, one use.
 - Keys: two halves of 0…9999 (10⁸ combinations), CSPRNG, rotated on every load, lockout after failed pairs.
-- Stored: playlist names and song video IDs, titles, channels. No account names, emails or tokens.
+- Stored: playlist names and song video IDs, titles, channels. No account names, emails or tokens
+  (TikTok links also keep the display name and each video's embed link, cover link and length).
 - "Just this visit" data is deleted when the code expires; saved libraries 30 days after saving
   (rotation doesn't extend that).
 - Rate limits per caller: 30 codes/hour, 120 key steps/hour, 20 code entries per 10 minutes,

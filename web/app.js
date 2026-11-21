@@ -843,6 +843,8 @@ async function checkLinkCode() {
 	renderLinkView();
 	try {
 		const d = await api("/api/inworld/check", { code: linkState.code });
+		// TikTok sign-in runs on its own server page (src/lib/tiktok.ts).
+		if (d.service === "tiktok") return void location.assign(`/inworld/tiktok?code=${encodeURIComponent(d.code)}`);
 		linkState = { ...linkState, code: d.code, service: d.service, checked: true };
 	} catch (err) {
 		linkState.checked = false;
