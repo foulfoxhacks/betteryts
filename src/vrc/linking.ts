@@ -5,7 +5,7 @@ import { cleanLibrary, formatKey, KEY_SPACE, LINK_SERVICES, LINK_VERSION, type L
 import type { VrcLinks } from "./links.ts";
 import type { VrcPool } from "./pool.ts";
 import { originAllowed } from "../rooms/protocol.ts";
-import { exchangeCode, fetchUser, fetchVideos, newState, revokeToken, sameSitePost, TIKTOK_CALLBACK, TikTokError, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokErrorPage, tiktokLibrary, validState } from "../lib/tiktok.ts";
+import { exchangeCode, fetchUser, fetchVideos, newState, revokeToken, sameSitePost, TIKTOK_CALLBACK, TikTokError, tiktokAuthorizeUrl, tiktokCodePage, tiktokConfig, tiktokDonePage, tiktokErrorPage, tiktokLibrary, tiktokSandbox, validState } from "../lib/tiktok.ts";
 
 const TT_COOKIE = "__Host-tt_state";
 const html = (body: string, status = 200, extra: Record<string, string> = {}) =>
@@ -17,6 +17,8 @@ const html = (body: string, status = 200, extra: Record<string, string> = {}) =>
 			"Referrer-Policy": "no-referrer",
 			"X-Content-Type-Options": "nosniff",
 			"X-Frame-Options": "DENY",
+			// Server-rendered pages (TikTok linking): no scripts, forms only back to this site.
+			"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self' https:; form-action 'self' https://www.tiktok.com; base-uri 'none'; frame-ancestors 'none'",
 			"X-Robots-Tag": "noindex",
 			...extra,
 		},
@@ -67,7 +69,7 @@ export async function linkRoutes(req: Request, url: URL, env: Env): Promise<Resp
 		if (!isService(start[1])) return vrcFail("Unknown service");
 		const l = links(env);
 		if (!(await l.limit(ip, "start", 30, 3_600_000))) return vrcFail("Too many codes from here; try again later");
-		const { code, expiresIn } = await l.start(start[1]);
+		const { code, expiresIn } = await l.start(start[1], ip);
 		const [poll] = await pool(env).assign([{ kind: "link", key: `l:${code}`, payload: code }]);
 		// TikTok signs in on a server page (/inworld/tiktok); the others use the site's link view.
 		const page = start[1] === "tiktok" ? "/inworld/tiktok" : `/inworld/${start[1]}/auth`;
@@ -157,7 +159,7 @@ export async function linkRoutes(req: Request, url: URL, env: Env): Promise<Resp
 
 	// ---- TikTok (src/lib/tiktok.ts): server-side sign-in, token revoked after the import ----
 	if (path === "/inworld/tiktok" || path === "/inworld/tiktok/" || path === "/inworld/tiktok/auth") {
-		return html(tiktokCodePage(normalizeCode(url.searchParams.get("code")) ?? "", "", !!tiktokConfig(env)));
+		return html(tiktokCodePage(normalizeCode(url.searchParams.get("code")) ?? "", "", !!tiktokConfig(env), tiktokSandbox(env)));
 	}
 	if (path === "/tt/start") return tiktokStart(req, url, env, ip);
 	if (path === TIKTOK_CALLBACK) return tiktokCallback(req, url, env, ip);
@@ -175,7 +177,8 @@ export async function linkRoutes(req: Request, url: URL, env: Env): Promise<Resp
 /** A pool slot of kind "link": what the world sees while it waits for the player. */
 export async function linkSlot(code: string, env: Env, ip: string): Promise<Response> {
 	const l = links(env);
-	const d = await l.device(code);
+	// Only the caller that asked for the code sees it (slots are public and numbered).
+	const d = await l.poll(code, ip);
 	if (!d) return noStore({ v: LINK_VERSION, ok: true, status: "expired" });
 	if (d.lib === null) return noStore({ v: LINK_VERSION, ok: true, status: "waiting", code: d.code });
 	const got = await l.delivered(code, ip);
@@ -194,12 +197,12 @@ async function tiktokStart(req: Request, url: URL, env: Env, ip: string): Promis
 	const raw = formData?.get("code");
 	const code = normalizeCode(typeof raw === "string" ? raw : null);
 	const save = formData?.get("save") === "1";
-	if (!code) return html(tiktokCodePage(typeof raw === "string" ? raw.slice(0, 12) : "", "Enter the 8-character code shown in the world."), 400);
+	if (!code) return html(tiktokCodePage(typeof raw === "string" ? raw.slice(0, 12) : "", "Enter the 8-character code shown in the world.", true, tiktokSandbox(env)), 400);
 	const l = links(env);
-	if (!(await l.limit(ip, "enter", 20, 600_000))) return html(tiktokCodePage(code, "Too many tries; wait a few minutes."), 429);
+	if (!(await l.limit(ip, "enter", 20, 600_000))) return html(tiktokCodePage(code, "Too many tries; wait a few minutes.", true, tiktokSandbox(env)), 429);
 	const state = newState();
 	const r = await l.ttBegin(state, code, save);
-	if ("error" in r) return html(tiktokCodePage(code, r.error), 400);
+	if ("error" in r) return html(tiktokCodePage(code, r.error, true, tiktokSandbox(env)), 400);
 	// The state is also kept in a cookie so the callback must come back to the same browser.
 	return new Response(null, {
 		status: 302,

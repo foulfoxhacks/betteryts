@@ -56,6 +56,23 @@ export interface LibraryKey {
 	b: number;
 }
 
+/**
+ * The network a caller counts as for rate limits and lockouts: the IPv4 address, or an IPv6
+ * address's /64 (one home or phone usually gets a whole /64, so per-address limits on IPv6 could
+ * be dodged by rotating addresses).
+ */
+export function clientNet(ip: string): string {
+	ip = ip.trim().toLowerCase();
+	if (!ip.includes(":")) return ip;
+	const v4 = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(ip);
+	if (v4) return v4[1];
+	const [head, tail = ""] = ip.split("::");
+	const h = head ? head.split(":") : [];
+	const t = tail ? tail.split(":") : [];
+	const groups = ip.includes("::") ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t] : h;
+	return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
+}
+
 /** A fresh activation code like "K7QX-M2PA" (40 bits from the CSPRNG). */
 export function newCode(): string {
 	const out: string[] = [];

@@ -1,0 +1,43 @@
+# Checks every pull request and push: types, tests, a production build, front-end syntax and
+# a dependency audit. Nothing here deploys; deploys stay manual (`npm run deploy`).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, "release/**", "audit/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Tests use node:sqlite and module.registerHooks, and run TypeScript directly.
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - name: Type check (generates Worker binding types, then tsc)
+        run: npm run typecheck
+      - name: Unit, Durable Object and route tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Front-end syntax
+        run: for f in web/*.js; do node --check "$f"; done
+      - name: Dependency audit (runtime dependencies, high and above)
+        run: npm audit --omit=dev --audit-level=high
+      - name: No secrets in config or bundles
+        run: |
+          # Worker secrets must never be committed. Public client IDs/keys are fine.
+          ! grep -rEn "(CLIENT_SECRET|SANDBOX_CLIENT_SECRET)\s*[:=]\s*[\"'][^\"']{8,}" cloudflare.config.ts src web public

@@ -1,4 +1,20 @@
-# BetterYTS in-world protocol (v1)
+# BetterYTS in-world protocol
+
+## Versions
+
+Two parts of the in-world protocol are versioned separately, and every JSON response says which
+one it follows in `"v"`:
+
+| Part | Version | Endpoints | Where |
+|---|---|---|---|
+| **Search** (URL pool, results, thumbnail sheets, pages) | `v: 1` | `/vrc/search`, `/vrc/info`, `/vrc/p/{slot}` (search, page and sheet slots) | This page, from [Why it works this way](#why-it-works-this-way) |
+| **Linking** (activation codes, saved libraries) | `v: 2` | `/vrc/link/start/*`, `/vrc/l/*`, `/vrc/k/*`, `/vrc/forget`, and link polls on `/vrc/p/{slot}` | [Linking](#linking) |
+
+Linking started at v1 (account names, one-part library numbers), and v2 replaced it before any
+world shipped it, so v1 linking doesn't exist on the server any more. Search is still v1. A world
+checks `v` per response; a change that breaks worlds bumps that part's number only.
+
+The released VRChat packages (1.0.1) speak search v1. Linking v2 isn't in a released package yet.
 
 This is the contract between the BetterYTS server (`yts.foulfoxhacks.dev`) and the
 VRChat packages in the FoulFoxHacks VCC listing (`com.foulfoxhacks.betteryts.*`).
@@ -36,8 +52,10 @@ VRChat limits that shape the design:
 | Search URL prefix (pre-filled in the input field) | `{base}/vrc/search?q=` |
 | Protocol version `v` | `1` |
 
-Slots are assigned on a ring: once all `N` are used, the oldest is reused. A slot stays
-valid for at least 24 hours after it was handed out.
+Slots are assigned on a ring: once all `N` are used, the oldest is reused. There is no minimum
+lifetime: how long a slot keeps pointing at the same thing depends on how busy BetterYTS is
+across all worlds (usually many hours). Worlds should treat a slot as good for the page it came
+with, and search again if a slot answers 404 or something unexpected.
 
 ## `GET /vrc/search?q={query}` (+ optional `&page={token}`)
 
@@ -132,6 +150,9 @@ All `/vrc/*` linking responses are HTTP 200 JSON, `Cache-Control: no-store`. Err
 2. Show `code` and `url` large, with a countdown.
 3. Poll `pool[poll]` every 5 s while the code is shown:
    - `{ "status": "waiting" }`: keep polling. `{ "status": "expired" }`: stop, offer a new code.
+   - The code belongs to the client that asked for it: polls from any other network get
+     `expired` (pool slots are public and numbered, so this keeps codes and libraries private).
+     Start and poll from the same client; a client whose IP changes mid-link gets a new code.
    - `{ "v": 2, "ok": true, "status": "linked", "service", "playlists": [{ "name", "tracks": [{ "title", "channel", "slot" }] }], "library": { "a": 7236, "b": 6240 } | null, "expiresAt": <ms> | null }`
 4. Play a track by loading `pool[track.slot]` (a `302` to YouTube). TikTok tracks have `slot: null`: see [TikTok](#tiktok).
 5. If `library` isn't null, save `a` and `b` (ints) in PlayerData, e.g.

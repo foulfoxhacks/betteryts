@@ -158,7 +158,8 @@ export async function vrcSlot(slotText: string, env: Env, ctx: ExecutionContext,
 
 	switch (entry.kind) {
 		case "video":
-			return redirect(`https://www.youtube.com/watch?v=${entry.payload}`, 60);
+			// No caching: slots are reused on a ring, so a cached redirect could play the wrong video.
+			return redirect(`https://www.youtube.com/watch?v=${entry.payload}`, 0);
 		case "sheet": {
 			const ids = JSON.parse(entry.payload) as string[];
 			return cached(`vrc/sheet/${ids.join(",")}`, ctx, () => renderSheet(ids, env, origin)).catch((err) => {

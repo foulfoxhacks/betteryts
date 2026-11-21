@@ -37,6 +37,7 @@
 		<link rel="stylesheet" href="/web/styles.css" />
 	</head>
 	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
 		<div id="announce" class="announce" hidden>
 			<p><b>Beta</b> Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
 			<button type="button" class="announce-close" aria-label="Dismiss announcement">
@@ -76,7 +77,7 @@
 			</div>
 		</header>
 
-		<main class="container doc privacy">
+		<main id="main" class="container doc privacy">
 			<h2 id="short">The short version</h2>
 			<ul>
 				<li>No accounts. Your library, history, settings and plugins live in <b>your browser</b> (or on your phone in the app), not on our servers.</li>
@@ -119,7 +120,8 @@
 					<tr><td>Songs sent for <b>just this visit</b> (the default)</td><td>Deleted when the code expires (10 minutes)</td></tr>
 					<tr><td>A <b>saved</b> library (only if you tick "Save for my next visit"): playlist names and each song's video ID, title and channel. No account name, email or token. For TikTok: your display name and your public videos' ID, title, cover link, length and embed link.</td><td>Up to 30 days from saving, then deleted automatically</td></tr>
 					<tr><td>A TikTok sign-in in progress: a random value that ties TikTok's reply to your code (also in a short-lived cookie in your browser)</td><td>10 minutes, works once</td></tr>
-					<tr><td>Abuse protection: a keyed hash of your IP address (HMAC with a secret that's replaced every day, so it can't be reversed or linked across days) and request times</td><td>24 hours</td></tr>
+					<tr><td>Abuse protection: a keyed hash of your IP address (HMAC with a secret that's replaced every day, so it can't be reversed or linked across days) and request times. For IPv6, the hash is of your network's first half (/64), so rotating addresses doesn't reset the limits.</td><td>24 hours (the secret itself is deleted after 2 days)</td></tr>
+					<tr><td>An activation code's owner: the same kind of keyed hash, for the world client that asked for the code, so only that client can see the code's status and receive your playlists</td><td>With the code: 10 minutes</td></tr>
 				</tbody>
 			</table>
 			<ul>
