@@ -59,6 +59,15 @@ export function sameSitePost(origin: string | null, secFetchSite: string | null,
 	return origin === "null" && secFetchSite === "same-origin";
 }
 
+/**
+ * True unless TIKTOK_MODE is "live". In TikTok's sandbox only TikTok accounts added to the app as
+ * target users can sign in, so the linking page says so instead of implying anyone can.
+ */
+export function tiktokSandbox(env: unknown): boolean {
+	const mode = (env as Record<string, unknown>).TIKTOK_MODE;
+	return !(typeof mode === "string" && mode.trim().toLowerCase() === "live");
+}
+
 /** A random OAuth state (32 bytes, base64url). */
 export function newState(): string {
 	const b = crypto.getRandomValues(new Uint8Array(32));
@@ -237,11 +246,12 @@ ${body}
 }
 
 /** /inworld/tiktok: enter the world's code, choose how long to keep it, continue to TikTok. */
-export function tiktokCodePage(code: string, error = "", configured = true): string {
+export function tiktokCodePage(code: string, error = "", configured = true, testing = false): string {
 	return shell(
 		"Link TikTok",
 		`<h1>Link TikTok to a VRChat world</h1>
 <p>Enter the code shown in the world. You'll sign in on TikTok's own page and BetterYTS will send a list of your <b>public</b> TikTok videos (titles, covers and TikTok's embed links) and your TikTok display name to the world.</p>
+${testing && configured ? `<p class="fine" role="note"><b>Testing:</b> TikTok linking is waiting for TikTok's app review. Until then only TikTok accounts added as testers can sign in; others will see an error on TikTok's page.</p>` : ""}
 ${error ? `<p class="err" role="alert">${esc(error)}</p>` : ""}
 ${
 	configured

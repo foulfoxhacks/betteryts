@@ -14,7 +14,7 @@ import { linkRoutes } from "./vrc/linking.ts";
 import { SPOTIFY_CALLBACK, spotifyAuthorizeUrl, spotifyCallbackRedirect, spotifyClientId } from "./lib/spotify-auth.ts";
 import { env } from "cloudflare:workers";
 import { branding, dislikes, sponsorSegments, SB_CATEGORIES, suggestions } from "./lib/addons.ts";
-import { cached, CORS_HEADERS, errorJson, json, redirect, text } from "./lib/http.ts";
+import { cached, CORS_HEADERS, errorJson, json, redactUrl, redirect, text } from "./lib/http.ts";
 import { FEATURES, search, UpstreamError, videoDetails } from "./lib/innertube.ts";
 import {
 	boolParam,
@@ -82,6 +82,7 @@ async function roomFollow(req: Request, code: string, url: URL): Promise<Respons
 import type { ClientOptions, Item, SearchFilters, VideoItem } from "./lib/types.ts";
 
 const VERSION = SITE_VERSION;
+
 /** Short git commit of this deploy (vite.config.ts), or "dev". */
 const BUILD = typeof __BUILD__ === "string" ? __BUILD__ : "dev";
 
@@ -464,7 +465,7 @@ function apiIndex(origin: string): Response {
 				"GET /room/{code}": "VRChat players: 302 to what the room is playing right now",
 				"GET /api/auth/config": "Which sign-ins this server offers (Google, Spotify) and the public Spotify client ID",
 				"GET /auth/spotify/start?state=&code_challenge=": "Sign in with Spotify (PKCE): 302 to Spotify's consent page",
-				"GET /vrc/link/start/{service}": "In-world linking v2: an activation code and a pool slot to poll (service: youtube | spotify)",
+				"GET /vrc/link/start/{service}": "In-world linking v2: an activation code and a pool slot to poll (service: youtube | spotify | tiktok)",
 				"GET /vrc/l/{a}": "In-world linking v2: first half of a saved library's key (then /vrc/k/{b} within 60 s)",
 				"GET /vrc/k/{b}": "In-world linking v2: second half: the saved library with a new key",
 				"GET /vrc/forget": "In-world linking v2: delete the library this caller just linked or loaded",
@@ -708,8 +709,7 @@ export default {
 			out.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
 			return out;
 		} catch (err) {
-			// Saved-library key halves are in /vrc/l/{a} and /vrc/k/{b}: never log them.
-			console.error("request failed", req.url.replace(/\/vrc\/(l|k)\/\d+/, "/vrc/$1/…"), err);
+			console.error("request failed", redactUrl(req.url), err);
 			const status = err instanceof UpstreamError ? err.status : 502;
 			const message = err instanceof Error ? err.message : "Upstream error";
 			const accept = req.headers.get("Accept") ?? "";

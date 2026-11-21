@@ -75,3 +75,20 @@ export async function cached(key: string, ctx: ExecutionContext, build: () => Pr
 	res.headers.set("X-Cache", "MISS");
 	return res;
 }
+
+/**
+ * A request URL that's safe to log: saved-library key halves (/vrc/l/{a}, /vrc/k/{b}) and
+ * activation codes, OAuth codes, states and tokens in the query are replaced with "…".
+ */
+export function redactUrl(raw: string): string {
+	try {
+		const u = new URL(raw);
+		u.pathname = u.pathname.replace(/^\/vrc\/(l|k)\/\d+/, "/vrc/$1/…");
+		for (const k of [...u.searchParams.keys()]) {
+			if (/^(code|state|key|token|access_token|refresh_token|code_verifier|code_challenge)$/i.test(k)) u.searchParams.set(k, "…");
+		}
+		return u.toString();
+	} catch {
+		return "(unparseable URL)";
+	}
+}
