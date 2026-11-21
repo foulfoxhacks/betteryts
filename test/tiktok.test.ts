@@ -19,9 +19,13 @@ function fake(responses: Array<{ status?: number; body: unknown }>) {
 }
 
 test("tiktok: config and state", () => {
-	assert.equal(tiktokConfig({}), null, "off until both secrets are set");
-	assert.equal(tiktokConfig({ TIKTOK_CLIENT_KEY: "k" }), null);
-	assert.deepEqual(tiktokConfig({ TIKTOK_CLIENT_KEY: " k ", TIKTOK_CLIENT_SECRET: "s" }), { clientKey: "k", clientSecret: "s" });
+	assert.equal(tiktokConfig({}), null, "off until a key and secret are set");
+	const both = { TIKTOK_CLIENT_KEY: " live-k ", TIKTOK_CLIENT_SECRET: "live-s", TIKTOK_SANDBOX_CLIENT_KEY: "sb-k", TIKTOK_SANDBOX_CLIENT_SECRET: "sb-s" };
+	assert.deepEqual(tiktokConfig(both), { clientKey: "sb-k", clientSecret: "sb-s" }, "sandbox by default");
+	assert.deepEqual(tiktokConfig({ ...both, TIKTOK_MODE: "sandbox" }), { clientKey: "sb-k", clientSecret: "sb-s" });
+	assert.deepEqual(tiktokConfig({ ...both, TIKTOK_MODE: "live" }), { clientKey: "live-k", clientSecret: "live-s" });
+	assert.equal(tiktokConfig({ TIKTOK_MODE: "live", TIKTOK_CLIENT_KEY: "k", TIKTOK_SANDBOX_CLIENT_SECRET: "sb-s" }), null, "never mixes a key with the other app's secret");
+	assert.equal(tiktokConfig({ TIKTOK_SANDBOX_CLIENT_KEY: "sb-k" }), null, "secret not set yet");
 	const a = newState();
 	assert.ok(validState(a) && a !== newState(), "random, URL-safe");
 	assert.equal(validState("short"), false);

@@ -10,7 +10,9 @@
 // TikTok gives no playable video file, and we don't scrape or re-host any: the world gets titles,
 // covers, durations and each video's official embed_link only.
 //
-// Secrets: TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET are Worker secrets, never in the repo or logs.
+// Keys: TIKTOK_CLIENT_KEY / TIKTOK_SANDBOX_CLIENT_KEY are public text bindings; TIKTOK_MODE picks
+// the pair. Secrets: TIKTOK_CLIENT_SECRET / TIKTOK_SANDBOX_CLIENT_SECRET are Worker secrets, never in
+// the repo, config or logs.
 
 import type { LinkLibrary, LinkTrack } from "../vrc/links-core.ts";
 
@@ -30,10 +32,17 @@ export interface TikTokConfig {
 	clientSecret: string;
 }
 
+/**
+ * The key/secret pair TIKTOK_MODE selects: "live" uses TIKTOK_CLIENT_KEY / TIKTOK_CLIENT_SECRET,
+ * anything else (default) the sandbox app's TIKTOK_SANDBOX_CLIENT_KEY / TIKTOK_SANDBOX_CLIENT_SECRET.
+ * Keys are public text bindings; secrets are Worker secrets. Null if the chosen pair isn't complete.
+ */
 export function tiktokConfig(env: unknown): TikTokConfig | null {
-	const e = env as { TIKTOK_CLIENT_KEY?: unknown; TIKTOK_CLIENT_SECRET?: unknown };
-	const clientKey = typeof e.TIKTOK_CLIENT_KEY === "string" ? e.TIKTOK_CLIENT_KEY.trim() : "";
-	const clientSecret = typeof e.TIKTOK_CLIENT_SECRET === "string" ? e.TIKTOK_CLIENT_SECRET.trim() : "";
+	const e = env as Record<string, unknown>;
+	const str = (k: string) => (typeof e[k] === "string" ? (e[k] as string).trim() : "");
+	const live = str("TIKTOK_MODE").toLowerCase() === "live";
+	const clientKey = str(live ? "TIKTOK_CLIENT_KEY" : "TIKTOK_SANDBOX_CLIENT_KEY");
+	const clientSecret = str(live ? "TIKTOK_CLIENT_SECRET" : "TIKTOK_SANDBOX_CLIENT_SECRET");
 	return clientKey && clientSecret ? { clientKey, clientSecret } : null;
 }
 

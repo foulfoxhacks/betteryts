@@ -39,6 +39,13 @@ export default defineConfig({
 			// Spotify sign-in (src/lib/spotify-auth.ts). Public by design: it's in every consent URL.
 			// PKCE, so the app's client secret is never used or stored.
 			SPOTIFY_CLIENT_ID: bindings.text("783ca1075f974251a85c57c275adc49e"),
+			// TikTok sign-in for in-world linking (src/lib/tiktok.ts). Client keys are public (they're in
+			// every consent URL). The secrets TIKTOK_CLIENT_SECRET and TIKTOK_SANDBOX_CLIENT_SECRET are
+			// Worker secrets only, never here. TIKTOK_MODE picks the pair: "sandbox" until the app is
+			// approved, then "live" (and the sandbox key, secret and code path get deleted).
+			TIKTOK_MODE: bindings.text("sandbox"),
+			TIKTOK_CLIENT_KEY: bindings.text("awnplwimxrvfjmks"),
+			TIKTOK_SANDBOX_CLIENT_KEY: bindings.text("sbawrl0zsgm7s1w4vq"),
 		},
 		observability: {
 			enabled: true,

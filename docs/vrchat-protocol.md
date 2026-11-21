@@ -167,8 +167,12 @@ link (deleted with the code, or 30 days if saved; Unlink, `/vrc/forget` and the 
 remove it). No TikTok access or refresh token, open_id or avatar is stored. `/api/inworld/complete`
 refuses `service: "tiktok"`: only the server's own callback can make a TikTok link.
 
-The Worker needs the secrets `TIKTOK_CLIENT_KEY` and `TIKTOK_CLIENT_SECRET` (never in the repo);
-without them the page says TikTok linking isn't set up. The redirect URI registered with TikTok
+Credentials: `TIKTOK_MODE` (text binding, `"sandbox"` until the app is approved, then `"live"`)
+picks the pair. The client keys are public text bindings in `cloudflare.config.ts`
+(`TIKTOK_CLIENT_KEY` live, `TIKTOK_SANDBOX_CLIENT_KEY` sandbox). The secrets are Worker secrets
+only, never in the repo: `TIKTOK_CLIENT_SECRET` and `TIKTOK_SANDBOX_CLIENT_SECRET`. Without the
+chosen pair the page says TikTok linking isn't set up. Once live works, delete the sandbox key,
+its secret and the sandbox branch in `tiktokConfig`. The redirect URI registered with TikTok
 must be exactly `https://yts.foulfoxhacks.dev/tt/callback`.
 
 ### Next visit
