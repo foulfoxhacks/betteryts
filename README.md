@@ -14,6 +14,20 @@ https://yts.foulfoxhacks.dev/search?q=lofi hip hop
 
 Paste that into a VRChat video player and it plays the top result. Open it in a browser and you get the results page.
 
+## Feature status
+
+| Status | Features |
+|---|---|
+| **Available** | Search page and JSON API, search operators, VRChat redirect links (`/search`, `/<query>`, `/v/{id}`), video details with SponsorBlock, DeArrow and Return YouTube Dislike, playlists and channels, transcripts, lyrics, browser library (playlists, queue, history, subscriptions, stored in your browser only), backup and restore, watch parties, ProTV playlist files, public Spotify playlist import, OpenAPI spec |
+| **Available: VRChat packages 1.0.1** | In-world search panel, ProTV connector, editor tools ([install guide](docs/vrchat-install.md)) |
+| **Beta** | Community plugins (sandboxed; Player and Look categories only), BetterYTS Music Android app (sideload builds with an in-app updater; not on Google Play yet) |
+| **Needs your account, limited access** | Sign in with Google (YouTube library import) and Sign in with Spotify (private playlists, Liked Songs): both apps are in their providers' testing or development mode, so only accounts the maintainer has added can sign in until the apps are approved |
+| **Testing only** | TikTok linking: the TikTok app is in TikTok's sandbox, so only TikTok accounts added as testers can sign in (the page says so) |
+| **Server ready, not in a released world package** | In-world linking v2 (send playlists to a world with an activation code, save for 30 days) |
+
+Self-hosting? Google sign-in needs `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, TikTok needs the
+`TIKTOK_*` keys and secrets (see [Develop & deploy](#develop--deploy)); without them those features hide themselves.
+
 ## Why it's better than u2b.cx
 
 | | u2b.cx | BetterYTS |
@@ -144,7 +158,7 @@ Needs Node.js 22.23+ / 24.22+ and the [`cf` CLI](https://developers.cloudflare.c
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # unit tests
+npm test           # unit, Durable Object and route tests (Node's built-in SQLite, no extra packages)
 npm run typecheck
 npm run deploy     # builds and deploys to yts.foulfoxhacks.dev
 ```
@@ -156,6 +170,28 @@ If `cf` can't reach Cloudflare (IPv6 trouble on some networks), deploy with
 run `../betteryts-music/scripts/publish-update.ps1` (builds the sideload APK and Play bundle, writes
 `public/app/update.json` and copies the APK into `public/app/`), commit `update.json`, then deploy.
 Installed sideloaded apps pick the update up within a few hours.
+
+CI (`.github/workflows/ci.yml`) runs the typecheck, tests, a production build, a front-end syntax
+check, `npm audit` and a secret scan on every pull request. It never deploys.
+
+**Bindings and secrets** (`cloudflare.config.ts` declares the bindings; secrets are set with the
+`cf` CLI, never committed):
+
+| Name | Kind | Needed for |
+|---|---|---|
+| `VRC_POOL`, `VRC_LINKS`, `ROOMS` | Durable Objects (SQLite) | In-world search pool, linking, watch parties |
+| `ASSETS`, `IMAGES` | Static assets, Images | Pages; in-world thumbnail sheets |
+| `YT_CLIENT_VERSION`, `DEFAULT_HL`, `DEFAULT_GL` | Text | YouTube requests |
+| `SPOTIFY_CLIENT_ID` | Text (public) | Sign in with Spotify (PKCE, no secret) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Secrets | Sign in with Google (off if unset) |
+| `TIKTOK_MODE` | Text: `sandbox` (default) or `live` | Which TikTok app to use. Leave on `sandbox` until TikTok approves the app |
+| `TIKTOK_SANDBOX_CLIENT_KEY` / `TIKTOK_CLIENT_KEY` | Text (public) | TikTok linking |
+| `TIKTOK_SANDBOX_CLIENT_SECRET` / `TIKTOK_CLIENT_SECRET` | Secrets | TikTok linking (off if unset) |
+
+**Rolling back:** every deploy is a Worker version. `cf workers deployments list` shows them;
+`cf workers deployments create` sends 100% of traffic back to an earlier version (check its
+options with `cf schema`). Or check out the previous commit and `npm run deploy` it. Durable Object schema changes in this
+repo only add tables and columns, so older code keeps working on newer storage.
 
 `npm run deploy` attaches the custom domain `yts.foulfoxhacks.dev` from `cloudflare.config.ts`. The `foulfoxhacks.dev` zone has to be on the same Cloudflare account.
 

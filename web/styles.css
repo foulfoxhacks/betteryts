@@ -1048,3 +1048,20 @@ button:disabled { opacity: 0.45; cursor: default; }
 /* Pause/play the hero background (bottom-left; the credit is bottom-right) */
 .hero-video-toggle { position: absolute; left: 16px; bottom: 8px; z-index: 1; padding: 4px 10px; border: 1px solid rgb(255 243 228 / 0.2); border-radius: 999px; background: rgb(5 3 2 / 0.55); color: rgb(255 243 228 / 0.75); font: inherit; font-size: 11px; cursor: pointer; }
 .hero-video-toggle:hover { color: var(--primary); border-color: rgb(var(--accent-rgb) / 0.6); }
+
+/* Keyboard users: jump past the header. Hidden until focused. */
+.skip-link {
+	position: absolute;
+	left: 8px;
+	top: -48px;
+	z-index: 1000;
+	padding: 8px 14px;
+	border-radius: 8px;
+	background: var(--accent, #ffb300);
+	color: #111;
+	font-weight: 700;
+	text-decoration: none;
+}
+.skip-link:focus {
+	top: 8px;
+}

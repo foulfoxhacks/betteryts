@@ -66,6 +66,7 @@
 		<link rel="stylesheet" href="/web/styles.css" />
 	</head>
 	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
 		<div id="announce" class="announce" hidden>
 			<p><b>Beta</b> Endpoints and options may still change. Found a bug? <a href="https://github.com/foulfoxhacks/betteryts/issues" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
 			<button type="button" class="announce-close" aria-label="Dismiss announcement">
@@ -132,7 +133,7 @@
 				</ul>
 			</aside>
 
-			<main class="doc">
+			<main id="main" class="doc">
 				<p class="breadcrumbs"><a href="/">Home</a> › API Docs</p>
 				<h1 id="intro">BetterYTS API</h1>
 				<p class="lead">Free, keyless and CORS-enabled. Every result comes back with ads, promoted videos and filler shelves already stripped out.</p>
@@ -264,6 +265,7 @@ https://yts.foulfoxhacks.dev/v/dQw4w9WgXcQ               # by video ID</code></p
 
 				<h2 id="vrchat-world">In-world search for VRChat</h2>
 				<p>The <code>/vrc/*</code> endpoints power the <b>BetterYTS In-World Search</b> prefab (VCC listing: <code>https://vpm.foulfoxhacks.dev/index.json</code>). Udon can't build URLs at runtime, so worlds bake a pool of <code>/vrc/p/{slot}</code> URLs and the server hands out slots for each result, a thumbnail sheet, and the next page.</p>
+				<p><b>New to BetterYTS?</b> Follow the <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-install.md">step-by-step world setup guide</a> (VCC, the search panel, ProTV, troubleshooting). In-world search responses carry <code>"v": 1</code> (search protocol v1); linking responses carry <code>"v": 2</code> (linking protocol v2). They're versioned separately.</p>
 				<table class="table">
 					<thead><tr><th>Endpoint</th><th>Returns</th></tr></thead>
 					<tbody>
@@ -294,7 +296,8 @@ https://yts.foulfoxhacks.dev/vrc/protv.playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm
 				<p class="fine">Rooms are deleted after 24 hours without anyone connected. Up to 50 people per room.</p>
 
 				<h2 id="linking">Linking accounts in VRChat</h2>
-				<p>Players can bring their own music into a world: YouTube playlists (Google sign-in), Spotify playlist links, or their BetterYTS library. The world shows a code; the player enters it at <a href="/inworld/youtube/auth"><code>yts.foulfoxhacks.dev/inworld/youtube/auth</code></a> (or <code>/inworld/spotify/auth</code>) and picks playlists; it's for this visit unless they choose to save it (kept up to 30 days under a two-part key the world keeps in PlayerData; Unlink deletes it). Everything uses baked URLs: <code>/vrc/link/start/{youtube|spotify}</code>, the pool <code>/vrc/p/{slot}</code>, <code>/vrc/l/{0…9999}</code> + <code>/vrc/k/{0…9999}</code> and <code>/vrc/forget</code>. See the <a href="/privacy#vrchat">privacy policy</a>. Full protocol: <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-protocol.md#linking">docs/vrchat-protocol.md › Linking</a>.</p>
+				<p><b>Status:</b> the server side is live; the world-side linking UI isn't in a released VRChat package yet. TikTok linking is in testing (only TikTok tester accounts can sign in).</p>
+				<p>Players can bring their own music into a world: YouTube playlists (Google sign-in), Spotify playlist links, or their BetterYTS library. The world shows a code; the player enters it at <a href="/inworld/youtube/auth"><code>yts.foulfoxhacks.dev/inworld/youtube/auth</code></a> (or <code>/inworld/spotify/auth</code>) and picks playlists; it's for this visit unless they choose to save it (kept up to 30 days under a two-part key the world keeps in PlayerData; Unlink deletes it). Everything uses baked URLs: <code>/vrc/link/start/{youtube|spotify|tiktok}</code>, the pool <code>/vrc/p/{slot}</code>, <code>/vrc/l/{0…9999}</code> + <code>/vrc/k/{0…9999}</code> and <code>/vrc/forget</code>. See the <a href="/privacy#vrchat">privacy policy</a>. Full protocol: <a href="https://github.com/foulfoxhacks/betteryts/blob/main/docs/vrchat-protocol.md#linking">docs/vrchat-protocol.md › Linking</a>.</p>
 
 				<h2 id="plugins">Community plugins</h2>
 				<p>Plugins on the site and in BetterYTS Music are grouped into categories, each with its own switch: <b>Playback</b>, <b>Player</b>, <b>Look</b> and <b>BetterYTS</b>. Anyone can write a community plugin for <b>Player</b> or <b>Look</b>; Playback and BetterYTS are built-in only, because what they do (control playback, rooms, the network) can't be sandboxed safely. Install one in Settings › Plugins › Add a community plugin, by pasting its manifest.</p>
