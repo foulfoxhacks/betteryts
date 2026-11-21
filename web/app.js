@@ -1910,6 +1910,23 @@ $("#backup-file").addEventListener("change", async (e) => {
 	}
 });
 
+// ---- Home: the background video loop (only where it's welcome; the poster shows otherwise) ----
+{
+	const video = $(".hero-video");
+	const wide = matchMedia("(min-width: 700px)").matches;
+	const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+	const saveData = navigator.connection?.saveData === true;
+	if (video && wide && !calm && !saveData) {
+		video.src = video.dataset.src;
+		// Only play while it can be seen: no decoding behind other views or below the fold.
+		new IntersectionObserver(([e]) => {
+			if (e.isIntersecting) video.play().catch(() => {});
+			else video.pause();
+		}).observe(video);
+		video.addEventListener("playing", () => video.classList.add("playing"), { once: true });
+	}
+}
+
 // ---- Home: "Try" chips under the search ----
 for (const chip of $$(".hero-chip[data-try]")) {
 	chip.addEventListener("click", () => {

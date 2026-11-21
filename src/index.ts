@@ -480,7 +480,7 @@ function apiIndex(origin: string): Response {
 
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
-	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "privacy", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
+	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "privacy", "media", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
 	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
 ]);
 
