@@ -1,13 +1,13 @@
 {
     "packageName":  "dev.foulfoxhacks.betteryts.music",
-    "versionCode":  11,
-    "versionName":  "0.9.2",
-    "notes":  "In-app updates, animated fox intro, VRChat linking privacy (just this visit by default), polish.",
-    "released":  "2026-11-20T23:31:49Z",
+    "versionCode":  12,
+    "versionName":  "0.9.3",
+    "notes":  "Home fixes: the mood shelves fill again. They ask YouTube for short songs, Lo-fi Beats skips mixes and radio streams, and a shelf that comes back empty retries instead of disappearing.",
+    "released":  "2026-11-21T06:16:53Z",
     "signerSha256":  "b77d81c3041f987ebf26313c3876829bff6f1c16b9e897afa6a8f7e70814622c",
     "apk":  {
-                "url":  "https://yts.foulfoxhacks.dev/app/BetterYTS-Music-0.9.2.apk",
-                "size":  8990785,
-                "sha256":  "249742106d0f4214d9146b18ee1006ba7885315dfdd5fcf837581430b1ca1bc6"
+                "url":  "https://yts.foulfoxhacks.dev/app/BetterYTS-Music-0.9.3.apk",
+                "size":  8990781,
+                "sha256":  "221b818f9defce60f361538a6246f6abccfd6f4c4028c8f332dd5b9ab22a25b9"
             }
 }
