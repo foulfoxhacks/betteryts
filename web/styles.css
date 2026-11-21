@@ -1042,3 +1042,6 @@ button:disabled { opacity: 0.45; cursor: default; }
 /* ===== Home features: three bordered cards (was an open strip with a stray edge) ===== */
 .features { border-left: 0; gap: 16px; padding-top: 32px; padding-bottom: 8px; }
 .feature { border: 1px solid var(--line-gold); border-radius: 12px; }
+/* Room between "Everywhere you listen" and the VRChat band below it. */
+.everywhere { padding-top: 56px; padding-bottom: 64px; }
+@media (max-width: 600px) { .everywhere { padding-top: 40px; padding-bottom: 48px; } }
