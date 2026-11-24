@@ -346,6 +346,15 @@ name = "bys-osc"
 version = "0.1.0"
 
 [[package]]
+name = "bys-player"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ureq",
+]
+
+[[package]]
 name = "bys-store"
 version = "0.1.0"
 dependencies = [
