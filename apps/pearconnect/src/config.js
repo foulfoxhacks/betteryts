@@ -1,4 +1,5 @@
 import { InputError } from './validation.js';
+import { streamSettings } from './betteryts-stream.js';
 
 export function numberSetting(env, name, fallback, max = 86400) {
   const value = env[name]?.trim();
@@ -76,5 +77,7 @@ export function loadConfig(env = process.env, { allowUnconfigured = false } = {}
     maxPerUser: numberSetting(env, 'MAX_PER_USER', 2, 1000),
     blocklist: split(env.BLOCKLIST), skipAllowlist: split(env.SKIP_ALLOWLIST), requestAllowlist: split(env.REQUEST_ALLOWLIST),
     twitch, channelId: env.YOUTUBE_CHANNEL_ID?.trim(),
+    // Opt-in BetterYTS Stream backend (STREAM_BACKEND=betteryts); null keeps the local queue.
+    stream: streamSettings(env),
   };
 }

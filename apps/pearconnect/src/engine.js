@@ -7,6 +7,7 @@ import { validatePayload, InputError } from './validation.js';
 import { createLogger, diagnosticReport, redact } from './diagnostics.js';
 import { acquireInstance } from './instance.js';
 import { startTikfinity } from './platforms/tikfinity.js';
+import { BetterYTSStream } from './betteryts-stream.js';
 
 const methods = { request: 'handleRequest', nowPlaying: 'handleNowPlaying', queue: 'handleQueuePeek', skip: 'handleSkip' };
 export const RULE_KEYS = ['COOLDOWN_SECONDS', 'MAX_SONG_SECONDS', 'MAX_PER_USER', 'BLOCKLIST', 'REQUEST_ALLOWLIST', 'SKIP_ALLOWLIST', 'CMD_REQUEST', 'CMD_NOWPLAYING', 'CMD_QUEUE', 'CMD_SKIP'];
@@ -16,7 +17,7 @@ export function validateRuleUpdates(values, current) {
 }
 
 export class PearConnectEngine extends EventEmitter {
-  constructor(config, { player = new YTMDClient(config), logger, lock = acquireInstance, startSocket, startWebhook = startTikfinity, connectPlatforms = true } = {}) {
+  constructor(config, { player = new YTMDClient(config), logger, lock = acquireInstance, startSocket, startWebhook = startTikfinity, connectPlatforms = true, StreamClient } = {}) {
     super();
     this.config = config;
     this.player = player;
@@ -35,20 +36,23 @@ export class PearConnectEngine extends EventEmitter {
     this.playerState = config.dryRun ? 'dry_run' : config.token ? 'disconnected' : 'not_configured';
     this.requestsEnabled = config.requestsEnabled;
     this.input = { state: 'disconnected', lastEventAt: null, lastChatAt: null, lastCommandAt: null, invalidEvents: 0 };
-    this.log = logger || createLogger({ secrets: () => [this.config.token, this.config.secret, this.config.twitch.oauth], onLog: entry => {
+    this.log = logger || createLogger({ secrets: () => [this.config.token, this.config.secret, this.config.twitch.oauth, this.config.stream?.token, this.config.stream?.destinationToken], onLog: entry => {
       this.logs.push(entry); if (this.logs.length > 200) this.logs.shift();
     } });
     this.queue = new QueueManager({ ...config, ytmd: player, logger: this.log, requestCommand: config.commands.request });
+    // BetterYTS Stream owns requests, rules and moderation when enabled; Pear Desktop stays the player.
+    this.stream = config.stream && !config.dryRun ? new (StreamClient || BetterYTSStream)({ ...config.stream, player, logger: this.log }) : null;
   }
 
   status() {
-    const clean = value => redact(value, [this.config.token, this.config.secret, this.config.twitch.oauth]);
+    const clean = value => redact(value, [this.config.token, this.config.secret, this.config.twitch.oauth, this.config.stream?.token, this.config.stream?.destinationToken]);
     return {
       lifecycle: this.lifecycle, connectionMode: this.config.connectionMode, dryRun: this.config.dryRun,
       requestsEnabled: this.requestsEnabled, player: this.playerState,
       webFallback: this.webFallback, verification: this.verificationStatus(),
       currentTrack: this.currentTrack ? { title: clean(this.currentTrack.title || ''), artist: clean(this.currentTrack.artist || '') } : null,
       input: { ...this.input },
+      backend: this.stream ? { name: 'betteryts', state: this.stream.state } : { name: 'local' },
       chatReplies: this.config.connectionMode === 'simple' ? 'not_configured' : 'external_configuration',
       activity: this.activity.map(entry => ({ ...entry, user: clean(entry.user), query: clean(entry.query), message: clean(entry.message || '') })),
       logs: this.logs.map(entry => ({ ...entry, message: clean(entry.message) })),
@@ -73,6 +77,7 @@ export class PearConnectEngine extends EventEmitter {
       if (this.config.port && !this.config.secret) this.log.warn('[security] No webhook secret is configured. Local processes can call this bridge; configure TIKFINITY_SECRET for normal use.');
       this.server = await this.startWebhook({ ...this.config, log: this.log, queue: this.adapter('advanced'), getStatus: () => this.status(), getDiagnostics: () => this.diagnostics() });
       this.lifecycle = 'running';
+      this.stream?.start(() => this.lifecycle === 'running' && this.playerState === 'ready');
       await this.connectInput();
       if (!this.config.dryRun && this.connectPlatforms) {
         const shared = { commands: this.config.commands, skipAllowlist: this.config.skipAllowlist, log: this.log };
@@ -156,6 +161,7 @@ export class PearConnectEngine extends EventEmitter {
   }
 
   setWebFallback(enabled) {
+    if (enabled && this.stream) throw new InputError('BetterYTS Stream is the request backend. Share its /stream page instead of a PearConnect session code.');
     if (this.webFallback !== enabled) { this.pauseRequests(); this.webFallback = enabled; this.verification = null; this.changed(); }
   }
 
@@ -245,7 +251,7 @@ export class PearConnectEngine extends EventEmitter {
     else {
       entry.state = 'checking'; this.changed();
       try {
-        result = await this.queue[methods[command]]({ ...payload, platform: source === 'web' ? 'web' : data.platform || 'tiktok', reply: data.reply,
+        result = command === 'request' && this.stream ? await this.streamRequest(payload, data, source) : await this.queue[methods[command]]({ ...payload, platform: source === 'web' ? 'web' : data.platform || 'tiktok', reply: data.reply,
           allowlist: this.config.skipAllowlist,
           canMutate: () => this.lifecycle === 'running' && this.requestsEnabled && generation === this.generation && !this.transitioning,
           beforeEnqueue: data.beforeEnqueue,
@@ -259,6 +265,16 @@ export class PearConnectEngine extends EventEmitter {
     this.changed(); return result;
   }
 
+  // Requests go to BetterYTS Stream: it looks the song up, applies the streamer's rules and queues it.
+  // Playback reaches Pear Desktop later through the destination loop, so this is a queue receipt only.
+  async streamRequest(payload, data, source) {
+    const platform = ['twitch', 'youtube'].includes(data.platform) ? data.platform : 'tiktok';
+    if (source === 'web') return { ok: false, code: 'input_disabled', message: 'Website requests go through the BetterYTS Stream page.' };
+    const r = await this.stream.submit({ ...payload, platform, reply: data.reply });
+    const accepted = ['queued', 'pending_approval', 'resolving', 'approved'].includes(r.state);
+    return { ok: accepted, code: accepted ? `stream_${r.state}` : r.code || 'rejected', message: typeof r.message === 'string' ? r.message.slice(0, 1200) : 'BetterYTS Stream did not answer.' };
+  }
+
   stop() {
     if (this.stopPromise) return this.stopPromise;
     this.stopPromise = this.stopInternal().finally(() => { this.stopPromise = null; });
@@ -270,6 +286,7 @@ export class PearConnectEngine extends EventEmitter {
     this.lifecycle = 'stopping'; this.pauseRequests();
     this.verification = null;
     this.socket?.stop(); this.socket = null;
+    this.stream?.stop();
     await Promise.allSettled([
       ...(this.youtube ? [Promise.resolve().then(() => this.youtube.stop())] : []),
       ...(this.twitch ? [Promise.resolve().then(() => this.twitch.disconnect())] : []),

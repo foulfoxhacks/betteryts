@@ -17,28 +17,30 @@ const TOKEN = /^[a-f0-9]{64}$/;
 const VIDEO = /^[\w-]{11}$/;
 
 export class BetterYTSStream {
-  #token;
-  constructor({ origin = STREAM_ORIGIN, code, token, player, logger = console, fetcher = fetch, intervalMs = 2000, queueCheckDelayMs = 500 }) {
+  #token; #destinationToken;
+  constructor({ origin = STREAM_ORIGIN, code, token, destinationToken, player, logger = console, fetcher = fetch, intervalMs = 2000, queueCheckDelayMs = 500 }) {
     if (!CODE.test(code || '')) throw new InputError('BETTERYTS_STREAM_CODE must be an 8-character session code.');
     if (!TOKEN.test(token || '')) throw new InputError('BETTERYTS_STREAM_TOKEN must be the 64-character session credential.');
+    if (destinationToken && !TOKEN.test(destinationToken)) throw new InputError('BETTERYTS_STREAM_DESTINATION_TOKEN must be a 64-character credential.');
     const url = new URL(origin);
     if (url.protocol !== 'https:' && !['127.0.0.1', 'localhost'].includes(url.hostname)) throw new InputError('BETTERYTS_STREAM_ORIGIN must use HTTPS.');
     this.base = `${url.origin}/api/stream/v1/sessions/${code}`;
-    this.#token = token; this.player = player; this.log = logger; this.fetcher = fetcher;
+    // Least privilege: an intake credential for chat, a destination credential for playback. Owner works for both.
+    this.#token = token; this.#destinationToken = destinationToken || token; this.player = player; this.log = logger; this.fetcher = fetcher;
     this.intervalMs = intervalMs; this.queueCheckDelayMs = queueCheckDelayMs;
     this.stopped = true; this.ready = () => true; this.state = 'disconnected';
   }
 
-  async call(path, body, method = 'POST') {
+  async call(path, body, method = 'POST', credential = this.#token) {
     let response;
     try {
       response = await this.fetcher(`${this.base}${path}`, { method, redirect: 'error', signal: AbortSignal.timeout(15000),
-        headers: { Authorization: `Bearer ${this.#token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+        headers: { Authorization: `Bearer ${credential}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
     } catch { throw new InputError('BetterYTS Stream is unreachable. Check the previous result before retrying.'); }
     if (!response.headers.get('content-type')?.includes('application/json')) throw new InputError('BetterYTS Stream returned an unexpected response.');
     const text = await response.text();
     if (text.length > 262144) throw new InputError('BetterYTS Stream response is too large.');
-    const data = JSON.parse(text);
+    let data; try { data = JSON.parse(text); } catch { throw new InputError('BetterYTS Stream returned invalid JSON.'); }
     if (!response.ok || data.ok === false && data.code && !data.state) {
       const error = new InputError(typeof data.message === 'string' ? data.message.slice(0, 1200) : 'BetterYTS Stream rejected the call.');
       error.code = data.code; throw error;
@@ -66,7 +68,7 @@ export class BetterYTSStream {
   async tick() {
     if (this.stopped) return;
     try {
-      const data = await this.call('/destination/claim', { ready: !!this.ready() });
+      const data = await this.call('/destination/claim', { ready: !!this.ready() }, 'POST', this.#destinationToken);
       this.state = 'connected';
       if (data.request) await this.dispatch(data.request);
     } catch (error) {
@@ -80,7 +82,7 @@ export class BetterYTSStream {
   /** Add a claimed request to Pear Desktop. Never retries a write that may have succeeded. */
   async dispatch(request) {
     const id = request.id, videoId = request.media?.id;
-    const report = body => this.call('/destination/report', { id, ...body }).catch(() =>
+    const report = body => this.call('/destination/report', { id, ...body }, 'POST', this.#destinationToken).catch(() =>
       this.log.warn('[stream] Result delivery failed. BetterYTS will show this request as dispatching; it will not be sent again.'));
     if (!VIDEO.test(videoId || '')) return report({ state: 'failed', code: 'destination_failed', message: 'The request had no playable video.' });
     let writeStarted = false;
@@ -110,5 +112,6 @@ export function streamSettings(env = process.env) {
   const backend = (env.STREAM_BACKEND || 'local').trim().toLowerCase();
   if (backend === 'local') return null;
   if (backend !== 'betteryts') throw new InputError('STREAM_BACKEND must be local or betteryts.');
-  return { origin: (env.BETTERYTS_STREAM_ORIGIN || STREAM_ORIGIN).trim(), code: (env.BETTERYTS_STREAM_CODE || '').trim().toUpperCase(), token: (env.BETTERYTS_STREAM_TOKEN || '').trim() };
+  return { origin: (env.BETTERYTS_STREAM_ORIGIN || STREAM_ORIGIN).trim(), code: (env.BETTERYTS_STREAM_CODE || '').trim().toUpperCase(), token: (env.BETTERYTS_STREAM_TOKEN || '').trim(),
+    destinationToken: (env.BETTERYTS_STREAM_DESTINATION_TOKEN || '').trim() || undefined };
 }

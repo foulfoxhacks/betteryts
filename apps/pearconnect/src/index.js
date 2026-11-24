@@ -32,7 +32,7 @@ async function main() {
     return;
   }
   const config = loadConfig({ ...process.env, ...options.env }, { allowUnconfigured: !options.strictPlayer || ['status', 'diagnostics'].includes(options.action) });
-  log = createLogger({ json: options.json, secrets: () => [config.token, config.secret, config.twitch.oauth] });
+  log = createLogger({ json: options.json, secrets: () => [config.token, config.secret, config.twitch.oauth, config.stream?.token, config.stream?.destinationToken] });
   if (options.action === 'validate-config') { log.info('Configuration valid. No connections or mutations performed.'); return; }
   if (['status', 'diagnostics'].includes(options.action)) {
     if (!config.port) throw new Error('Status requires the local HTTP listener (TIKFINITY_PORT).');
@@ -46,7 +46,7 @@ async function main() {
   if (config.dryRun) log.warn('DRY RUN: no player calls, accounting or Twitch/YouTube connections. Simple mode reads TikFinity events.');
   engine = new PearConnectEngine(config, { logger: log });
   await engine.start({ strictPlayer: options.strictPlayer });
-  log.info(`PearConnect Song Requests is running. ${config.connectionMode} input; requests ${engine.requestsEnabled ? 'enabled' : 'paused'}. Press Ctrl+C to quit.`);
+  log.info(`PearConnect Song Requests is running. ${config.connectionMode} input; ${engine.stream ? 'BetterYTS Stream backend' : 'local queue'}; requests ${engine.requestsEnabled ? 'enabled' : 'paused'}. Press Ctrl+C to quit.`);
   let closing = false;
   const shutdown = async () => {
     if (closing) return; closing = true;
