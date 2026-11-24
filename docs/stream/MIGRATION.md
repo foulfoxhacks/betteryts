@@ -42,7 +42,7 @@ Point them at `foulfoxhacks/betteryts`, with tags like `pearconnect-v0.3.0-beta.
 
 ### 6. ~~Archive the old repo~~ (superseded)
 `foulfoxhacks/PearConnect-Song-Requests` was deleted rather than archived (GitHub returns 404 as of 2026-11-24), so its release downloads are gone. Recovery:
-- PearConnect `0.3.0-beta.6` is released from this repo (tag `pearconnect-v0.3.0-beta.6`, built by `pearconnect-release.yml`; draft with ZIP + SHA-256, not published yet), and the website, docs and SEO data point at it.
+- PearConnect `0.3.0-beta.6` is released from this repo (tag `pearconnect-v0.3.0-beta.6`, built by `pearconnect-release.yml`; published 2026-11-24 as a pre-release, ZIP + SHA-256 verified), and the website, docs and SEO data point at it.
 - beta.1–beta.5 and the Player preview downloads are marked retired in the docs. Rebuilding the Player needs its own release job (open).
 - Do **not** redeploy the PearConnect website (`pearconnect.mellozone.site`): PearConnect is becoming BetterYTS, so its downloads and docs move to BetterYTS pages instead (owner decision, 2026-11-24).
 - The full history is preserved in this repo (subtree merge) and in the local clone `E:\Codebase\PearConnect-Song-Requests`.
