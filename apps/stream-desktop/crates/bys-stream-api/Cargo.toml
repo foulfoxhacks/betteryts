@@ -1,0 +1,23 @@
+[package]
+name = "bys-stream-api"
+description = "Typed client for the BetterYTS Stream API (/api/stream/v1)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[features]
+default = ["http"]
+# Real HTTPS transport (ureq + rustls). Off in tests that use the fake transport.
+http = ["dep:ureq"]
+
+[dependencies]
+# serde/serde_json: typed JSON for API requests and responses.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# ureq: small blocking HTTP client with rustls (no OpenSSL, no async runtime).
+ureq = { version = "3", optional = true, default-features = false, features = ["rustls"] }
+
+[lints]
+workspace = true

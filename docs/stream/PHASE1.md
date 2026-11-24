@@ -12,7 +12,7 @@ Blueprint: [desktop-blueprint.md](desktop-blueprint.md) · Code: `apps/stream-de
 ## Steps
 
 - [x] Server: moderator `complete` action + session counters (`stats`) in the queue response (`634474c`)
-- [ ] `bys-stream-api` crate: typed client for `/api/stream/v1`. The HTTP transport is a trait so tests use a fake. HTTPS only (loopback excepted), response size cap, credentials redacted in `Debug`. Endpoints: create session, public view, queue, moderate, manage, mint/revoke tokens, destination claim/report.
+- [x] `bys-stream-api` crate: typed client for `/api/stream/v1`. The HTTP transport is a trait so tests use a fake. HTTPS only (loopback excepted), response size cap, credentials redacted in `Debug`. Endpoints: create session, public view, queue, moderate, manage, mint/revoke tokens, destination claim/report.
 - [ ] `bys-store` crate: settings JSON (atomic write, schema version) + secrets through the OS keychain (`keyring`), with an in-memory secret store for tests. Secrets never go to disk in plain text.
 - [ ] `app/` Tauri 2 shell (workspace member). UI is plain HTML/CSS/JS, no framework. CSP locked to self + the BetterYTS API origin.
 - [ ] Get Live console UI (BetterYTS branding, not a copy of the reference):
