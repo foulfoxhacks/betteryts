@@ -11,7 +11,7 @@ const failures = [];
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if ([".git", "node_modules", "apps", "test"].includes(entry.name)) continue;
+    if ([".git", "node_modules", "apps", "test", ".cloudflare", "dist"].includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) walk(full, out);
     else if (entry.isFile() && entry.name.endsWith(".html")) out.push(full);
