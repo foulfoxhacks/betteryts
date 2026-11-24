@@ -20,8 +20,8 @@ export default defineConfig({
 		client: {
 			build: {
 				rollupOptions: {
-					// Static pages: search front page, API docs, visual site map.
-					input: { main: "index.html", docs: "docs.html", sitemap: "sitemap.html", ecosystem: "ecosystem.html", privacy: "privacy.html", terms: "terms.html" },
+					// Static pages: search front page, API docs, visual site map; /stream/* is the noindex Stream preview.
+					input: { main: "index.html", docs: "docs.html", sitemap: "sitemap.html", ecosystem: "ecosystem.html", privacy: "privacy.html", terms: "terms.html", stream: "stream/index.html", streamOverlay: "stream/overlay.html" },
 				},
 			},
 		},

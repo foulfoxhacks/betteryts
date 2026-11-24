@@ -1,7 +1,12 @@
+# Moved from apps/pearconnect/.github/workflows/ci.yml when PearConnect joined the BetterYTS monorepo.
+# Runs only for changes under apps/pearconnect/ (and this file); commands run from that folder.
 name: PearConnect CI
 on:
   push:
+    branches: [main]
+    paths: ['apps/pearconnect/**', '.github/workflows/pearconnect-ci.yml']
   pull_request:
+    paths: ['apps/pearconnect/**', '.github/workflows/pearconnect-ci.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,12 +20,16 @@ jobs:
         node: ['22', '24']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/pearconnect
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+          cache-dependency-path: apps/pearconnect/package-lock.json
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
@@ -29,6 +38,9 @@ jobs:
     name: Streamer.bot C# contract / Windows
     runs-on: windows-latest
     timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/pearconnect
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,6 +56,9 @@ jobs:
     name: Dependency audit
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/pearconnect
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,12 +70,16 @@ jobs:
     name: Desktop acceptance and Windows portable build
     runs-on: windows-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/pearconnect
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
+          cache-dependency-path: apps/pearconnect/package-lock.json
       - run: npm ci --ignore-scripts
       - run: node node_modules/electron/install.js
       - run: npm run test:desktop
@@ -68,6 +87,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: PearConnect-Windows-x64-preview
-          path: dist/PearConnect-win32-x64/
+          path: apps/pearconnect/dist/PearConnect-win32-x64/
           if-no-files-found: error
           retention-days: 14

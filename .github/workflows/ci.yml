@@ -3,9 +3,12 @@
 name: CI
 
 on:
+  # apps/* (PearConnect, …) have their own workflows; changes only there don't rebuild the Worker.
   pull_request:
+    paths-ignore: ["apps/**", ".github/workflows/pearconnect-*.yml"]
   push:
-    branches: [main, "release/**", "audit/**"]
+    branches: [main, "release/**", "audit/**", "stream/**"]
+    paths-ignore: ["apps/**", ".github/workflows/pearconnect-*.yml"]
   workflow_dispatch:
 
 permissions:

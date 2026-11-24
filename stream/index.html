@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BetterYTS Stream — song requests, queue and overlays (preview)</title>
+		<meta name="description" content="BetterYTS Stream: live song requests from chat and the web into one moderated queue, with Pear Desktop playback and stream overlays. Preview." />
+		<!--
+			Preview section. Kept out of search on purpose so it can't compete with or dilute the indexed
+			yts.foulfoxhacks.dev pages: noindex here and in /_headers (/stream*), not in sitemap.xml or the
+			human site map, and its API lives under /api/ (disallowed in robots.txt). See docs/stream/seo.md
+			for the launch checklist.
+		-->
+		<meta name="robots" content="noindex, nofollow" />
+		<link rel="canonical" href="https://yts.foulfoxhacks.dev/stream" />
+		<link rel="icon" href="/favicon.ico" sizes="any" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="theme-color" content="#242526" />
+		<link rel="stylesheet" href="/web/styles.css" />
+	</head>
+	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
+		<nav class="navbar" id="navbar" aria-label="Main">
+			<div class="navbar-inner">
+				<a class="brand" href="/" aria-label="BetterYTS home">
+					<img src="/brand/logo-64.png" alt="" width="32" height="32" />
+					<span class="brand-text"><b>BetterYTS</b><small>Stream · preview</small></span>
+				</a>
+				<div class="nav-links" id="nav-links">
+					<a class="nav-link active" href="/stream">Stream</a>
+					<a class="nav-link" href="#docs">Docs</a>
+					<a class="nav-link" href="#api">API</a>
+					<a class="nav-link" href="/docs">BetterYTS API</a>
+				</div>
+			</div>
+		</nav>
+
+		<div class="docs-layout">
+			<aside class="docs-sidebar" aria-label="Stream navigation">
+				<ul>
+					<li class="group">Stream</li>
+					<li><a href="#request">Request a song</a></li>
+					<li><a href="#overview">What it is</a></li>
+					<li class="group">Docs</li>
+					<li><a href="#docs">Set up a stream</a></li>
+					<li><a href="#pearconnect">PearConnect Desktop</a></li>
+					<li><a href="#rules">Request rules</a></li>
+					<li><a href="#moderation">Moderation</a></li>
+					<li><a href="#overlays">Overlays</a></li>
+					<li class="group">API</li>
+					<li><a href="#api">Overview &amp; auth</a></li>
+					<li><a href="#api-sessions">Sessions</a></li>
+					<li><a href="#api-requests">Requests &amp; events</a></li>
+					<li><a href="#api-queue">Queue &amp; moderation</a></li>
+					<li><a href="#api-destination">Playback destinations</a></li>
+					<li><a href="#api-lifecycle">Lifecycle &amp; codes</a></li>
+				</ul>
+			</aside>
+
+			<main id="main" class="doc">
+				<p class="breadcrumbs"><a href="/">Home</a> › Stream</p>
+				<h1>BetterYTS Stream</h1>
+				<p class="lead">Song requests from Twitch, YouTube Live, TikTok (through TikFinity) and this page land in one moderated queue, and play through Pear Desktop. It grew out of PearConnect.</p>
+				<div class="admonition tip">
+					<p class="admonition-heading">Preview</p>
+					<p>This is a preview. Streamers create a session from PearConnect Desktop, which gives them a code to share. Nothing here is public until they turn requests on.</p>
+				</div>
+
+				<h2 id="request">Request a song</h2>
+				<form id="stream-request" class="stream-form" autocomplete="off">
+					<p><label>Session code <input name="code" required maxlength="8" pattern="[A-HJ-NP-Za-hj-np-z2-9]{8}" placeholder="ABCD2345" /></label></p>
+					<p><label>Your name <input name="name" required maxlength="60" /></label></p>
+					<p><label>Artist and song, or a YouTube link <input name="query" required maxlength="512" /></label></p>
+					<p><button class="button primary" type="submit">Send request</button></p>
+					<p id="stream-status" role="status" aria-live="polite"></p>
+				</form>
+
+				<h2 id="overview">What it is</h2>
+				<p>One request pipeline for a stream. Every source sends the same kind of event. BetterYTS finds the song itself, applies the streamer's rules, and keeps the queue. A playback destination (PearConnect Desktop with Pear Desktop, for now) takes approved songs one at a time and reports back what happened.</p>
+				<pre><code>chat / web / bots → /events → rules → BetterYTS lookup → queue → destination (Pear Desktop) → overlays</code></pre>
+
+				<h2 id="docs">Set up a stream</h2>
+				<ol>
+					<li>In PearConnect Desktop, connect Pear Desktop as usual.</li>
+					<li>Create a BetterYTS Stream session. You get a code and an owner credential; keep the credential private.</li>
+					<li>Set your rules (below), mint an overlay link for OBS, then turn requests on.</li>
+					<li>Share the code. Viewers use <code>!sr song</code> in chat or the form above.</li>
+				</ol>
+
+				<h3 id="pearconnect">PearConnect Desktop</h3>
+				<p>PearConnect now lives in the BetterYTS repository at <code>apps/pearconnect</code>. Its local queue is still the default. To use BetterYTS Stream instead, set these in <code>.env</code>:</p>
+				<pre><code>STREAM_BACKEND=betteryts
+BETTERYTS_STREAM_CODE=ABCD2345
+BETTERYTS_STREAM_TOKEN=&lt;owner, intake or destination credential&gt;</code></pre>
+				<p>With that set, chat requests go to BetterYTS. Desktop adds each approved song to Pear Desktop, checks that it appeared in the player queue, and reports back. A request that may already have played is never sent again.</p>
+
+				<h3 id="rules">Request rules</h3>
+				<table>
+					<thead><tr><th>Field</th><th>Default</th><th>Meaning</th></tr></thead>
+					<tbody>
+						<tr><td><code>approvalMode</code></td><td>auto</td><td><code>manual</code> holds each request for a moderator.</td></tr>
+						<tr><td><code>cooldownSeconds</code></td><td>60</td><td>Time between one viewer's requests (0 = off).</td></tr>
+						<tr><td><code>maxPerUser</code></td><td>2</td><td>Requests one viewer may have waiting.</td></tr>
+						<tr><td><code>maxSongSeconds</code></td><td>420</td><td>Longest song; unknown lengths are refused while this is set.</td></tr>
+						<tr><td><code>maxQueueLength</code></td><td>50</td><td>Waiting requests before the queue reports full.</td></tr>
+						<tr><td><code>rejectDuplicates</code></td><td>true</td><td>Refuse a song already waiting or playing.</td></tr>
+						<tr><td><code>allowLive</code></td><td>false</td><td>Allow live streams.</td></tr>
+						<tr><td><code>blocklist</code></td><td>[]</td><td>Words checked against the request, title and artist.</td></tr>
+						<tr><td><code>requestAllowlist</code></td><td>[]</td><td><code>name</code>, <code>twitch:name</code> or <code>youtube:&lt;channel id&gt;</code>. Website visitors can't match.</td></tr>
+						<tr><td><code>commands</code></td><td>sr, np, queue, skip</td><td>Chat command names, without <code>!</code>.</td></tr>
+					</tbody>
+				</table>
+
+				<h3 id="moderation">Moderation</h3>
+				<p>The owner can mint <strong>moderator</strong> credentials. Moderators can approve, reject, remove, skip and reorder requests. Only the owner can clear the queue, change rules or mint credentials. Every action is recorded with who did it.</p>
+
+				<h3 id="overlays">Overlays</h3>
+				<p>Mint an <strong>overlay</strong> credential to get a browser-source link (<code>/stream/overlay#CODE.TOKEN</code>). It shows now playing, up next and recent songs with requester names, and nothing else. It's read-only, and you can revoke it or let it expire.</p>
+
+				<h2 id="api">API</h2>
+				<p>Base: <code>https://yts.foulfoxhacks.dev/api/stream/v1</code>. JSON in and out. Responses are never cached and never indexed. Credentials are 64-character hex bearer tokens: <code>Authorization: Bearer …</code>. Browsers may only call from this site, and credentialed calls come from apps, not browsers.</p>
+				<table>
+					<thead><tr><th>Scope</th><th>Can</th></tr></thead>
+					<tbody>
+						<tr><td>owner</td><td>Everything below, plus rules, intake on/off, credentials, clear, end.</td></tr>
+						<tr><td>moderator</td><td>Read the queue; approve, reject, remove, skip, reorder.</td></tr>
+						<tr><td>intake</td><td>Submit events (chat bots, Streamer.bot, PearConnect).</td></tr>
+						<tr><td>destination</td><td>Claim and report playback.</td></tr>
+						<tr><td>overlay</td><td>Read overlay state.</td></tr>
+					</tbody>
+				</table>
+
+				<h3 id="api-sessions">Sessions</h3>
+				<pre><code>POST /sessions                      {minutes: 15-1440, policy?}   → {code, ownerToken, …}  (no browser Origin; 5/min per connection)
+GET  /sessions/{code}               public view: accepting, command, destinationOnline
+POST /sessions/{code}/manage        owner: {intake?, policy?, minutes?, end?}
+POST /sessions/{code}/tokens        owner: {scope, minutes?, label?} → {id, token, expires, overlayUrl?}
+POST /sessions/{code}/tokens/revoke owner: {id}</code></pre>
+
+				<h3 id="api-requests">Requests &amp; events</h3>
+				<pre><code>POST /sessions/{code}/requests      website: {id: uuid, name, query}   (6/min per connection; idempotent on id)
+GET  /sessions/{code}/requests/{id} website receipt (same connection only)
+POST /sessions/{code}/events        intake: canonical event, schema v1</code></pre>
+				<pre><code>{
+  "schemaVersion": "1",
+  "eventId": "twitch-msg-8f2c…",
+  "eventType": "song_request.submitted",
+  "source": { "platform": "twitch" },
+  "actor": { "platformUserId": "12345", "displayName": "Viewer" },
+  "request": { "input": "Artist - Song", "inputType": "text" },
+  "occurredAt": "2026-11-22T12:00:00Z"
+}</code></pre>
+				<p>Platforms: <code>twitch</code>, <code>youtube</code>, <code>tiktok</code>, <code>web</code>, <code>android</code>, <code>vrchat</code>, <code>local</code>. Sending the same <code>eventId</code> again returns the first result.</p>
+
+				<h3 id="api-queue">Queue &amp; moderation</h3>
+				<pre><code>GET  /sessions/{code}/queue         moderator: active, history, audit, credentials
+POST /sessions/{code}/queue/action  {action: approve|reject|remove|skip|reorder|clear, id?, position?, reason?}
+GET  /sessions/{code}/overlay?token=…  overlay: nowPlaying, upcoming, recent</code></pre>
+
+				<h3 id="api-destination">Playback destinations</h3>
+				<pre><code>POST /sessions/{code}/destination/claim   {ready} → {request: {id, media, requester, platform} | null}
+POST /sessions/{code}/destination/report  {id, state: playing|completed|failed, code?, message?, outcomeUncertain?}</code></pre>
+				<p>Claims are handed out one at a time. A claim is saved before the response is sent, and it is never sent again if that response is lost.</p>
+
+				<h3 id="api-lifecycle">Lifecycle &amp; codes</h3>
+				<p><code>received → resolving → pending_approval → approved → queued → dispatching → playing → completed</code>, or it ends as <code>rejected</code>, <code>skipped</code>, <code>failed</code> or <code>cancelled</code>. Any other move is refused.</p>
+				<p>Reason codes: <code>usage</code>, <code>invalid_input</code>, <code>forbidden</code>, <code>blocked</code>, <code>cooldown</code>, <code>user_limit</code>, <code>queue_full</code>, <code>duplicate</code>, <code>no_results</code>, <code>unavailable</code>, <code>unsupported</code>, <code>unknown_duration</code>, <code>too_long</code>, <code>live_stream</code>, <code>requests_paused</code>, <code>rate_limited</code>, <code>moderator_rejected</code>, <code>moderator_removed</code>, <code>cleared</code>, <code>destination_failed</code>, <code>outcome_uncertain</code>.</p>
+			</main>
+		</div>
+		<script type="module" src="/web/stream.js"></script>
+	</body>
+</html>
