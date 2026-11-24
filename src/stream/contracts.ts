@@ -36,7 +36,8 @@ const TRANSITIONS: Record<RequestState, readonly RequestState[]> = {
 	resolving: ["pending_approval", "approved", "rejected", "failed", "cancelled"],
 	pending_approval: ["approved", "rejected", "cancelled"],
 	approved: ["queued", "cancelled"],
-	queued: ["dispatching", "skipped", "cancelled"],
+	// "completed" straight from queued: a DJ marks a request played without a playback destination.
+	queued: ["dispatching", "completed", "skipped", "cancelled"],
 	// A lost destination answer never auto-retries (it may already be playing): failed, not queued.
 	dispatching: ["playing", "completed", "failed", "skipped"],
 	playing: ["completed", "skipped", "failed"],

@@ -250,3 +250,21 @@ test("routes: creation, browser and credential rules, website rejections without
 	for (let i = 0; i < 4; i++) await call("/api/stream/v1/sessions", { method: "POST", headers: json, body: JSON.stringify({ minutes: 15 }) });
 	assert.equal((await call("/api/stream/v1/sessions", { method: "POST", headers: json, body: JSON.stringify({ minutes: 15 }) })).status, 429, "five sessions a minute per connection");
 });
+
+test("queue DO: complete action and session counters for the creator console", async () => {
+	const clock = fakeClock();
+	try {
+		const s = await session(normalizePolicy({ cooldownSeconds: 0, blocklist: ["nope"] }));
+		await s.manage(OWNER, { intake: true });
+		const a = (await s.intake(event("song a", "twitch", "u1"))) as { id: string };
+		await s.settle(a.id, resolved("aaaaaaaaaaa"));
+		await s.intake(event("nope", "twitch", "u2"));
+		const mod: Caller = { scope: "moderator", tokenId: "m1" };
+		assert.equal((s.moderate(mod, { action: "complete", id: a.id }) as { request: { state: string } }).request.state, "completed", "DJ marks it played");
+		assert.equal((s.moderate(mod, { action: "complete", id: a.id }) as { code: string }).code, "invalid_state");
+		const q = s.queue(OWNER) as { stats: Record<string, number> };
+		assert.deepEqual(q.stats, { received: 2, accepted: 1, rejected: 1, completed: 1 });
+	} finally {
+		clock.restore();
+	}
+});

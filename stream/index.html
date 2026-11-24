@@ -153,8 +153,8 @@ POST /sessions/{code}/events        intake: canonical event, schema v1</code></p
 				<p>Platforms: <code>twitch</code>, <code>youtube</code>, <code>tiktok</code>, <code>web</code>, <code>android</code>, <code>vrchat</code>, <code>local</code>. Sending the same <code>eventId</code> again returns the first result.</p>
 
 				<h3 id="api-queue">Queue &amp; moderation</h3>
-				<pre><code>GET  /sessions/{code}/queue         moderator: active, history, audit, credentials
-POST /sessions/{code}/queue/action  {action: approve|reject|remove|skip|reorder|clear, id?, position?, reason?}
+				<pre><code>GET  /sessions/{code}/queue         moderator: active, history, stats (received/accepted/rejected/completed), audit, credentials
+POST /sessions/{code}/queue/action  {action: approve|reject|remove|complete|skip|reorder|clear, id?, position?, reason?}
 GET  /sessions/{code}/overlay  overlay (X-Overlay-Token header): nowPlaying, upcoming, recent</code></pre>
 
 				<h3 id="api-destination">Playback destinations</h3>

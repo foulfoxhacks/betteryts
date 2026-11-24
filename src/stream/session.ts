@@ -98,6 +98,8 @@ export class StreamSession extends DurableObject<Env> {
 			"CREATE TABLE IF NOT EXISTS actions (seq INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT, actor TEXT NOT NULL, action TEXT NOT NULL, reason TEXT, at INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS cooldowns (actor_key TEXT PRIMARY KEY, at INTEGER NOT NULL)",
 			"CREATE TABLE IF NOT EXISTS limits (identity TEXT PRIMARY KEY, at INTEGER NOT NULL, count INTEGER NOT NULL)",
+			// Session totals for the creator console (kept after rows are pruned).
+			"CREATE TABLE IF NOT EXISTS stats (key TEXT PRIMARY KEY, n INTEGER NOT NULL)",
 		])
 			sql.exec(stmt);
 	}
@@ -119,6 +121,9 @@ export class StreamSession extends DurableObject<Env> {
 	}
 	private move(row: Row, to: RequestState, fields: { code?: ReasonCode | string | null; message?: string | null; media?: MediaItem | null; position?: number | null; uncertain?: boolean } = {}) {
 		assertTransition(row.state, to);
+		if (to === "queued") this.count("accepted");
+		else if (to === "rejected") this.count("rejected");
+		else if (to === "completed") this.count("completed");
 		const now = Date.now();
 		this.ctx.storage.sql.exec(
 			"UPDATE requests SET state=?, code=COALESCE(?, code), message=COALESCE(?, message), media=COALESCE(?, media), position=?, updated=?, uncertain=? WHERE id=? AND state=?",
@@ -135,6 +140,14 @@ export class StreamSession extends DurableObject<Env> {
 		// Keep the caller's copy in step with what was written.
 		const fresh = this.row(row.id);
 		if (fresh) Object.assign(row, fresh);
+	}
+	private count(key: "received" | "accepted" | "rejected" | "completed") {
+		this.ctx.storage.sql.exec("INSERT INTO stats VALUES(?,1) ON CONFLICT(key) DO UPDATE SET n=n+1", key);
+	}
+	private stats() {
+		const out = { received: 0, accepted: 0, rejected: 0, completed: 0 };
+		for (const r of this.ctx.storage.sql.exec<{ key: keyof typeof out; n: number }>("SELECT key, n FROM stats").toArray()) if (r.key in out) out[r.key] = r.n;
+		return out;
 	}
 	private audit(requestId: string | null, caller: Caller | string, action: string, reason = "") {
 		const actor = typeof caller === "string" ? caller : `${caller.scope}:${caller.tokenId}`;
@@ -294,6 +307,7 @@ export class StreamSession extends DurableObject<Env> {
 			now,
 			now,
 		);
+		this.count("received");
 		const row = this.row(id) as Row;
 		const denied = precheck(fresh.policy, event.source.platform, actor, event.request.input, this.snapshot(key, id));
 		if (denied && !denied.ok) {
@@ -376,6 +390,7 @@ export class StreamSession extends DurableObject<Env> {
 			...this.view(m),
 			intake: m.intake,
 			policy: m.policy,
+			stats: this.stats(),
 			active: rows.filter((r) => ACTIVE_STATES.has(r.state)).map(entry),
 			history: rows.filter((r) => TERMINAL_STATES.has(r.state)).sort((a, b) => b.updated - a.updated).slice(0, 100).map(entry),
 			audit: this.ctx.storage.sql.exec("SELECT request_id AS requestId, actor, action, reason, at FROM actions ORDER BY seq DESC LIMIT 50").toArray(),
@@ -409,6 +424,9 @@ export class StreamSession extends DurableObject<Env> {
 				case "remove":
 					this.move(row, "cancelled", { code: "moderator_removed", message: `@${row.actor_name} a moderator removed that request.` });
 					break;
+				case "complete":
+					this.move(row, "completed", { code: "completed", message: "Marked as played." });
+					break;
 				case "skip":
 					this.move(row, "skipped", { code: "skipped", message: "Skipped by a moderator." });
 					break;
@@ -422,7 +440,7 @@ export class StreamSession extends DurableObject<Env> {
 					break;
 				}
 				default:
-					return fail("invalid_input", "action must be approve, reject, remove, skip, reorder or clear.");
+					return fail("invalid_input", "action must be approve, reject, remove, complete, skip, reorder or clear.");
 			}
 		} catch (err) {
 			if (err instanceof Error && err.name === "TransitionError") return fail("invalid_state", err.message, 409);
