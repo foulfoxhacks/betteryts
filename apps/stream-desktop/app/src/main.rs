@@ -11,7 +11,7 @@ mod playback;
 mod presence;
 
 use bys_store::{Profile, Secret, Secrets, Settings};
-use bys_stream_api::{Action, Client, Credential, HttpTransport, Manage, QueueState};
+use bys_stream_api::{Action, Client, Credential, HttpTransport, Kinds, Manage, QueueState};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -162,8 +162,20 @@ async fn moderate(state: tauri::State<'_, AppState>, action: String, id: Option<
     .await
 }
 
+/// Master switch: Go live / Pause (all request kinds).
 #[tauri::command]
-async fn set_intake(state: tauri::State<'_, AppState>, songs: bool, videos: bool, shoutouts: bool) -> Res<()> {
+async fn set_live(state: tauri::State<'_, AppState>, on: bool) -> Res<()> {
+    let (origin, code, cred) = session(&state)?;
+    let update = Manage {
+        intake: Some(on),
+        ..Default::default()
+    };
+    blocking(move || client(&origin)?.manage(&code, &cred, &update).map(|_| ()).map_err(|e| e.to_string())).await
+}
+
+/// Per-kind switches: songs, videos, shoutouts.
+#[tauri::command]
+async fn set_kinds(state: tauri::State<'_, AppState>, songs: bool, videos: bool, shoutouts: bool) -> Res<()> {
     {
         let mut s = lock(&state)?;
         s.accept_songs = songs;
@@ -171,10 +183,13 @@ async fn set_intake(state: tauri::State<'_, AppState>, songs: bool, videos: bool
         s.accept_shoutouts = shoutouts;
         save(&state, &s)?;
     }
-    // The server accepts song requests today; video and shoutout intake arrive with their request types.
     let (origin, code, cred) = session(&state)?;
     let update = Manage {
-        intake: Some(songs),
+        kinds: Some(Kinds {
+            song: songs,
+            video: videos,
+            shoutout: shoutouts,
+        }),
         ..Default::default()
     };
     blocking(move || client(&origin)?.manage(&code, &cred, &update).map(|_| ()).map_err(|e| e.to_string())).await
@@ -256,7 +271,8 @@ fn main() {
             forget_session,
             queue_state,
             moderate,
-            set_intake,
+            set_live,
+            set_kinds,
             end_session,
             player_status,
             pear_connect,

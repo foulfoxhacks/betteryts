@@ -12,7 +12,7 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 
 ## Steps
 
-- [ ] **Server: request types.** Add `kind: song | video | shoutout` to events and queue entries.
+- [x] **Server: request types.** Add `kind: song | video | shoutout` to events and queue entries.
   - Shoutouts are text-only, moderated, and length-capped.
   - Per-kind intake switches in `manage`; the console's Video / Shoutout toggles become live.
   - Tests in `test/stream.test.ts`.

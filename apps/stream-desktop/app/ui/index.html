@@ -53,8 +53,8 @@
 						<div><div class="clock" id="clock">00<small>h</small> : 00<small>m</small> : 00<small>s</small></div><div class="muted">Live for</div></div>
 						<div class="toggles">
 							<label class="tg"><span>Song requests</span><input type="checkbox" id="t-songs" /><i></i></label>
-							<label class="tg" title="Video requests arrive in a later release"><span>Video requests</span><input type="checkbox" id="t-videos" disabled /><i></i></label>
-							<label class="tg" title="Shoutouts arrive in a later release"><span>Shoutout requests</span><input type="checkbox" id="t-shoutouts" disabled /><i></i></label>
+							<label class="tg"><span>Video requests</span><input type="checkbox" id="t-videos" /><i></i></label>
+							<label class="tg" title="Shoutouts always wait for your approval"><span>Shoutout requests</span><input type="checkbox" id="t-shoutouts" /><i></i></label>
 						</div>
 						<div class="actions"><button class="btn primary" id="pause">Pause</button><button class="btn danger" id="end">End session</button></div>
 					</div>
@@ -69,7 +69,7 @@
 
 				<section class="lists">
 					<div>
-						<div class="list-head"><h2>Current queue</h2><div class="filters" data-list="active"><button class="on" data-f="all">All</button><button data-f="queued">Queued</button><button data-f="pending_approval">Needs approval</button><button data-f="playing">Playing</button></div></div>
+						<div class="list-head"><h2>Current queue</h2><div class="filters" data-list="active"><button class="on" data-f="all">All</button><button data-f="song">Songs</button><button data-f="video">Videos</button><button data-f="shoutout">Shoutouts</button></div></div>
 						<div class="list" id="active"><p class="empty">No requests yet. Share your code and command to get started.</p></div>
 					</div>
 					<div>

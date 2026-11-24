@@ -103,3 +103,8 @@ summary { cursor: pointer; color: var(--muted); }
 .player b { display: block; font-size: 13px; }
 .player span { display: block; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-actions { display: flex; align-items: center; gap: 12px; }
+.kind { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 8px; vertical-align: 2px; }
+.kind.song { background: #1f6b3e; }
+.kind.video { background: #2b4fa8; }
+.kind.shoutout { background: #5b3aa8; }
+.item.k-shoutout .t { font-weight: 600; white-space: normal; }

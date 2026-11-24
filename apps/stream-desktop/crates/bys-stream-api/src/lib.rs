@@ -87,6 +87,14 @@ pub trait Transport {
 
 // ---- response types ----------------------------------------------------------------------------
 
+/// Per-kind request switches (under the master `intake` switch).
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Kinds {
+    pub song: bool,
+    pub video: bool,
+    pub shoutout: bool,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicView {
@@ -94,6 +102,9 @@ pub struct PublicView {
     pub expires_at: u64,
     pub ended: bool,
     pub accepting: bool,
+    /// Absent from servers older than request kinds: songs only.
+    #[serde(default = "songs_only")]
+    pub kinds: Kinds,
     pub destination_online: bool,
     pub destination_ready: bool,
     pub approval_mode: String,
@@ -125,6 +136,8 @@ pub struct Media {
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub id: String,
+    #[serde(default = "song")]
+    pub kind: String,
     pub state: String,
     pub code: Option<String>,
     pub message: String,
@@ -170,6 +183,8 @@ pub struct QueueState {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Claimed {
     pub id: String,
+    #[serde(default = "song")]
+    pub kind: String,
     pub requester: String,
     pub platform: String,
     pub input: String,
@@ -214,11 +229,24 @@ pub enum Action {
     Clear,
 }
 
+fn songs_only() -> Kinds {
+    Kinds {
+        song: true,
+        video: false,
+        shoutout: false,
+    }
+}
+fn song() -> String {
+    "song".into()
+}
+
 /// Fields for `POST /manage`; `None` leaves a setting unchanged.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Manage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub intake: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kinds: Option<Kinds>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -527,6 +555,16 @@ mod tests {
             }
         );
         assert_eq!(q.active[0].media.as_ref().unwrap().title, "Song");
+        assert_eq!(
+            q.view.kinds,
+            Kinds {
+                song: true,
+                video: false,
+                shoutout: false
+            },
+            "older servers: songs only"
+        );
+        assert_eq!(q.active[0].kind, "song");
         c.moderate("ABCD2345", &cred, Action::Complete, Some("r1"), None, None).unwrap();
         let sent = f.sent.borrow();
         assert_eq!(sent[0].2.as_deref(), Some(tok('b').as_str()));

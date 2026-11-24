@@ -11,6 +11,7 @@ const el = (tag, cls, text) => {
 	return n;
 };
 
+const KIND = { song: "Song", video: "Video", shoutout: "Shoutout" };
 const LABELS = { queued: "Queued", pending_approval: "Needs approval", approved: "Approved", dispatching: "Sending to player", playing: "Playing", completed: "Completed", rejected: "Rejected", skipped: "Skipped", failed: "Failed", cancelled: "Removed", resolving: "Looking up", received: "Received" };
 const filters = { active: "all", history: "all" };
 let settings = null;
@@ -80,7 +81,8 @@ function tickClock() {
 
 // ---- rendering ----
 function itemNode(r, historyList) {
-	const node = el("article", `item ${r.state}`);
+	const kind = KIND[r.kind] ? r.kind : "song";
+	const node = el("article", `item ${r.state} k-${kind}`);
 	const thumb = r.media?.thumbnail || (r.media?.id ? `https://i.ytimg.com/vi/${encodeURIComponent(r.media.id)}/mqdefault.jpg` : "");
 	if (thumb.startsWith("https://i.ytimg.com/")) {
 		const img = el("img");
@@ -90,7 +92,9 @@ function itemNode(r, historyList) {
 		node.append(img);
 	} else node.append(el("div", "noart"));
 	const mid = el("div");
-	mid.append(el("div", "t", r.media?.title || r.input || "Request"));
+	const title = el("div", "t", kind === "shoutout" ? r.input : r.media?.title || r.input || "Request");
+	title.append(el("span", `kind ${kind}`, KIND[kind]));
+	mid.append(title);
 	mid.append(el("div", "s", [r.media?.creator, r.requester && `requested by ${r.requester}`, r.platform].filter(Boolean).join(" · ")));
 	if (historyList && r.message && r.state !== "completed") mid.append(el("div", "s", r.message));
 	node.append(mid);
@@ -115,7 +119,7 @@ function button(text, cls, onClick) {
 }
 function renderList(id, rows, historyList) {
 	const f = filters[id];
-	const shown = rows.filter((r) => f === "all" || r.state === f || (f === "playing" && r.state === "dispatching"));
+	const shown = rows.filter((r) => f === "all" || (id === "active" ? (r.kind || "song") === f : r.state === f));
 	const box = $(id);
 	if (!shown.length) {
 		box.replaceChildren(el("p", "empty", historyList ? "Nothing here yet." : "No requests in the queue."));
@@ -129,7 +133,10 @@ function render(q) {
 	$("s-accepted").textContent = q.stats.accepted;
 	$("s-rejected").textContent = q.stats.rejected;
 	$("s-completed").textContent = q.stats.completed;
-	$("t-songs").checked = q.intake;
+	const kinds = q.kinds || { song: true, video: false, shoutout: false };
+	$("t-songs").checked = kinds.song;
+	$("t-videos").checked = kinds.video;
+	$("t-shoutouts").checked = kinds.shoutout;
 	$("pause").textContent = q.intake ? "Pause" : "Go live";
 	$("conn").textContent = q.destinationOnline ? "Connected · player online" : "Connected · no player connected";
 	$("session-pill").textContent = `${q.code} · ${q.command}`;
@@ -198,14 +205,19 @@ function act(action, id) {
 		await refresh();
 	});
 }
-function setIntake(songs) {
+function setKinds() {
 	run(async () => {
-		await invoke("set_intake", { songs, videos: false, shoutouts: false });
+		await invoke("set_kinds", { songs: $("t-songs").checked, videos: $("t-videos").checked, shoutouts: $("t-shoutouts").checked });
 		await refresh();
 	});
 }
-$("t-songs").addEventListener("change", (e) => setIntake(e.target.checked));
-$("pause").addEventListener("click", () => setIntake(!(last && last.intake)));
+for (const id of ["t-songs", "t-videos", "t-shoutouts"]) $(id).addEventListener("change", setKinds);
+$("pause").addEventListener("click", () =>
+	run(async () => {
+		await invoke("set_live", { on: !(last && last.intake) });
+		await refresh();
+	}),
+);
 $("end").addEventListener("click", () => {
 	if (!confirm("End this session? Viewers can no longer send requests with this code.")) return;
 	run(async () => {
