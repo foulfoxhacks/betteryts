@@ -147,6 +147,34 @@ for (const group of document.querySelectorAll(".filters")) {
 	});
 }
 
+// ---- Pear Desktop playback ----
+const PLAYER = { off: "Pear Desktop: off", not_authorized: "Pear Desktop: authorize again", unreachable: "Pear Desktop: not running", ready: "Pear Desktop: ready" };
+let playerOn = false;
+async function refreshPlayer() {
+	try {
+		const p = await invoke("player_status");
+		playerOn = p.state !== "off" && p.state !== "";
+		$("player-state").textContent = PLAYER[p.state] || "Pear Desktop: starting";
+		const now = p.nowPlaying ? `Now playing: ${p.nowPlaying.title}${p.nowPlaying.artist ? ` — ${p.nowPlaying.artist}` : ""}` : "";
+		$("player-now").textContent = now || p.lastResult || "";
+		$("pear-btn").textContent = playerOn && p.state !== "not_authorized" ? "Disconnect" : "Connect Pear Desktop";
+	} catch {
+		/* keep the last status */
+	}
+}
+$("pear-btn").addEventListener("click", () =>
+	run(async () => {
+		if (playerOn && $("pear-btn").textContent === "Disconnect") {
+			await invoke("pear_disconnect");
+		} else {
+			toast("Open Pear Desktop and click Allow for “betteryts-stream” (you have two minutes).");
+			await invoke("pear_connect");
+			toast("Pear Desktop connected. Approved requests now play there.");
+		}
+		await refreshPlayer();
+	}),
+);
+
 // ---- actions ----
 async function refresh() {
 	try {
@@ -183,7 +211,12 @@ $("end").addEventListener("click", () => {
 function startPolling() {
 	clearInterval(pollTimer);
 	refresh();
-	pollTimer = setInterval(() => document.visibilityState === "visible" && refresh(), 3000);
+	refreshPlayer();
+	pollTimer = setInterval(() => {
+		if (document.visibilityState !== "visible") return;
+		refresh();
+		refreshPlayer();
+	}, 3000);
 }
 function showConsole() {
 	$("connect").hidden = true;

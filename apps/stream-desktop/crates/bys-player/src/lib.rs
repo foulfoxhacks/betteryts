@@ -355,6 +355,21 @@ pub struct HttpTransport {
 }
 
 #[cfg(feature = "http")]
+impl HttpTransport {
+    /// Authorization waits for the user to click "Allow" inside Pear Desktop, so it needs longer.
+    pub fn with_timeout(timeout: Duration) -> Self {
+        let config = ureq::Agent::config_builder()
+            .http_status_as_error(false)
+            .max_redirects(0)
+            .timeout_global(Some(timeout))
+            .build();
+        HttpTransport {
+            agent: ureq::Agent::new_with_config(config),
+        }
+    }
+}
+
+#[cfg(feature = "http")]
 impl Default for HttpTransport {
     fn default() -> Self {
         let config = ureq::Agent::config_builder()

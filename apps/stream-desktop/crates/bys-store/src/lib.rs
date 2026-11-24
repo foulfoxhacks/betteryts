@@ -180,6 +180,8 @@ pub enum Secret {
     DestinationCredential,
     /// Token for the local API (Phase 3).
     LocalApiToken,
+    /// Pear Desktop API Server access token.
+    PearToken,
 }
 
 impl Secret {
@@ -188,6 +190,7 @@ impl Secret {
             Secret::SessionCredential => "stream-session",
             Secret::DestinationCredential => "stream-destination",
             Secret::LocalApiToken => "local-api",
+            Secret::PearToken => "pear-desktop",
         }
     }
 }

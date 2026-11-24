@@ -7,6 +7,8 @@
 //! - Network calls run on a blocking worker thread, never on the UI thread.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod playback;
+
 use bys_store::{Profile, Secret, Secrets, Settings};
 use bys_stream_api::{Action, Client, Credential, HttpTransport, Manage, QueueState};
 use serde::Serialize;
@@ -15,9 +17,10 @@ use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 struct AppState {
-    settings: Mutex<Settings>,
+    settings: Arc<Mutex<Settings>>,
     path: PathBuf,
     secrets: Arc<dyn Secrets>,
+    player: Arc<Mutex<playback::PlayerStatus>>,
 }
 
 type Res<T> = Result<T, String>;
@@ -175,6 +178,30 @@ async fn end_session(state: tauri::State<'_, AppState>) -> Res<()> {
     forget_session(state)
 }
 
+#[tauri::command]
+fn player_status(state: tauri::State<'_, AppState>) -> Res<playback::PlayerStatus> {
+    state.player.lock().map(|p| p.clone()).map_err(|_| "player status unavailable".to_owned())
+}
+
+/// Ask Pear Desktop for an access token; the user approves it inside Pear within two minutes.
+#[tauri::command]
+async fn pear_connect(state: tauri::State<'_, AppState>) -> Res<()> {
+    let host = lock(&state)?.pear.host.clone();
+    let token = blocking(move || playback::authorize(&host)).await?;
+    state.secrets.set(Secret::PearToken, &token).map_err(|e| e.to_string())?;
+    let mut s = lock(&state)?;
+    s.pear.enabled = true;
+    save(&state, &s)
+}
+
+#[tauri::command]
+fn pear_disconnect(state: tauri::State<'_, AppState>) -> Res<()> {
+    state.secrets.delete(Secret::PearToken).map_err(|e| e.to_string())?;
+    let mut s = lock(&state)?;
+    s.pear.enabled = false;
+    save(&state, &s)
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -186,10 +213,14 @@ fn main() {
             let secrets: Arc<dyn Secrets> = Arc::new(bys_store::Keychain::new());
             #[cfg(not(any(windows, target_os = "linux")))]
             let secrets: Arc<dyn Secrets> = Arc::new(bys_store::MemorySecrets::default());
+            let settings = Arc::new(Mutex::new(settings));
+            let player = Arc::new(Mutex::new(playback::PlayerStatus::default()));
+            playback::spawn(settings.clone(), secrets.clone(), player.clone());
             app.manage(AppState {
-                settings: Mutex::new(settings),
+                settings,
                 path,
                 secrets,
+                player,
             });
             Ok(())
         })
@@ -202,7 +233,10 @@ fn main() {
             queue_state,
             moderate,
             set_intake,
-            end_session
+            end_session,
+            player_status,
+            pear_connect,
+            pear_disconnect
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

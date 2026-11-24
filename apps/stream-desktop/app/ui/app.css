@@ -99,3 +99,6 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--prima
 details { margin-top: 14px; }
 summary { cursor: pointer; color: var(--muted); }
 @media (max-width: 1150px) { .grid-top, .lists { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, 1fr); } }
+.player { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.player b { display: block; font-size: 13px; }
+.player span { display: block; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

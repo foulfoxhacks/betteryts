@@ -17,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 bys-stream-api = { path = "../crates/bys-stream-api" }
 bys-store = { path = "../crates/bys-store" }
+bys-player = { path = "../crates/bys-player" }
 # tauri: native window + system WebView (WebView2 / WebKitGTK), MSI/deb bundling.
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
