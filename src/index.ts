@@ -114,10 +114,18 @@ function filtersFromUrl(url: URL, forceType?: SearchFilters["type"]): SearchFilt
 	};
 }
 
-/** Real browsers send Sec-Fetch-Dest: document on top-level navigations; yt-dlp / AVPro / Unity don't. */
+/** Search-engine and link-preview crawlers. They don't send Sec-Fetch headers but must be treated like browsers. */
+const CRAWLER_RE = /Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|Mediapartners-Google|bingbot|BingPreview|DuckDuckBot|Applebot|YandexBot|Baiduspider|Slurp|PetalBot|SeznamBot|MojeekBot|Yeti|Amzn-SearchBot|OAI-SearchBot|Claude-SearchBot|PerplexityBot|facebookexternalhit|Twitterbot|LinkedInBot|Discordbot|Slackbot|TelegramBot|WhatsApp/i;
+
+/**
+ * True for people in a browser and for search crawlers; false for media players (yt-dlp / AVPro / Unity /
+ * VRChat). Only media players get the instant off-site redirect: everyone else lands on the on-site
+ * results page (noindex, follow), so the site never looks like an open redirect to YouTube.
+ */
 function isBrowserNavigation(req: Request): boolean {
 	const ua = req.headers.get("User-Agent") ?? "";
 	if (/yt-dlp|youtube-dl|UnityPlayer|AVPro|stagefright|NSPlayer|ExoPlayer|VRChat|libmpv|VLC|curl|Wget/i.test(ua)) return false;
+	if (CRAWLER_RE.test(ua)) return true;
 	return req.headers.get("Sec-Fetch-Dest") === "document" && req.headers.has("Sec-Fetch-Site");
 }
 
@@ -697,7 +705,14 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	// ---- u2b.cx-style catch-all: yts.foulfoxhacks.dev/lofi hip hop ----
 	const first = path.split("/")[1] ?? "";
 	if (path !== "/" && !RESERVED.has(first.toLowerCase()) && !/\.[a-z0-9]{2,5}$/i.test(path)) {
-		return luckyRedirect(queryFromPath(path), url, ctx);
+		const q = queryFromPath(path);
+		// Same rule as /search: browsers and crawlers see results here; media players jump to the video.
+		if (isBrowserNavigation(req) && !boolParam(url, "lucky", false) && !boolParam(url, "go", false)) {
+			const page = new URL("/", url.origin);
+			if (q) page.searchParams.set("q", q);
+			return redirect(page.pathname + page.search, 0);
+		}
+		return luckyRedirect(q, url, ctx);
 	}
 
 	return errorJson("Not found", 404);

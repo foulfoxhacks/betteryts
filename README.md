@@ -51,7 +51,7 @@ Self-hosting? Google sign-in needs `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, 
 |---|---|
 | `GET /search?q=…` | VRChat and other media players get a `302` to the top video. Browsers get the results page. Add `&lucky` to always redirect. |
 | `GET /lucky?q=…` (`/go`, `/play`) | Always `302` to the top video |
-| `GET /<anything>` | u2b.cx-style shortcut, e.g. `/never gonna give you up` |
+| `GET /<anything>` | u2b.cx-style shortcut, e.g. `/never gonna give you up`. Media players (VRChat, AVPro, yt-dlp) jump to the top video; browsers and search crawlers get the on-site results page (add `?lucky=1` to jump) |
 | `GET /v/{id}` | `302` to a video by ID |
 | `GET /api/search?q=…` | Ad-free JSON results with pagination (`next` → `?page=`) |
 | `GET /api/video/{id}` | Details + SponsorBlock + Return YouTube Dislike + DeArrow |

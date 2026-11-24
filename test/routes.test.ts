@@ -176,3 +176,18 @@ test("logging: redactUrl hides codes, OAuth values and saved-library keys", () =
 	assert.ok(!redactUrl("https://x.dev/api/inworld/check?code=K7QX-M2PA").includes("K7QX"));
 	assert.equal(redactUrl("not a url"), "(unparseable URL)");
 });
+
+test("routes: browsers and search crawlers stay on-site; only media players get the YouTube redirect", async () => {
+	const browser = { "User-Agent": "Mozilla/5.0 Chrome/142", "Sec-Fetch-Dest": "document", "Sec-Fetch-Site": "none" };
+	const googlebot = { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" };
+	for (const headers of [browser, googlebot]) {
+		for (const path of ["/lofi%20hip%20hop", "/search?q=lofi%20hip%20hop"]) {
+			const r = await call(path, { headers });
+			assert.equal(r.status, 302, path);
+			assert.equal(r.headers.get("Location"), "/?q=lofi+hip+hop", `${path} stays on this site`);
+		}
+	}
+	// Browsers can still ask for the instant jump explicitly (no upstream needed to see it's not on-site).
+	const lucky = await call("/lofi%20hip%20hop?lucky=1", { headers: browser }).catch(() => null);
+	assert.ok(!lucky || lucky.headers.get("Location") !== "/?q=lofi+hip+hop");
+});
