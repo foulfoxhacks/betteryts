@@ -13,7 +13,7 @@
 //   POST /api/stream/v1/sessions/{code}/tokens/revoke             {id} (owner)
 //   POST /api/stream/v1/sessions/{code}/destination/claim         {ready} → next queued request (destination)
 //   POST /api/stream/v1/sessions/{code}/destination/report        {id, state, code, message} (destination)
-//   GET  /api/stream/v1/sessions/{code}/overlay?token=            read-only overlay state (overlay token)
+//   GET  /api/stream/v1/sessions/{code}/overlay                   read-only overlay state (X-Overlay-Token header)
 
 import { env } from "cloudflare:workers";
 
@@ -22,6 +22,7 @@ import { normalizePolicy } from "./policy.ts";
 import { resolveMedia } from "./resolve.ts";
 import { type Fail, randomToken, SCOPES, type Scope, sha256, type StreamSession } from "./session.ts";
 import type { ClientOptions } from "../lib/types.ts";
+import { clientNet } from "../vrc/links-core.ts";
 
 export const CODE_RE = /^[A-HJ-NP-Z2-9]{8}$/;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -43,8 +44,34 @@ function sessions(): Namespace | null {
 
 async function readJson(req: Request): Promise<Record<string, unknown>> {
 	if (!req.headers.get("Content-Type")?.startsWith("application/json")) throw new InputError("Send a JSON body (Content-Type: application/json).");
-	const raw = await req.text();
-	if (raw.length > MAX_BODY) throw new InputError("Body must be smaller than 8 KiB.");
+	// Refuse by declared size first, then cap what is actually read (a missing or false length).
+	if (Number(req.headers.get("Content-Length") ?? 0) > MAX_BODY) throw new InputError("Body must be smaller than 8 KiB.");
+	const reader = req.body?.getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	if (reader) {
+		try {
+			for (;;) {
+				const { value, done } = await reader.read();
+				if (done) break;
+				size += value.byteLength;
+				if (size > MAX_BODY) {
+					await reader.cancel();
+					throw new InputError("Body must be smaller than 8 KiB.");
+				}
+				chunks.push(value);
+			}
+		} finally {
+			reader.releaseLock();
+		}
+	}
+	const bytes = new Uint8Array(size);
+	let offset = 0;
+	for (const c of chunks) {
+		bytes.set(c, offset);
+		offset += c.byteLength;
+	}
+	const raw = new TextDecoder().decode(bytes);
 	let body: unknown;
 	try {
 		body = JSON.parse(raw);
@@ -79,7 +106,8 @@ export async function streamRoutes(req: Request, url: URL, path: string, opts: C
 	const origin = req.headers.get("Origin");
 	// Browsers may only call from this site; desktop clients and bots send no Origin.
 	if ((origin && origin !== url.origin) || req.headers.get("Sec-Fetch-Site") === "cross-site") return fail("forbidden", "Use the BetterYTS Stream page or an API client.", 403);
-	const ip = req.headers.get("CF-Connecting-IP") ?? "unknown";
+	// Limits are per network (IPv6 /64), so rotating addresses inside one allocation does not reset them.
+	const ip = clientNet(req.headers.get("CF-Connecting-IP") ?? "unknown");
 	const bearer = req.headers.get("Authorization")?.match(/^Bearer ([a-f0-9]{64})$/)?.[1] ?? "";
 
 	try {
@@ -199,8 +227,10 @@ export async function streamRoutes(req: Request, url: URL, path: string, opts: C
 			return reply(await stub.report(caller, await readJson(req)));
 		}
 		if (rest === "overlay" && method === "GET") {
-			// Overlay browser sources can't send headers, so the read-only token may come in the query.
-			const token = url.searchParams.get("token") ?? bearer;
+			// Header only: a credential in the URL would land in request logs. The overlay page reads it from
+			// its #fragment (never sent to the server) and sends it here.
+			if (url.searchParams.has("token")) return fail("invalid_input", "Send the overlay token in the X-Overlay-Token header, not the URL.");
+			const token = req.headers.get("X-Overlay-Token") ?? "";
 			if (!/^[a-f0-9]{64}$/.test(token)) return fail("unauthorized", "Overlay token required.", 401);
 			const caller = await stub.authorize(await sha256(token), "overlay.read");
 			return reply(isFail(caller) ? caller : await stub.overlay());

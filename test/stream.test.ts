@@ -230,9 +230,22 @@ test("routes: creation, browser and credential rules, website rejections without
 
 	const minted = (await (await call(`/api/stream/v1/sessions/${created.code}/tokens`, { method: "POST", headers: auth, body: JSON.stringify({ scope: "overlay" }) })).json()) as { token: string; overlayUrl: string };
 	assert.ok(minted.overlayUrl.startsWith(`${base}/stream/overlay#${created.code}.`));
-	const ov = await call(`/api/stream/v1/sessions/${created.code}/overlay?token=${minted.token}`);
+	const ov = await call(`/api/stream/v1/sessions/${created.code}/overlay`, { headers: { "X-Overlay-Token": minted.token } });
 	assert.equal(ov.status, 200);
-	assert.equal((await call(`/api/stream/v1/sessions/${created.code}/overlay?token=${"0".repeat(64)}`)).status, 401);
+	assert.equal((await call(`/api/stream/v1/sessions/${created.code}/overlay`, { headers: { "X-Overlay-Token": "0".repeat(64) } })).status, 401);
+	assert.equal((await call(`/api/stream/v1/sessions/${created.code}/overlay?token=${minted.token}`)).status, 400, "credentials are refused in URLs");
+
+	// Oversized bodies are refused, declared or not.
+	const big = JSON.stringify({ id: crypto.randomUUID(), name: "x", query: "y".repeat(9000) });
+	assert.equal((await call(`/api/stream/v1/sessions/${created.code}/requests`, { method: "POST", headers: { ...json, Origin: base }, body: big })).status, 400);
+
+	// IPv6 addresses in one /64 share the website request limit.
+	let limited = 0;
+	for (let i = 1; i <= 8; i++) {
+		const r = await call(`/api/stream/v1/sessions/${created.code}/requests`, { method: "POST", headers: { "Content-Type": "application/json", "CF-Connecting-IP": `2001:db8:1:2::${i}`, Origin: base }, body: JSON.stringify({ id: crypto.randomUUID(), name: "V", query: "nope" }) });
+		if (r.status === 429) limited++;
+	}
+	assert.ok(limited >= 2, "rotating addresses inside a /64 does not reset the limit");
 
 	for (let i = 0; i < 4; i++) await call("/api/stream/v1/sessions", { method: "POST", headers: json, body: JSON.stringify({ minutes: 15 }) });
 	assert.equal((await call("/api/stream/v1/sessions", { method: "POST", headers: json, body: JSON.stringify({ minutes: 15 }) })).status, 429, "five sessions a minute per connection");

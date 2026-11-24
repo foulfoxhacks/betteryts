@@ -25,7 +25,7 @@ function render(s) {
 
 async function poll() {
 	try {
-		const res = await fetch(`/api/stream/v1/sessions/${code}/overlay?token=${token}`, { cache: "no-store" });
+		const res = await fetch(`/api/stream/v1/sessions/${code}/overlay`, { cache: "no-store", headers: { "X-Overlay-Token": token } });
 		const data = await res.json();
 		if (data.ok && data.revision !== revision) {
 			revision = data.revision;

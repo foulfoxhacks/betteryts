@@ -155,7 +155,7 @@ POST /sessions/{code}/events        intake: canonical event, schema v1</code></p
 				<h3 id="api-queue">Queue &amp; moderation</h3>
 				<pre><code>GET  /sessions/{code}/queue         moderator: active, history, audit, credentials
 POST /sessions/{code}/queue/action  {action: approve|reject|remove|skip|reorder|clear, id?, position?, reason?}
-GET  /sessions/{code}/overlay?token=…  overlay: nowPlaying, upcoming, recent</code></pre>
+GET  /sessions/{code}/overlay  overlay (X-Overlay-Token header): nowPlaying, upcoming, recent</code></pre>
 
 				<h3 id="api-destination">Playback destinations</h3>
 				<pre><code>POST /sessions/{code}/destination/claim   {ready} → {request: {id, media, requester, platform} | null}
