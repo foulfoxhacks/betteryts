@@ -13,6 +13,14 @@
   Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; worker-src blob:; frame-ancestors 'self'; sandbox allow-scripts
   X-Robots-Tag: noindex
 
+# BetterYTS Stream preview (stream/index.html, stream/overlay.html): kept out of search so it can't
+# affect how the indexed pages rank. Not in sitemap.xml. Remove only when Stream launches (docs/stream/seo.md).
+/stream
+  X-Robots-Tag: noindex, nofollow
+/stream/*
+  X-Robots-Tag: noindex, nofollow
+  Referrer-Policy: no-referrer
+
 # In-app updater (BetterYTS Music sideload build): the manifest is always fresh, APKs are versioned.
 /app/update.json
   Cache-Control: no-cache

@@ -1,0 +1,46 @@
+# Moved from apps/pearconnect/.github/workflows/sessions.yml when PearConnect joined the BetterYTS monorepo.
+# Runs only for changes under apps/pearconnect/ (and this file); commands run from that folder.
+name: Session relay and browser flows
+on:
+  push:
+    branches: [main]
+    paths: ['apps/pearconnect/relay/**', 'apps/pearconnect/website/**', 'apps/pearconnect/src/**', 'apps/pearconnect/test/helpers.js', '.github/workflows/pearconnect-sessions.yml']
+  pull_request:
+    paths: ['apps/pearconnect/relay/**', 'apps/pearconnect/website/**', 'apps/pearconnect/src/**', 'apps/pearconnect/test/helpers.js', '.github/workflows/pearconnect-sessions.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sessions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/pearconnect
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: npm ci
+        working-directory: apps/pearconnect/relay
+      - run: npm audit --audit-level=moderate
+        working-directory: apps/pearconnect/relay
+      - run: npm test
+        working-directory: apps/pearconnect/relay
+      - run: npm ci
+        working-directory: apps/pearconnect/website
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/pearconnect/website
+      - run: npm run build
+        working-directory: apps/pearconnect/website
+      - run: npm run test:sessions
+        working-directory: apps/pearconnect/website
+      - run: npm run test:visuals
+        working-directory: apps/pearconnect/website
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Session-browser-screenshots
+          path: apps/pearconnect/dist/session-browser/

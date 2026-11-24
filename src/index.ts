@@ -11,6 +11,7 @@ import { matchesOperators, mergeFilters, parseOperators } from "./lib/operators.
 import { transcript } from "./lib/transcript.ts";
 import { openapi } from "./lib/openapi.ts";
 import { linkRoutes } from "./vrc/linking.ts";
+import { streamRoutes } from "./stream/routes.ts";
 import { SPOTIFY_CALLBACK, spotifyAuthorizeUrl, spotifyCallbackRedirect, spotifyClientId } from "./lib/spotify-auth.ts";
 import { env } from "cloudflare:workers";
 import { branding, dislikes, sponsorSegments, SB_CATEGORIES, suggestions } from "./lib/addons.ts";
@@ -35,6 +36,7 @@ import { vrcInfo, vrcSearch, vrcSlot } from "./vrc/handlers.ts";
 export { VrcPool } from "./vrc/pool.ts";
 export { VrcLinks } from "./vrc/links.ts";
 export { Room } from "./rooms/room.ts";
+export { StreamSession } from "./stream/session.ts";
 
 import { currentPosition, newHostKey, newRoomCode, ROOM_CODE_RE, originAllowed } from "./rooms/protocol.ts";
 import type { Room } from "./rooms/room.ts";
@@ -566,6 +568,8 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	}
 	// The site posts an import to the world waiting on an activation code (src/vrc/linking.ts).
 	if (path === "/api/inworld/complete" || path === "/api/inworld/library" || path === "/tt/start") return (await linkRoutes(req, url, env)) ?? errorJson("Not found", 404);
+	// BetterYTS Stream (song requests, queue, overlays): its own JSON API with its own CORS rules.
+	if (path.startsWith("/api/stream/")) return (await streamRoutes(req, url, path, clientOptions(url))) as Response;
 	if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
 	if (req.method !== "GET" && req.method !== "HEAD") return errorJson("Method not allowed", 405);
 

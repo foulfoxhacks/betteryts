@@ -1,0 +1,35 @@
+# Moved from apps/pearconnect/.github/workflows/website.yml when PearConnect joined the BetterYTS monorepo.
+# Runs only for changes under apps/pearconnect/ (and this file); commands run from that folder.
+name: PearConnect website
+on:
+  push:
+    branches: [main]
+    paths: ['apps/pearconnect/website/**', 'apps/pearconnect/desktop/assets/**', '.github/workflows/pearconnect-website.yml']
+  pull_request:
+    paths: ['apps/pearconnect/website/**', 'apps/pearconnect/desktop/assets/**', '.github/workflows/pearconnect-website.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/pearconnect/website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/pearconnect/website/package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+      - run: npm run build
+      - run: npm run check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PearConnect-website
+          path: apps/pearconnect/website/dist/
+          if-no-files-found: error

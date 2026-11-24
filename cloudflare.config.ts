@@ -23,12 +23,15 @@ export default defineConfig({
 			VrcLinks: exports.durableObject({ storage: "sqlite" }),
 			// Watch-party rooms (one object per room code, hibernating WebSockets).
 			Room: exports.durableObject({ storage: "sqlite" }),
+			// BetterYTS Stream: one object per session code holds its request queue (src/stream/session.ts).
+			StreamSession: exports.durableObject({ storage: "sqlite" }),
 		},
 		env: {
 			ASSETS: bindings.assets(),
 			VRC_POOL: bindings.durableObject({ worker: "betteryts", exportName: "VrcPool" }),
 			VRC_LINKS: bindings.durableObject({ worker: "betteryts", exportName: "VrcLinks" }),
 			ROOMS: bindings.durableObject({ worker: "betteryts", exportName: "Room" }),
+			STREAM: bindings.durableObject({ worker: "betteryts", exportName: "StreamSession" }),
 			// Composites in-world thumbnail sheets without spending Worker CPU.
 			// dev.remote: the local Images stub can't composite (draw), so dev uses the real service.
 			IMAGES: bindings.images({ dev: { remote: true } }),

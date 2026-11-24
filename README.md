@@ -151,6 +151,17 @@ cloudflare.config.ts  Worker config (custom domain, vars)
 test/                 Unit tests (node --test)
 ```
 
+## Monorepo: BetterYTS Stream and PearConnect
+
+This repository is also home to **BetterYTS Stream**, the successor to PearConnect inside BetterYTS (preview):
+
+- `src/stream/`: the Stream API (`/api/stream/v1`) and its queue Durable Object `StreamSession`.
+- `stream/`: the `/stream` hub (docs, API reference, request form) and `/stream/overlay`. Both are noindex and kept out of the sitemap until launch; see [docs/stream/seo.md](docs/stream/seo.md).
+- `apps/pearconnect/`: PearConnect Desktop, CLI, relay and website, imported with full history. It installs and tests on its own (`cd apps/pearconnect && npm ci --ignore-scripts && npm test`), and its CI is `.github/workflows/pearconnect-*.yml`.
+- Audit, parity matrix and what's still open: [docs/stream/audit.md](docs/stream/audit.md).
+
+The Worker still deploys from the root with `npm run deploy`. Changes only under `apps/` don't run the Worker CI.
+
 ## Develop & deploy
 
 Needs Node.js 22.23+ / 24.22+ and the [`cf` CLI](https://developers.cloudflare.com/cf/) (installed as a dev dependency).
