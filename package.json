@@ -14,7 +14,8 @@
 		"build": "cf build",
 		"deploy": "cf deploy",
 		"test": "node --import ./test/support/register.mjs --test \"test/*.test.ts\"",
-		"typecheck": "cf workers types && tsc"
+		"typecheck": "cf workers types && tsc",
+		"check:sitemap": "node scripts/check-sitemap.mjs"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "2.0.0-beta.v.17",
