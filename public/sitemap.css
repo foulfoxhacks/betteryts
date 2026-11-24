@@ -1,0 +1,85 @@
+@charset "UTF-8";
+@namespace sm url("http://www.sitemaps.org/schemas/sitemap/0.9");
+@namespace img url("http://www.google.com/schemas/sitemap-image/1.1");
+
+sm|urlset {
+  display: block;
+  box-sizing: border-box;
+  max-width: 980px;
+  margin: 36px auto;
+  padding: 34px clamp(18px, 4vw, 42px);
+  color: #f0edff;
+  background: #10101b;
+  border: 1px solid #34304e;
+  border-radius: 18px;
+  font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 18px 60px rgb(0 0 0 / 28%);
+}
+sm|urlset::before {
+  display: block;
+  margin: 0 0 8px;
+  color: #c4b5fd;
+  content: "BetterYTS · XML sitemap";
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -.04em;
+}
+sm|urlset::after {
+  display: block;
+  margin-top: 22px;
+  padding-top: 16px;
+  color: #a7a2bc;
+  border-top: 1px solid #34304e;
+  content: "Canonical, indexable pages only · Human-readable directory: https://yts.foulfoxhacks.dev/sitemap";
+  font-size: 12px;
+}
+sm|url {
+  display: block;
+  margin: 14px 0;
+  padding: 17px 19px;
+  background: #191827;
+  border: 1px solid #35314e;
+  border-radius: 12px;
+}
+sm|loc, sm|lastmod, sm|changefreq, sm|priority {
+  display: block;
+  overflow-wrap: anywhere;
+}
+sm|loc {
+  color: #c4b5fd;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: #6c3fa0;
+  text-underline-offset: 3px;
+}
+sm|loc::before {
+  display: block;
+  margin-bottom: 3px;
+  color: #a7a2bc;
+  content: "PAGE URL";
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-decoration: none;
+}
+sm|lastmod, sm|changefreq, sm|priority {
+  display: inline-block;
+  margin: 12px 14px 0 0;
+  color: #b8b3ca;
+  font-size: 12px;
+}
+sm|lastmod::before { content: "Updated: "; color: #8f89a7; }
+sm|changefreq::before { content: "Change frequency: "; color: #8f89a7; }
+sm|priority::before { content: "Priority: "; color: #8f89a7; }
+img|image { display: none; }
+@media (prefers-color-scheme: light) {
+  sm|urlset { color: #242038; background: #f7f5ff; border-color: #ded8f3; box-shadow: 0 18px 50px rgb(35 25 70 / 10%); }
+  sm|url { background: #fff; border-color: #e5e0f2; }
+  sm|loc { color: #56318d; }
+  sm|lastmod, sm|changefreq, sm|priority, sm|urlset::after { color: #5e5870; }
+}
+@media (max-width: 640px) {
+  sm|urlset { margin: 0; min-height: 100vh; padding: 24px 16px; border: 0; border-radius: 0; }
+  sm|url { padding: 14px; }
+}
