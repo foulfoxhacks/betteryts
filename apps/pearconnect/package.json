@@ -1,0 +1,64 @@
+{
+  "name": "pearconnect-song-requests",
+  "version": "0.3.0-beta.5",
+  "description": "Shared song-request engine for Pear Desktop with Simple TikFinity, Advanced Streamer.bot, desktop and CLI interfaces.",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "start:dry-run": "node src/index.js --dry-run",
+    "auth": "node src/auth.js",
+    "setup": "node scripts/setup.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/test.mjs",
+    "test:smoke": "node scripts/smoke.mjs",
+    "build:streamerbot": "node scripts/build-streamerbot.mjs",
+    "check:streamerbot": "node scripts/build-streamerbot.mjs --check",
+    "test:streamerbot": "node scripts/test-streamerbot.mjs",
+    "desktop": "node scripts/desktop.mjs",
+    "test:desktop": "node scripts/test-desktop.mjs",
+    "package:win": "node scripts/package-desktop.mjs"
+  },
+  "keywords": [
+    "youtube-music",
+    "pear-desktop",
+    "ytmd",
+    "twitch",
+    "tiktok",
+    "tikfinity",
+    "youtube-live",
+    "song-request",
+    "stream",
+    "bot"
+  ],
+  "author": "Aleksandr \"Sammy\" Freyermuth (foulfoxhacks)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/foulfoxhacks/PearConnect-Song-Requests.git"
+  },
+  "bugs": {
+    "url": "https://github.com/foulfoxhacks/PearConnect-Song-Requests/issues"
+  },
+  "homepage": "https://github.com/foulfoxhacks/PearConnect-Song-Requests#readme",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "tmi.js": "^1.8.5",
+    "ws": "^8.21.3",
+    "youtube-chat": "^2.2.0"
+  },
+  "overrides": {
+    "qs": "6.16.0",
+    "body-parser": "1.20.6"
+  },
+  "private": true,
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.2.0"
+  }
+}

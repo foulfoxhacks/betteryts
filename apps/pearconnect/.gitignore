@@ -1,0 +1,14 @@
+node_modules/
+.env
+.DS_Store
+*.log
+npm-debug.log*
+.idea/
+.vscode/
+dist/
+.env.*
+!.env.txt
+!*.example
+**/bin/
+**/obj/
+test/streamerbot-csharp/generated/
