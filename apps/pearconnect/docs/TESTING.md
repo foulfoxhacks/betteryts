@@ -69,7 +69,7 @@ The 2026-09-05 dependency refresh pins compatible transitive overrides `qs=6.16.
 
 ## Recorded automated result: 2026-09-05
 
-Implementation commit `ca90d94d3ee9ddc9f248de03e5dc47adddec8fc4` passed [GitHub Actions run 33979258651](https://github.com/foulfoxhacks/PearConnect-Song-Requests/actions/runs/33979258651): all four Windows/Linux and Node 22/24 jobs, the Windows C# contract job, and the dependency audit. Each Node target passed the original 12 smoke assertions and 56 added tests. The C# harness passed 17 assertions and verified exact local POST payloads, four enqueues, and one authorized skip against its fake player. The clean-install audit found zero known vulnerabilities at that time.
+Implementation commit `ca90d94d3ee9ddc9f248de03e5dc47adddec8fc4` passed GitHub Actions run 33979258651 (retired original repository): all four Windows/Linux and Node 22/24 jobs, the Windows C# contract job, and the dependency audit. Each Node target passed the original 12 smoke assertions and 56 added tests. The C# harness passed 17 assertions and verified exact local POST payloads, four enqueues, and one authorized skip against its fake player. The clean-install audit found zero known vulnerabilities at that time.
 
 The original smoke file is fingerprint-checked and unchanged. Its wrapper preserves its requested success/failure code but lets network handles drain, avoiding the Windows Node 24 forced-exit assertion observed in the first CI pass. No failing assertion was removed, skipped, or converted to a warning.
 

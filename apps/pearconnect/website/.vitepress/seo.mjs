@@ -36,8 +36,8 @@ export function addPageMetadata(page) {
       '@type': 'SoftwareApplication', '@id': `${origin}/#software`,
       name: 'PearConnect', url: `${origin}/`, description,
       applicationCategory: 'MultimediaApplication', operatingSystem: 'Windows',
-      softwareVersion: '0.3.0-beta.5', isAccessibleForFree: true,
-      downloadUrl: 'https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/v0.3.0-beta.5/PearConnect-0.3.0-beta.5-win-x64.zip',
+      softwareVersion: '0.3.0-beta.6', isAccessibleForFree: true,
+      downloadUrl: 'https://github.com/foulfoxhacks/betteryts/releases/download/pearconnect-v0.3.0-beta.6/PearConnect-0.3.0-beta.6-win-x64.zip',
       releaseNotes: `${origin}/docs/releases`, screenshot: preview.url,
       license: 'https://github.com/foulfoxhacks/betteryts/blob/main/apps/pearconnect/LICENSE',
       author: { '@id': publisher['@id'] }, publisher: { '@id': publisher['@id'] }

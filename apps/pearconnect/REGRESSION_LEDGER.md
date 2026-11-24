@@ -48,7 +48,7 @@ CI run `33979014131`: C# bridge 17/17 passed; Linux Node 22/24 and Windows Node 
 ## Automated verification record (2026-09-05)
 
 Verified implementation commit: `ca90d94d3ee9ddc9f248de03e5dc47adddec8fc4`.
-GitHub Actions run: [33979258651](https://github.com/foulfoxhacks/PearConnect-Song-Requests/actions/runs/33979258651).
+GitHub Actions run: 33979258651 (retired original repository).
 
 - All four Node targets passed: Windows/Linux, Node 22/24. Each ran the original 12 smoke assertions, 56 added Node tests, syntax/package checks, and generated-import consistency.
 - Windows .NET Framework 4.8 C# contract test passed 17 assertions plus exact HTTP payload and mutation-count checks against the Node bridge and a fake player.

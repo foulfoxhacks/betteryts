@@ -5,13 +5,24 @@ description: Download the current PearConnect desktop preview and understand wha
 
 # Release notes
 
-PearConnect now lives in the [BetterYTS monorepo](https://github.com/foulfoxhacks/betteryts/tree/main/apps/pearconnect). New releases are published there with tags like `pearconnect-v0.3.0-beta.6` ([all PearConnect releases](https://github.com/foulfoxhacks/betteryts/releases?q=pearconnect)). The downloads below stay on the original repository and keep working.
+PearConnect now lives in the [BetterYTS monorepo](https://github.com/foulfoxhacks/betteryts/tree/main/apps/pearconnect). New releases are published there with tags like `pearconnect-v0.3.0-beta.6` ([all PearConnect releases](https://github.com/foulfoxhacks/betteryts/releases?q=pearconnect)). Downloads for 0.3.0-beta.5 and earlier were retired with the original repository; use the current release.
+
+## 0.3.0-beta.6 · Moved to the BetterYTS monorepo
+
+**24 November 2026** · Windows x64 · Portable ZIP
+
+[Download the current Windows preview](https://github.com/foulfoxhacks/betteryts/releases/download/pearconnect-v0.3.0-beta.6/PearConnect-0.3.0-beta.6-win-x64.zip) · [Release and checksum](https://github.com/foulfoxhacks/betteryts/releases/tag/pearconnect-v0.3.0-beta.6)
+
+- PearConnect now lives in the [BetterYTS monorepo](https://github.com/foulfoxhacks/betteryts/tree/main/apps/pearconnect). Report problems at [foulfoxhacks/betteryts](https://github.com/foulfoxhacks/betteryts/issues).
+- Optional **BetterYTS Stream** backend (`STREAM_BACKEND=betteryts`): chat requests go to a BetterYTS queue with server-side song lookup, rules and moderation; Pear Desktop stays the player. The local queue is still the default.
+- Separate intake and playback credentials are supported (`BETTERYTS_STREAM_DESTINATION_TOKEN`), and Stream credentials are kept out of logs, status and diagnostics.
+- Security updates: Electron 44.11.5, `qs` 6.17.1 and `body-parser` 1.20.9.
 
 ## 0.3.0-beta.5 · Stream overlays & Discord presence
 
 **5 September 2026** · Windows x64 · Portable ZIP
 
-[Download the current Windows preview](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/v0.3.0-beta.5/PearConnect-0.3.0-beta.5-win-x64.zip) · [Release and checksums](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/tag/v0.3.0-beta.5)
+_Download retired with the original repository; use the current release above._
 
 - A read-only WebSocket overlay shows now playing and up to five upcoming songs in actual player order. It reconnects, falls back to HTTP, clears stale data and refuses ambiguous queue positions.
 - Vertical layout and calculated source dimensions help compact widgets fit TikTok LIVE Studio. See [Visual studio](./visual-studio) for exact Link-source settings.
@@ -28,7 +39,7 @@ Close your old PearConnect Desktop, extract the complete ZIP and open the new **
 
 **5 September 2026** · Windows x64 · Portable ZIP
 
-[Download the current Windows preview](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/v0.3.0-beta.4/PearConnect-0.3.0-beta.4-win-x64.zip) · [Release and checksums](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/tag/v0.3.0-beta.4)
+_Download retired with the original repository; use the current release above._
 
 - Duration fallback uses the player's own Songs/Videos search filters and matches the exact video ID. Spotify, Last.fm and a YouTube Data API key are not required.
 - Inline metadata durations and artist names are parsed correctly. Search calls are serialized to avoid mixing concurrent responses from the player's shared channel.
@@ -44,7 +55,7 @@ Close the old PearConnect app, extract the new ZIP and launch its `PearConnect.e
 
 **5 September 2026** · Windows x64 · Portable ZIP
 
-[Download the current Windows preview](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/v0.3.0-beta.3/PearConnect-0.3.0-beta.3-win-x64.zip) · [Release and checksums](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/tag/v0.3.0-beta.3)
+_Download retired with the original repository; use the current release above._
 
 - Live player artwork, elapsed/remaining time, duration and pause state in Overview.
 - A [visual studio](/docs/visual-studio) with live/sample previews, three OBS widget layouts, custom accents, surfaces, fonts and optional ambient animation.
@@ -61,7 +72,7 @@ Close the old app, extract the complete new ZIP and launch its `PearConnect.exe`
 
 **5 September 2026** · Windows x64 · Portable ZIP
 
-[Download the current Windows preview](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/v0.3.0-beta.2/PearConnect-0.3.0-beta.2-win-x64.zip) · [Release and checksums](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/tag/v0.3.0-beta.2)
+_Download retired with the original repository; use the current release above._
 
 - An interactive [guided connection test](/docs/validation) checks the player, an actual incoming command marker and a read-only song search before deliberately enabling requests.
 - Optional [session codes](/docs/session-codes) let viewers request songs on the website when TikTok commands are not reaching Desktop.
@@ -78,7 +89,7 @@ These checks use controlled player/chat fixtures. Live TikTok delivery, actual a
 
 **5 September 2026** · Windows x64 · Portable ZIP
 
-[Download the Windows preview](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/v0.3.0-beta.1/PearConnect-0.3.0-beta.1-win-x64.zip) · [Release and checksums](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/tag/v0.3.0-beta.1)
+_Download retired with the original repository; use the current release above._
 
 ### Included
 
@@ -91,7 +102,7 @@ These checks use controlled player/chat fixtures. Live TikTok delivery, actual a
 
 ### Verified automatically
 
-The [desktop source build](https://github.com/foulfoxhacks/PearConnect-Song-Requests/actions/runs/33985424189) passed all seven CI jobs: Node 22/24 on Windows/Linux, the Streamer.bot C# contract harness, dependency audit, and real Electron checks plus Windows packaging.
+The desktop source build (GitHub Actions run 33985424189 in the retired original repository) passed all seven CI jobs: Node 22/24 on Windows/Linux, the Streamer.bot C# contract harness, dependency audit, and real Electron checks plus Windows packaging.
 
 Tests use controlled player/chat fixtures, real local sockets and Windows credential encryption. They do not establish successful live TikTok delivery or audible playback on every setup.
 

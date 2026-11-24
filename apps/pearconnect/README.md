@@ -2,7 +2,7 @@
 
 Local-first song requests for **Pear Desktop**, with a **desktop console or CLI** and two TikTok connection modes.
 
-The `0.3.0-beta.5` preview adds a live player-queue overlay, portrait layouts for TikTok Studio, a separate social ticker with platform icon packs, and Discord desktop Rich Presence. Duration lookup, verified queue additions, guided validation, and expiring website request codes remain included.
+The `0.3.0-beta.6` preview moves PearConnect into the BetterYTS monorepo, adds an optional BetterYTS Stream backend and updates dependencies for security. `0.3.0-beta.5` added a live player-queue overlay, portrait layouts for TikTok Studio, a separate social ticker with platform icon packs, and Discord desktop Rich Presence. Duration lookup, verified queue additions, guided validation, and expiring website request codes remain included.
 
 **Project website:** https://pearconnect.mellozone.site/  
 **Documentation:** https://pearconnect.mellozone.site/docs/  

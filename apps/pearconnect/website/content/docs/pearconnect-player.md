@@ -7,7 +7,7 @@ description: Try the separate PearConnect Player preview with verified queue add
 
 **PearConnect Player** is our independently modified edition of the 3.11.0 YouTube Music desktop player. It plays your music. **PearConnect Desktop** connects chat and session-code requests to that player and applies your request rules.
 
-[Download PearConnect Player for Windows x64](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/download/player-v3.11.0-pearconnect.1/PearConnect-Player-3.11.0-pearconnect.1-win-x64.exe) · [Source, checksums and release notes](https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases/tag/player-v3.11.0-pearconnect.1)
+_The Player preview download was retired with the original PearConnect repository. A rebuilt Player release will be published from the [BetterYTS monorepo](https://github.com/foulfoxhacks/betteryts/releases?q=pearconnect)._
 
 ::: info Separate, unsigned preview
 The version is **3.11.0-pearconnect.1**. It retains the 3.11.0 player and bundled ad-blocker sources, with our queue and SponsorBlock changes, and packages Electron 44.2.0. It is not an official upstream release and does not overwrite your existing player's profile. Advertising filters still depend on changes to YouTube.
