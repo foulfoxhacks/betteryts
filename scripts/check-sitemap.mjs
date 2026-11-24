@@ -82,6 +82,7 @@ for (const file of walk(ROOT)) {
 
 const requiredHumanEntries = [
   'href="/stream"', 'href="/stream/overlay"', 'PREVIEW · NOINDEX',
+  'href="/ecosystem"', 'href="/privacy"', 'href="/terms"',
   '/api/stream/v1/*', '/api/rooms/*', '/api/inworld/*', '/api/auth/*',
   '/vrc/*', '/auth/*', '/tt/start', '/?view=library', '/?view=link', '/?room=',
   '/plugin-sandbox', '/api/openapi.json'
