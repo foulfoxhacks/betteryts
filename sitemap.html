@@ -173,6 +173,59 @@
 						</ul>
 					</section>
 
+					<section class="branch" aria-labelledby="b-app">
+						<h2 id="b-app"><span class="branch-dot" style="--c: #8b7cf6"></span>Web app &amp; player</h2>
+						<p class="branch-note">These are application states on the homepage, not separate indexable landing pages. Query values are examples, not fixed URLs.</p>
+						<ul>
+							<li><a class="node" href="/?q=lofi+hip+hop"><code>/?q={query}</code><b>Search results</b><span>Search, filters, sorting, duration, upload date, features and search operators.</span></a></li>
+							<li><a class="node" href="/?v=dQw4w9WgXcQ"><code>/?v={videoId}</code><b>Video player</b><span>Playback, transcript, synced lyrics, chapters, SponsorBlock, DeArrow and dislike estimates.</span></a></li>
+							<li><a class="node" href="/?view=library"><code>/?view=library</code><b>Personal library</b><span>Subscriptions, queue, favorites, history, playlists and Listen Together.</span></a></li>
+							<li><a class="node" href="/?view=link"><code>/?view=link</code><b>Connect accounts</b><span>Connect supported YouTube, Spotify and TikTok accounts for in-world library access.</span></a></li>
+							<li><a class="node" href="/?room=ABC123"><code>/?room={code}</code><b>Watch party</b><span>Join a synchronized listening / playback room with shared queue and members.</span></a></li>
+							<li><a class="node" href="/plugin-sandbox"><code>/plugin-sandbox</code><b>Plugin sandbox</b><span>Isolated community-plugin execution surface; noindex and not an SEO page.</span></a></li>
+						</ul>
+					</section>
+
+					<section class="branch" aria-labelledby="b-stream">
+						<h2 id="b-stream"><span class="branch-dot" style="--c: #e6a700"></span>BetterYTS Stream <span class="ver">PREVIEW · NOINDEX</span></h2>
+						<p class="branch-note">Documented here for discoverability by developers and users, but intentionally excluded from sitemap.xml and search indexing until launch. Both routes send noindex protections.</p>
+						<ul>
+							<li><a class="node" href="/stream"><code>/stream</code><b>Stream hub &amp; request page</b><span>Preview documentation, song-request form, setup guide, request rules, moderation, and API reference.</span></a></li>
+							<li><a class="node" href="/stream/overlay"><code>/stream/overlay</code><b>OBS / browser-source overlay</b><span>Read-only now-playing, upcoming and recent request display. Credential is supplied in the URL fragment.</span></a></li>
+							<li><a class="node" href="/docs/stream/seo.md"><code>/api/stream/v1/*</code><b>Stream API family</b><span>Sessions, credentials, requests/events, queue moderation, playback destinations and overlay state. API responses are no-store/noindex.</span></a></li>
+						</ul>
+					</section>
+
+					<section class="branch" aria-labelledby="b-integrations">
+						<h2 id="b-integrations"><span class="branch-dot" style="--c: #b36bff"></span>Integrations &amp; ecosystem</h2>
+						<p class="branch-note">External services and client integrations used by the web app, mobile app, VRChat packages and Stream preview.</p>
+						<ul>
+							<li><a class="node" href="/ecosystem#web"><code>Web / Android</code><b>BetterYTS clients</b><span>Web player and BetterYTS Music Android app; app downloads and updater metadata are utility resources, not sitemap pages.</span></a></li>
+							<li><a class="node" href="/ecosystem#vrchat"><code>VRChat / VCC</code><b>In-world packages</b><span>VCC package listing, world search, ProTV playlists, URL pool and saved-library linking.</span></a></li>
+							<li><a class="node" href="/docs#addons"><code>Playback data providers</code><b>SponsorBlock · DeArrow · Return YouTube Dislike</b><span>Community skip segments, community titles/thumbnails and estimated dislike data.</span></a></li>
+							<li><a class="node" href="/docs"><code>Music &amp; metadata</code><b>Spotify · LRCLIB · YouTube</b><span>Playlist/album import, track matching, synced lyrics, search and playback metadata.</span></a></li>
+							<li><a class="node" href="/stream"><code>Stream intake</code><b>Twitch · YouTube Live · TikTok/TikFinity · Web</b><span>Song-request sources routed into one moderated queue through PearConnect Desktop.</span></a></li>
+							<li><a class="node" href="/docs#rooms"><code>Watch-party clients</code><b>Browser · VRChat / media players</b><span>Shared queue and synchronized playback through room APIs and WebSockets.</span></a></li>
+						</ul>
+					</section>
+
+					<section class="branch" aria-labelledby="b-api-families">
+						<h2 id="b-api-families"><span class="branch-dot" style="--c: #4cb3d4"></span>Complete API &amp; integration route families</h2>
+						<p class="branch-note">Machine interfaces are listed for developers; they are not individual search-engine landing pages. See <a href="/docs">API docs</a> and the <a href="/api/openapi.json">OpenAPI 3.1 document</a> for schemas and request details.</p>
+						<ul>
+							<li><a class="node" href="/api"><code>/api</code><b>API directory &amp; core data</b><span>/api/health, /api/ecosystem, /api/openapi.json, /api/search, /api/suggest, /api/video/{id}, /api/playlist/{id}, /api/channel/{id}.</span></a></li>
+							<li><a class="node" href="/docs#addons"><code>/api/{segments,dislikes,branding,transcript,lyrics}</code><b>Playback enrichment</b><span>SponsorBlock, Return YouTube Dislike, DeArrow batch/single lookups, captions and synced lyrics.</span></a></li>
+							<li><a class="node" href="/docs#rooms"><code>/api/rooms/*</code><b>Watch-party sessions</b><span>Create room, read room state and join its WebSocket for synchronized playback.</span></a></li>
+							<li><a class="node" href="/docs"><code>/api/spotify/* · /api/match</code><b>Music import &amp; matching</b><span>Spotify playlist/album tracks and best-match YouTube lookup for imported tracks.</span></a></li>
+							<li><a class="node" href="/docs#vrchat-world"><code>/vrc/*</code><b>VRChat public integration</b><span>/vrc/info, /vrc/search, /vrc/p/{slot}, /vrc/protv.playlist and account-link routes.</span></a></li>
+							<li><a class="node" href="/docs#vrchat-world"><code>/vrc/link/* · /vrc/l/* · /vrc/k/* · /vrc/forget</code><b>In-world account linking</b><span>Activation and hand-off routes for YouTube, Spotify and TikTok libraries.</span></a></li>
+							<li><a class="node" href="/api/auth/config"><code>/auth/* · /api/auth/*</code><b>OAuth &amp; account services</b><span>Google and Spotify authorization/callback flows; /api/auth/config and Google token, refresh and revoke endpoints.</span></a></li>
+							<li><a class="node" href="/api/inworld/check?code=example"><code>/api/inworld/* · /tt/start</code><b>In-world hand-off API</b><span>Activation-code checks, library completion/view/delete and TikTok linking entry point.</span></a></li>
+							<li><a class="node" href="/room/ABC123"><code>/room/{code}</code><b>Room redirect alias</b><span>VRChat and media players are redirected to the currently playing video; browser navigation opens the room in the app.</span></a></li>
+							<li><a class="node" href="/search?q=lofi"><code>/search · /results · /lucky · /go · /play · /v/{id} · /watch · /w/{id}</code><b>Search and redirect compatibility routes</b><span>Functional redirect aliases, not separate indexable content pages.</span></a></li>
+						</ul>
+					</section>
+
 					<section class="branch" aria-labelledby="b-machine">
 						<h2 id="b-machine"><span class="branch-dot" style="--c: #e6a700"></span>For machines</h2>
 						<p class="branch-note">Crawler policy, indexes and app metadata.</p>
