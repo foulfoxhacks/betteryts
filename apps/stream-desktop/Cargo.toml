@@ -7,7 +7,7 @@ members = ["crates/bys-core", "crates/bys-osc", "crates/bys-stream-api", "crates
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-rust-version = "1.85"
+rust-version = "1.90"
 repository = "https://github.com/foulfoxhacks/betteryts"
 
 # Security baseline for every crate (blueprint §7).

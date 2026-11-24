@@ -157,7 +157,7 @@ pub fn decode(packet: &[u8]) -> Result<Message, OscError> {
     if packet.len() > MAX_PACKET {
         return Err(OscError::TooLarge);
     }
-    if packet.len() % 4 != 0 {
+    if !packet.len().is_multiple_of(4) {
         return Err(OscError::Truncated);
     }
     let mut r = Reader { data: packet, pos: 0 };
