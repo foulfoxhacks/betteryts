@@ -36,6 +36,8 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
+      - name: Sitemap coverage and indexing policy
+        run: npm run check:sitemap
       - name: Front-end syntax
         run: for f in web/*.js; do node --check "$f"; done
       - name: Dependency audit (runtime dependencies, high and above)
