@@ -1,0 +1,22 @@
+[package]
+name = "bys-store"
+description = "BetterYTS Stream Desktop settings (JSON, atomic writes) and secrets (OS keychain only)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# keyring: OS keychain access. Each OS gets only its native backend.
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
+
+[lints]
+workspace = true
