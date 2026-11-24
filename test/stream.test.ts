@@ -268,3 +268,50 @@ test("queue DO: complete action and session counters for the creator console", a
 		clock.restore();
 	}
 });
+
+test("request kinds: shoutouts are moderated text, videos have their own limit, kinds switch per type", async () => {
+	const clock = fakeClock();
+	try {
+		const s = await session(normalizePolicy({ cooldownSeconds: 0, maxVideoSeconds: 300 }));
+		await s.manage(OWNER, { intake: true });
+		const kinded = (input: string, kind: "song" | "video" | "shoutout", user: string) => ({ ...event(input, "twitch", user), request: { input, inputType: "text" as const, kind } });
+
+		assert.equal(((await s.intake(kinded("hi chat", "shoutout", "a"))) as { code: string }).code, "kind_disabled", "shoutouts start off");
+		assert.equal(((await s.intake(kinded("a video", "video", "a"))) as { code: string }).code, "kind_disabled");
+		assert.equal(((await s.manage(OWNER, { kinds: { video: true, shoutout: true } })) as { kinds: Record<string, boolean> }).kinds.shoutout, true);
+		assert.equal(((await s.manage(OWNER, { kinds: { karaoke: true } })) as { code: string }).code, "invalid_input");
+
+		const so = (await s.intake(kinded("Happy birthday Sam!", "shoutout", "b"))) as { id: string; state: string; kind: string };
+		assert.deepEqual([so.state, so.kind], ["pending_approval", "shoutout"], "no lookup, always moderated");
+		s.moderate(OWNER, { action: "approve", id: so.id });
+		assert.equal((s.overlay() as { shoutout: { text: string } }).shoutout.text, "Happy birthday Sam!");
+
+		const v = (await s.intake(kinded("long video", "video", "c"))) as { id: string };
+		assert.equal(((await s.settle(v.id, resolved("vvvvvvvvvvv", { durationSeconds: 400 }))) as { code: string }).code, "too_long", "maxVideoSeconds applies");
+		const v2 = (await s.intake(kinded("short video", "video", "d"))) as { id: string };
+		assert.equal(((await s.settle(v2.id, resolved("wwwwwwwwwww", { durationSeconds: 400 > 300 ? 200 : 0 }))) as { state: string }).state, "queued");
+
+		const claim = s.claim(OWNER, true) as { request: { kind: string; media: { id: string } } };
+		assert.deepEqual([claim.request.kind, claim.request.media.id], ["video", "wwwwwwwwwww"], "shoutouts are never claimed by a player");
+
+		await s.manage(OWNER, { kinds: { song: false } });
+		assert.equal(((await s.intake(event("a song", "twitch", "e"))) as { code: string }).code, "kind_disabled", "events without a kind are songs");
+	} finally {
+		clock.restore();
+	}
+});
+
+test("request kinds: sessions created before kinds existed are migrated", async () => {
+	const { doState } = await import("./support/do.ts");
+	const state = doState();
+	// The pre-kinds requests table, with one stored request.
+	state.storage.sql.exec("CREATE TABLE requests (id TEXT PRIMARY KEY, event_id TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL, platform TEXT NOT NULL, actor_key TEXT NOT NULL, actor_name TEXT NOT NULL, identity TEXT NOT NULL, input TEXT NOT NULL, state TEXT NOT NULL, code TEXT, message TEXT, media TEXT, position REAL, created INTEGER NOT NULL, updated INTEGER NOT NULL, uncertain INTEGER NOT NULL DEFAULT 0)");
+	state.storage.sql.exec("INSERT INTO requests VALUES ('old1','e-old-1','[]','twitch','twitch:a','a','','old song','queued',NULL,NULL,NULL,1,1,1,0)");
+	const s = new StreamSession(state as never, {} as never);
+	const cols = state.storage.sql.exec<{ name: string }>("PRAGMA table_info(requests)").toArray().map((c) => c.name);
+	assert.ok(cols.includes("kind"), "column added");
+	assert.equal(state.storage.sql.exec<{ kind: string }>("SELECT kind FROM requests WHERE id='old1'").toArray()[0].kind, "song", "old rows are songs");
+	await s.create("ABCDEFGH", await sha256("o".repeat(64)), 60, DEFAULT_POLICY);
+	assert.deepEqual((s.publicView() as { kinds: Record<string, boolean> }).kinds, { song: true, video: false, shoutout: false });
+	new StreamSession(state as never, {} as never); // constructing again doesn't re-add the column
+});

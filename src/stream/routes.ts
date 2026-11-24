@@ -156,13 +156,13 @@ export async function streamRoutes(req: Request, url: URL, path: string, opts: C
 					eventType: "song_request.submitted",
 					source: { platform: "web" },
 					actor: { platformUserId: "web", displayName: body.name },
-					request: { input: body.query ?? "", inputType: "text" },
+					request: { input: body.query ?? "", inputType: "text", kind: body.kind ?? "song" },
 					occurredAt: new Date().toISOString(),
 				});
 			} catch (err) {
 				return fail("invalid_input", err instanceof InputError ? err.message : "Invalid request.");
 			}
-			if (!event.request.input) return fail("invalid_input", "Enter an artist and song, or a YouTube link.");
+			if (!event.request.input) return fail("invalid_input", event.request.kind === "shoutout" ? "Write your shoutout message." : "Enter an artist and song, or a YouTube link.");
 			return reply(await submitAndResolve(stub, event, opts, { ip, publicWeb: true }));
 		}
 		const receipt = /^requests\/([0-9a-f-]{36})$/.exec(rest);
@@ -188,8 +188,8 @@ export async function streamRoutes(req: Request, url: URL, path: string, opts: C
 			const caller = await auth("session.manage");
 			if (isFail(caller)) return reply(caller);
 			const body = await readJson(req);
-			const unknown = Object.keys(body).filter((k) => !["intake", "policy", "minutes", "end"].includes(k));
-			if (unknown.length) return fail("invalid_input", "Supported fields: intake, policy, minutes, end.");
+			const unknown = Object.keys(body).filter((k) => !["intake", "kinds", "policy", "minutes", "end"].includes(k));
+			if (unknown.length) return fail("invalid_input", "Supported fields: intake, kinds, policy, minutes, end.");
 			const current = await stub.currentPolicy();
 			const policy = body.policy !== undefined && current ? normalizePolicy(body.policy, current) : undefined;
 			return reply(await stub.manage(caller, body, policy));

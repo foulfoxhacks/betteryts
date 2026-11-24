@@ -13,7 +13,8 @@ form?.addEventListener("submit", async (e) => {
 	const code = form.elements.code.value.trim().toUpperCase();
 	const name = form.elements.name.value.trim();
 	const query = form.elements.query.value.trim();
-	const fingerprint = JSON.stringify([code, name, query]);
+	const kind = form.elements.kind.value;
+	const fingerprint = JSON.stringify([code, name, kind, query]);
 	if (!pending || pending.fingerprint !== fingerprint) pending = { code, id: crypto.randomUUID(), fingerprint };
 	const button = form.querySelector("button");
 	button.disabled = true;
@@ -22,7 +23,7 @@ form?.addEventListener("submit", async (e) => {
 		const res = await fetch(`/api/stream/v1/sessions/${encodeURIComponent(code)}/requests`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ id: pending.id, name, query }),
+			body: JSON.stringify({ id: pending.id, name, query, kind }),
 		});
 		const data = await res.json();
 		status.textContent = data.message || (data.ok ? "Request received." : "That didn't work. Try again.");

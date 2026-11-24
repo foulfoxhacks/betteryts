@@ -49,6 +49,8 @@ export interface RequestPolicy {
 	maxPerUser: number;
 	/** 0 = no limit. When set, a request whose length can't be verified is refused (PearConnect rule). */
 	maxSongSeconds: number;
+	/** Longest video request (0 = no limit). */
+	maxVideoSeconds: number;
 	/** Active entries the queue holds. 0 = unlimited. */
 	maxQueueLength: number;
 	/** Refuse a song that is already waiting or playing. */
@@ -65,6 +67,7 @@ export const DEFAULT_POLICY: RequestPolicy = {
 	cooldownSeconds: 60,
 	maxPerUser: 2,
 	maxSongSeconds: 420,
+	maxVideoSeconds: 600,
 	maxQueueLength: 50,
 	rejectDuplicates: true,
 	allowLive: false,
@@ -101,6 +104,7 @@ export function normalizePolicy(update: unknown, base: RequestPolicy = DEFAULT_P
 	if (u.cooldownSeconds !== undefined) next.cooldownSeconds = int(u.cooldownSeconds, "cooldownSeconds", 86400);
 	if (u.maxPerUser !== undefined) next.maxPerUser = int(u.maxPerUser, "maxPerUser", 1000);
 	if (u.maxSongSeconds !== undefined) next.maxSongSeconds = int(u.maxSongSeconds, "maxSongSeconds", 604800);
+	if (u.maxVideoSeconds !== undefined) next.maxVideoSeconds = int(u.maxVideoSeconds, "maxVideoSeconds", 604800);
 	if (u.maxQueueLength !== undefined) next.maxQueueLength = int(u.maxQueueLength, "maxQueueLength", 500);
 	for (const key of ["rejectDuplicates", "allowLive"] as const) {
 		if (u[key] !== undefined) {

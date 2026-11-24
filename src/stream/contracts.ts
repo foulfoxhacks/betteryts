@@ -10,6 +10,11 @@ export const SCHEMA_VERSION = "1";
 export const PLATFORMS = ["twitch", "youtube", "tiktok", "web", "android", "vrchat", "local"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
+/** What is being requested. Shoutouts are moderated text and never reach a player. */
+export const REQUEST_KINDS = ["song", "video", "shoutout"] as const;
+export type RequestKind = (typeof REQUEST_KINDS)[number];
+export const MAX_SHOUTOUT = 200;
+
 /** Request lifecycle (blueprint §7.2). */
 export const REQUEST_STATES = [
 	"received",
@@ -84,6 +89,7 @@ export type ReasonCode =
 	| "too_long"
 	| "live_stream"
 	| "requests_paused"
+	| "kind_disabled"
 	| "rate_limited"
 	| "moderator_rejected"
 	| "moderator_removed"
@@ -111,7 +117,7 @@ export interface SongRequestEvent {
 	eventType: "song_request.submitted";
 	source: SourceRef;
 	actor: Actor;
-	request: { input: string; inputType: "text" | "url" | "id" };
+	request: { input: string; inputType: "text" | "url" | "id"; kind: RequestKind };
 	occurredAt: string;
 	correlationId?: string;
 }
@@ -163,6 +169,8 @@ export function parseSongRequestEvent(body: unknown): SongRequestEvent {
 	if (!actor || typeof actor !== "object") throw new InputError("actor is required.");
 	const request = b.request as Record<string, unknown> | undefined;
 	if (!request || typeof request !== "object") throw new InputError("request is required.");
+	const kind = request.kind ?? "song";
+	if (!REQUEST_KINDS.includes(kind as RequestKind)) throw new InputError("request.kind must be song, video or shoutout.");
 	const inputType = request.inputType ?? "text";
 	if (!["text", "url", "id"].includes(inputType as string)) throw new InputError("request.inputType must be text, url or id.");
 	const occurredAt = typeof b.occurredAt === "string" && !Number.isNaN(Date.parse(b.occurredAt)) ? b.occurredAt : null;
@@ -181,7 +189,11 @@ export function parseSongRequestEvent(body: unknown): SongRequestEvent {
 			displayName: cleanText(actor.displayName, "actor.displayName", { max: 100 }).replace(/^@/, "") || "viewer",
 		},
 		// An empty input is allowed on purpose: the policy answers with usage help.
-		request: { input: cleanText(request.input ?? "", "request.input", { optional: true }), inputType: inputType as "text" | "url" | "id" },
+		request: {
+			input: cleanText(request.input ?? "", "request.input", { optional: true, max: kind === "shoutout" ? MAX_SHOUTOUT : 512 }),
+			inputType: inputType as "text" | "url" | "id",
+			kind: kind as RequestKind,
+		},
 		occurredAt,
 		...(b.correlationId !== undefined ? { correlationId: cleanText(b.correlationId, "correlationId", { max: 128 }) } : {}),
 	};

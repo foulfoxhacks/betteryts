@@ -8,7 +8,7 @@
 
 import { DurableObject } from "cloudflare:workers";
 
-import { ACTIVE_STATES, actorKey, assertTransition, type MediaItem, type Platform, type ReasonCode, type RequestState, type SongRequestEvent, TERMINAL_STATES } from "./contracts.ts";
+import { ACTIVE_STATES, actorKey, assertTransition, type MediaItem, type Platform, type ReasonCode, type RequestKind, type RequestState, type SongRequestEvent, TERMINAL_STATES } from "./contracts.ts";
 import { DEFAULT_POLICY, evaluate, normalizePolicy, precheck, type QueueSnapshot, type RequestPolicy } from "./policy.ts";
 import type { Resolution } from "./resolve.ts";
 
@@ -41,7 +41,10 @@ interface Meta {
 	created: number;
 	expiresAt: number;
 	ended: boolean;
+	/** Master switch (Pause / Go live). */
 	intake: boolean;
+	/** Per-kind switches; absent in sessions created before request kinds existed. */
+	kinds?: Record<RequestKind, boolean>;
 	revision: number;
 	policy: RequestPolicy;
 	destinationSeen: number;
@@ -49,6 +52,7 @@ interface Meta {
 }
 
 type Row = {
+	kind: RequestKind;
 	id: string;
 	event_id: string;
 	fingerprint: string;
@@ -102,6 +106,10 @@ export class StreamSession extends DurableObject<Env> {
 			"CREATE TABLE IF NOT EXISTS stats (key TEXT PRIMARY KEY, n INTEGER NOT NULL)",
 		])
 			sql.exec(stmt);
+		// Sessions created before request kinds existed: add the column with the old meaning.
+		if (!sql.exec<{ name: string }>("PRAGMA table_info(requests)").toArray().some((c) => c.name === "kind")) {
+			sql.exec("ALTER TABLE requests ADD COLUMN kind TEXT NOT NULL DEFAULT 'song'");
+		}
 	}
 
 	// ---- storage helpers -------------------------------------------------------------------------
@@ -112,6 +120,9 @@ export class StreamSession extends DurableObject<Env> {
 	}
 	private saveMeta(m: Meta) {
 		this.ctx.storage.sql.exec("INSERT OR REPLACE INTO meta VALUES(1, ?)", JSON.stringify(m));
+	}
+	private kinds(m: Meta): Record<RequestKind, boolean> {
+		return m.kinds ?? { song: true, video: false, shoutout: false };
 	}
 	private live(m: Meta | null): m is Meta {
 		return !!m && !m.ended && m.expiresAt > Date.now();
@@ -228,6 +239,7 @@ export class StreamSession extends DurableObject<Env> {
 			expiresAt: m.expiresAt,
 			ended: m.ended || m.expiresAt <= Date.now(),
 			accepting: this.live(m) && m.intake,
+			kinds: this.kinds(m),
 			destinationOnline,
 			destinationReady: destinationOnline && m.destinationReady,
 			approvalMode: m.policy.approvalMode,
@@ -275,13 +287,18 @@ export class StreamSession extends DurableObject<Env> {
 			identity = await sha256(`${m.ipSalt}:${opts.ip ?? "unknown"}`);
 			actor = { platformUserId: `web-${identity.slice(0, 16)}`, displayName: actor.displayName };
 		}
-		const fingerprint = JSON.stringify([event.source.platform, actor.platformUserId, event.request.input]);
+		const kind = event.request.kind ?? "song";
+		const fingerprint = JSON.stringify([event.source.platform, actor.platformUserId, kind, event.request.input]);
 		const existing = sql.exec<Row>("SELECT * FROM requests WHERE event_id=?", event.eventId).toArray()[0];
 		if (existing) {
 			return existing.fingerprint === fingerprint && existing.identity === identity ? this.receipt(existing) : fail("idempotency_conflict", "This request ID was already used. Check your previous result.", 409);
 		}
 		const fresh = this.meta() as Meta; // re-read after the await above
-		if (!fresh.intake) return fail("requests_paused", "Song requests are paused. Existing playback continues.", 409);
+		if (!fresh.intake) return fail("requests_paused", "Requests are paused. Existing playback continues.", 409);
+		if (!this.kinds(fresh)[kind]) {
+			const label = kind === "shoutout" ? "Shoutouts" : kind === "video" ? "Video requests" : "Song requests";
+			return fail("kind_disabled", `${label} are turned off right now.`, 409);
+		}
 		if (opts.publicWeb) {
 			const rate = sql.exec<{ count: number }>("SELECT count FROM limits WHERE identity=?", identity).toArray()[0];
 			if ((rate?.count ?? 0) >= WEB_LIMIT_PER_MINUTE) return fail("rate_limited", "Too many attempts from this connection. Wait one minute.", 429);
@@ -295,7 +312,7 @@ export class StreamSession extends DurableObject<Env> {
 		const id = crypto.randomUUID();
 		const now = Date.now();
 		sql.exec(
-			"INSERT INTO requests (id, event_id, fingerprint, platform, actor_key, actor_name, identity, input, state, created, updated) VALUES (?,?,?,?,?,?,?,?, 'received', ?, ?)",
+			"INSERT INTO requests (id, event_id, fingerprint, platform, actor_key, actor_name, identity, input, state, created, updated, kind) VALUES (?,?,?,?,?,?,?,?, 'received', ?, ?, ?)",
 			id,
 			event.eventId,
 			fingerprint,
@@ -306,6 +323,7 @@ export class StreamSession extends DurableObject<Env> {
 			event.request.input,
 			now,
 			now,
+			kind,
 		);
 		this.count("received");
 		const row = this.row(id) as Row;
@@ -315,6 +333,12 @@ export class StreamSession extends DurableObject<Env> {
 			return { ...this.receipt(row), ...(denied.retryAfter ? { retryAfter: denied.retryAfter } : {}) };
 		}
 		this.move(row, "resolving");
+		if (kind === "shoutout") {
+			// Text only: no lookup, always moderated, never sent to a player.
+			this.ctx.storage.sql.exec("INSERT INTO cooldowns VALUES(?,?) ON CONFLICT(actor_key) DO UPDATE SET at=excluded.at", key, Date.now());
+			this.move(row, "pending_approval", { code: "awaiting_approval", message: `@${actor.displayName} your shoutout is waiting for a moderator.`, position: this.nextPosition() });
+			this.bump();
+		}
 		return this.receipt(row);
 	}
 
@@ -332,9 +356,13 @@ export class StreamSession extends DurableObject<Env> {
 		const actor = { platformUserId: row.actor_key.slice(row.platform.length + 1), displayName: row.actor_name };
 		// Rules may have changed and other requests may have landed during the lookup: check again.
 		const snap = this.snapshot(row.actor_key, row.id);
-		const decision = (!this.live(m) || !m.intake ? { ok: false as const, code: "requests_paused" as const, message: "Song requests were paused while searching. Nothing was queued." } : null) ??
-			precheck(m.policy, row.platform, actor, row.input, snap) ??
-			evaluate(m.policy, actor, row.input, resolution.media, snap);
+		const open = this.live(m) && m.intake && this.kinds(m)[row.kind];
+		// Videos have their own length limit.
+		const limits = row.kind === "video" ? { ...m.policy, maxSongSeconds: m.policy.maxVideoSeconds ?? 600 } : m.policy;
+		const decision =
+			(!open ? { ok: false as const, code: "requests_paused" as const, message: "Requests were paused while searching. Nothing was queued." } : null) ??
+			precheck(limits, row.platform, actor, row.input, snap) ??
+			evaluate(limits, actor, row.input, resolution.media, snap);
 		if (!decision.ok) {
 			this.move(row, "rejected", { code: decision.code, message: decision.message, media: resolution.media });
 			return this.receipt(row);
@@ -361,6 +389,7 @@ export class StreamSession extends DurableObject<Env> {
 		return {
 			ok: !["rejected", "failed", "cancelled"].includes(row.state),
 			id: row.id,
+			kind: row.kind ?? "song",
 			state: row.state,
 			code: row.code,
 			message: row.message ?? (row.state === "resolving" ? "Looking up your song." : "Request received."),
@@ -451,7 +480,7 @@ export class StreamSession extends DurableObject<Env> {
 		return { ok: true, request: this.receipt(this.row(row.id) as Row) };
 	}
 
-	async manage(caller: Caller, body: { intake?: unknown; policy?: unknown; minutes?: unknown; end?: unknown }, policy?: RequestPolicy) {
+	async manage(caller: Caller, body: { intake?: unknown; kinds?: unknown; policy?: unknown; minutes?: unknown; end?: unknown }, policy?: RequestPolicy) {
 		const m = this.meta();
 		if (!this.live(m)) return fail("session_expired", "This session has ended.", 410);
 		if (body.minutes !== undefined) {
@@ -462,6 +491,13 @@ export class StreamSession extends DurableObject<Env> {
 		if (body.intake !== undefined) {
 			if (typeof body.intake !== "boolean") return fail("invalid_input", "intake must be true or false.");
 			m.intake = body.intake;
+		}
+		if (body.kinds !== undefined) {
+			const k = body.kinds as Record<string, unknown>;
+			if (!k || typeof k !== "object" || Array.isArray(k) || Object.entries(k).some(([name, v]) => !["song", "video", "shoutout"].includes(name) || typeof v !== "boolean")) {
+				return fail("invalid_input", "kinds takes song, video and shoutout as true or false.");
+			}
+			m.kinds = { ...this.kinds(m), ...(k as Partial<Record<RequestKind, boolean>>) };
 		}
 		if (policy) m.policy = policy;
 		if (body.end === true) Object.assign(m, { ended: true, intake: false, expiresAt: Date.now() });
@@ -511,13 +547,13 @@ export class StreamSession extends DurableObject<Env> {
 		m.destinationReady = ready;
 		this.saveMeta(m);
 		const busy = this.ctx.storage.sql.exec<{ n: number }>("SELECT count(*) AS n FROM requests WHERE state='dispatching'").one().n;
-		const next = ready && !busy ? this.ctx.storage.sql.exec<Row>("SELECT * FROM requests WHERE state='queued' ORDER BY position LIMIT 1").toArray()[0] : undefined;
+		const next = ready && !busy ? this.ctx.storage.sql.exec<Row>("SELECT * FROM requests WHERE state='queued' AND kind != 'shoutout' ORDER BY position LIMIT 1").toArray()[0] : undefined;
 		if (next) {
 			this.move(next, "dispatching");
 			this.bump();
 		}
 		const media = next?.media ? (JSON.parse(next.media) as MediaItem) : null;
-		return { ...this.view(m), intake: m.intake, request: next && media ? { id: next.id, requester: next.actor_name, platform: next.platform, input: next.input, media } : null };
+		return { ...this.view(m), intake: m.intake, request: next && media ? { id: next.id, kind: next.kind, requester: next.actor_name, platform: next.platform, input: next.input, media } : null };
 	}
 
 	report(caller: Caller, body: { id?: unknown; state?: unknown; code?: unknown; message?: unknown; outcomeUncertain?: unknown }) {
@@ -555,7 +591,10 @@ export class StreamSession extends DurableObject<Env> {
 			accepting: this.live(m) && m.intake,
 			command: `!${m.policy.commands.request}`,
 			nowPlaying: current ? pick(current) : null,
-			upcoming: sql.exec<Row>("SELECT * FROM requests WHERE state='queued' ORDER BY position LIMIT 10").toArray().map(pick).filter(Boolean),
+			upcoming: sql.exec<Row>("SELECT * FROM requests WHERE state='queued' AND kind != 'shoutout' ORDER BY position LIMIT 10").toArray().map(pick).filter(Boolean),
+			shoutout: ((r: Row | undefined) => (r ? { text: r.input, requester: r.actor_name, platform: r.platform } : null))(
+				sql.exec<Row>("SELECT * FROM requests WHERE state='queued' AND kind = 'shoutout' ORDER BY position LIMIT 1").toArray()[0],
+			),
 			recent: sql.exec<Row>("SELECT * FROM requests WHERE state='completed' ORDER BY updated DESC LIMIT 5").toArray().map(pick).filter(Boolean),
 		};
 	}

@@ -29,5 +29,5 @@ Blueprint: [desktop-blueprint.md](desktop-blueprint.md) · Code: `apps/stream-de
   - Shows: live status and session timer, now playing (title, artist, artwork, elapsed), viewer / audience count per platform, queue length and request counters, the last trigger or alert (e.g. "Gift goal reached").
   - Privacy: viewer names are hidden unless the owner enables them; every field can be toggled; presence updates are rate-limited to Discord's 15 s rule.
   - Port of `apps/pearconnect/desktop/discord-presence.js`.
-- [ ] Build workflow: `.msi` (Windows) and `.deb` (Ubuntu) through the Tauri bundler, as draft releases tagged `stream-desktop-v*`.
+- [x] Build workflow: `.msi` (Windows) and `.deb` (Ubuntu) through the Tauri bundler, as draft releases tagged `stream-desktop-v*`. First run: `stream-desktop-v0.1.0` (draft, .msi 4.5 MB, setup .exe 3.0 MB, .deb 5.0 MB, all with SHA-256).
 - [x] Docs: update `desktop-blueprint.md` §9 when Phase 1 is done; start `PHASE2.md` (TikTok unofficial WebSocket source, Twitch).

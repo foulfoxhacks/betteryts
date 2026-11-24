@@ -70,7 +70,8 @@
 				<form id="stream-request" class="stream-form" autocomplete="off">
 					<p><label>Session code <input name="code" required maxlength="8" pattern="[A-HJ-NP-Za-hj-np-z2-9]{8}" placeholder="ABCD2345" /></label></p>
 					<p><label>Your name <input name="name" required maxlength="60" /></label></p>
-					<p><label>Artist and song, or a YouTube link <input name="query" required maxlength="512" /></label></p>
+					<p><label>Type <select name="kind"><option value="song">Song</option><option value="video">Video</option><option value="shoutout">Shoutout</option></select></label></p>
+					<p><label>Artist and song, a YouTube link, or your shoutout <input name="query" required maxlength="512" /></label></p>
 					<p><button class="button primary" type="submit">Send request</button></p>
 					<p id="stream-status" role="status" aria-live="polite"></p>
 				</form>
@@ -102,6 +103,7 @@ BETTERYTS_STREAM_TOKEN=&lt;owner, intake or destination credential&gt;</code></p
 						<tr><td><code>cooldownSeconds</code></td><td>60</td><td>Time between one viewer's requests (0 = off).</td></tr>
 						<tr><td><code>maxPerUser</code></td><td>2</td><td>Requests one viewer may have waiting.</td></tr>
 						<tr><td><code>maxSongSeconds</code></td><td>420</td><td>Longest song; unknown lengths are refused while this is set.</td></tr>
+						<tr><td><code>maxVideoSeconds</code></td><td>600</td><td>Longest video request.</td></tr>
 						<tr><td><code>maxQueueLength</code></td><td>50</td><td>Waiting requests before the queue reports full.</td></tr>
 						<tr><td><code>rejectDuplicates</code></td><td>true</td><td>Refuse a song already waiting or playing.</td></tr>
 						<tr><td><code>allowLive</code></td><td>false</td><td>Allow live streams.</td></tr>
@@ -133,12 +135,12 @@ BETTERYTS_STREAM_TOKEN=&lt;owner, intake or destination credential&gt;</code></p
 				<h3 id="api-sessions">Sessions</h3>
 				<pre><code>POST /sessions                      {minutes: 15-1440, policy?}   → {code, ownerToken, …}  (no browser Origin; 5/min per connection)
 GET  /sessions/{code}               public view: accepting, command, destinationOnline
-POST /sessions/{code}/manage        owner: {intake?, policy?, minutes?, end?}
+POST /sessions/{code}/manage        owner: {intake?, kinds?: {song, video, shoutout}, policy?, minutes?, end?}
 POST /sessions/{code}/tokens        owner: {scope, minutes?, label?} → {id, token, expires, overlayUrl?}
 POST /sessions/{code}/tokens/revoke owner: {id}</code></pre>
 
 				<h3 id="api-requests">Requests &amp; events</h3>
-				<pre><code>POST /sessions/{code}/requests      website: {id: uuid, name, query}   (6/min per connection; idempotent on id)
+				<pre><code>POST /sessions/{code}/requests      website: {id: uuid, name, query, kind?: song|video|shoutout}   (6/min per connection; idempotent on id)
 GET  /sessions/{code}/requests/{id} website receipt (same connection only)
 POST /sessions/{code}/events        intake: canonical event, schema v1</code></pre>
 				<pre><code>{
@@ -147,9 +149,10 @@ POST /sessions/{code}/events        intake: canonical event, schema v1</code></p
   "eventType": "song_request.submitted",
   "source": { "platform": "twitch" },
   "actor": { "platformUserId": "12345", "displayName": "Viewer" },
-  "request": { "input": "Artist - Song", "inputType": "text" },
+  "request": { "input": "Artist - Song", "inputType": "text", "kind": "song" },
   "occurredAt": "2026-11-22T12:00:00Z"
 }</code></pre>
+				<p><code>kind</code> is <code>song</code> (default), <code>video</code> or <code>shoutout</code>. Each kind has its own switch. Shoutouts are text (up to 200 characters): they always wait for a moderator and never go to a player; approved ones show on the overlay.</p>
 				<p>Platforms: <code>twitch</code>, <code>youtube</code>, <code>tiktok</code>, <code>web</code>, <code>android</code>, <code>vrchat</code>, <code>local</code>. Sending the same <code>eventId</code> again returns the first result.</p>
 
 				<h3 id="api-queue">Queue &amp; moderation</h3>
