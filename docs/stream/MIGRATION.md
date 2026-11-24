@@ -25,9 +25,9 @@ cd ..\website; npm audit fix; npm run build
 If `audit fix` can't resolve something, bump `overrides` in that package.json (root `apps/pearconnect/package.json` already overrides `qs` and `body-parser`). Commit as "PearConnect: dependency audit fixes".
 
 ### 2. ~~Merge `stream/foundation` into `main`~~ (done)
-Open the PR from `stream/foundation`. Merge once every check is green. Merging does **not** deploy anything.
+Done. **Every push to `main` deploys the Worker automatically** (Cloudflare's Git build; `/api/health` shows the live commit).
 
-### 3. Deploy the Worker (owner only)
+### 3. ~~Deploy the Worker~~ (done: `a0ad988` live via the automatic deploy on push to `main`; `/api/stream/v1`, `/stream` noindex and a production session create/read/end check verified)
 `npm run deploy` from the repo root. This adds the `StreamSession` Durable Object class. Check `/api/health`, `/stream` (it must send `X-Robots-Tag: noindex`) and `/api/stream/v1`.
 
 ### 4. ~~Wire PearConnect Desktop to Stream~~ (done: `src/engine.js` `streamRequest`, optional `BETTERYTS_STREAM_DESTINATION_TOKEN` for least privilege)
