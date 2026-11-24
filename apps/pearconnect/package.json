@@ -53,12 +53,12 @@
     "youtube-chat": "^2.2.0"
   },
   "overrides": {
-    "qs": "6.16.0",
-    "body-parser": "1.20.6"
+    "qs": "6.17.1",
+    "body-parser": "1.20.9"
   },
   "private": true,
   "devDependencies": {
     "@electron/packager": "20.3.0",
-    "electron": "44.2.0"
+    "electron": "44.11.5"
   }
 }
