@@ -40,8 +40,12 @@ cd E:\Codebase\betteryts; git grep -n "PearConnect-Song-Requests" apps/pearconne
 ```
 Point them at `foulfoxhacks/betteryts`, with tags like `pearconnect-v0.3.0-beta.6`. Publish the next Desktop release from this repo.
 
-### 6. Archive (don't delete) the old repo
-Only after steps 2–5 are live: add a README notice pointing to the monorepo, then archive `foulfoxhacks/PearConnect-Song-Requests` on GitHub. Old release downloads keep working.
+### 6. ~~Archive the old repo~~ (superseded)
+`foulfoxhacks/PearConnect-Song-Requests` was deleted rather than archived (GitHub returns 404 as of 2026-11-24), so its release downloads are gone. Recovery:
+- PearConnect `0.3.0-beta.6` is released from this repo (tag `pearconnect-v0.3.0-beta.6`, built by `pearconnect-release.yml`), and the website, docs and SEO data point at it.
+- beta.1–beta.5 and the Player preview downloads are marked retired in the docs. Rebuilding the Player needs its own release job (open).
+- The PearConnect website (`pearconnect.mellozone.site`, Cloudflare Pages project `pearconnect`) must be redeployed from `apps/pearconnect/website` with `npm run deploy`, because its Git source repository no longer exists.
+- The full history is preserved in this repo (subtree merge) and in the local clone `E:\Codebase\PearConnect-Song-Requests`.
 
 ### 7. Keep separate for now
 `betteryts-music` (in-app updater, Play signing) and `betteryts-vrchat` (VCC listing in `foulfoxhacks/vpm`). Move each in with `git subtree add --prefix=apps/<name>` only after its release automation points at this repo. `E:\Codebase\betteryts-music` has local-only files (`app/`, `core/toml.backup.example`, `web.zip`): commit or back them up first.
