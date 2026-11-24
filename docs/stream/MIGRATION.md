@@ -9,7 +9,10 @@ Branch: `stream/foundation` (pushed). Background: [audit.md](audit.md). SEO rule
 - [x] Stream API, queue Durable Object and `/stream` noindex hub (`src/stream/`, `stream/`)
 - [x] PearConnect workflows moved to `.github/workflows/pearconnect-*.yml`
 - [x] Worker CI green; local tests: Worker 73/73, PearConnect 104/104
-- [ ] 3 PearConnect workflows fail **only** on `npm audit` (new axios / qs / undici advisories since 2026-09)
+- [x] PearConnect root package: audit clean (qs 6.17.1, body-parser 1.20.9, Electron 44.11.5)
+- [ ] Relay and website still fail `npm audit`: dev-only tooling (relay: miniflare alpha + wrangler 4.129 → bump to miniflare 5.20261123.0-beta + wrangler 4.167.0, `package.json` already edited locally, lockfile pending; website: `npm audit fix` resolves vite/sharp/undici/source-map-js)
+- [x] `stream/foundation` merged to `main` (PR #4, then fast-forward to `b6e4386`)
+- [x] Step 4 done: engine routes `!sr` to Stream when `STREAM_BACKEND=betteryts` (tests 107/107)
 
 ## Steps
 
@@ -21,13 +24,13 @@ cd ..\website; npm audit fix; npm run build
 ```
 If `audit fix` can't resolve something, bump `overrides` in that package.json (root `apps/pearconnect/package.json` already overrides `qs` and `body-parser`). Commit as "PearConnect: dependency audit fixes".
 
-### 2. Merge `stream/foundation` into `main`
+### 2. ~~Merge `stream/foundation` into `main`~~ (done)
 Open the PR from `stream/foundation`. Merge once every check is green. Merging does **not** deploy anything.
 
 ### 3. Deploy the Worker (owner only)
 `npm run deploy` from the repo root. This adds the `StreamSession` Durable Object class. Check `/api/health`, `/stream` (it must send `X-Robots-Tag: noindex`) and `/api/stream/v1`.
 
-### 4. Wire PearConnect Desktop to Stream
+### 4. ~~Wire PearConnect Desktop to Stream~~ (done: `src/engine.js` `streamRequest`, optional `BETTERYTS_STREAM_DESTINATION_TOKEN` for least privilege)
 In `apps/pearconnect/src/engine.js` and `src/index.js`: when `streamSettings()` (in `src/betteryts-stream.js`) returns settings, pass chat adapters a queue adapter whose `handleRequest` calls `BetterYTSStream.submit()`. Then call `start(() => engine.playerState === 'ready')` for playback. Keep `!np`, `!queue` and `!skip` local. The local queue stays the default. Add tests next to `test/betteryts-stream.test.js`.
 
 ### 5. Repoint PearConnect links and releases
