@@ -25,7 +25,7 @@ Blueprint: [desktop-blueprint.md](desktop-blueprint.md) · Code: `apps/stream-de
   - approve / reject.
 - [x] Session connect flow: create a session, or paste an existing code + credential. The credential goes to the keychain.
 - [x] Pear Desktop destination in Rust (`bys-player`): port `apps/pearconnect/src/ytmd.js` + `player-queue.js` (verified queue add, no write retries), driven by destination claim/report.
-- [ ] `bys-discord`: Discord Rich Presence over local IPC (named pipe on Windows, Unix socket on Linux). No Discord login or tokens; public application ID only.
+- [x] `bys-discord`: Discord Rich Presence over local IPC (named pipe on Windows, Unix socket on Linux). No Discord login or tokens; public application ID only.
   - Shows: live status and session timer, now playing (title, artist, artwork, elapsed), viewer / audience count per platform, queue length and request counters, the last trigger or alert (e.g. "Gift goal reached").
   - Privacy: viewer names are hidden unless the owner enables them; every field can be toggled; presence updates are rate-limited to Discord's 15 s rule.
   - Port of `apps/pearconnect/desktop/discord-presence.js`.

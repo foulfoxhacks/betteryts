@@ -48,6 +48,7 @@ function showProfile() {
 	$("handle").value = p.handle;
 	$("venue").value = p.venue;
 	$("avatar").textContent = initials(p.displayName);
+	$("t-discord").checked = !!settings.discord?.enabled;
 }
 let profileTimer = null;
 for (const id of ["name", "handle", "venue"]) {
@@ -172,6 +173,13 @@ $("pear-btn").addEventListener("click", () =>
 			toast("Pear Desktop connected. Approved requests now play there.");
 		}
 		await refreshPlayer();
+	}),
+);
+
+$("t-discord").addEventListener("change", (e) =>
+	run(async () => {
+		settings = await invoke("set_discord", { enabled: e.target.checked });
+		toast(settings.discord.enabled ? "Discord presence on. Viewer names stay hidden." : "Discord presence off.");
 	}),
 );
 

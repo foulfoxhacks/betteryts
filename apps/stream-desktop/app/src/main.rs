@@ -8,6 +8,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod playback;
+mod presence;
 
 use bys_store::{Profile, Secret, Secrets, Settings};
 use bys_stream_api::{Action, Client, Credential, HttpTransport, Manage, QueueState};
@@ -21,6 +22,7 @@ struct AppState {
     path: PathBuf,
     secrets: Arc<dyn Secrets>,
     player: Arc<Mutex<playback::PlayerStatus>>,
+    presence: Arc<Mutex<bys_discord::PresenceInput>>,
 }
 
 type Res<T> = Result<T, String>;
@@ -124,7 +126,18 @@ fn forget_session(state: tauri::State<'_, AppState>) -> Res<()> {
 #[tauri::command]
 async fn queue_state(state: tauri::State<'_, AppState>) -> Res<QueueState> {
     let (origin, code, cred) = session(&state)?;
-    blocking(move || client(&origin)?.queue(&code, &cred).map_err(|e| e.to_string())).await
+    let q = blocking(move || client(&origin)?.queue(&code, &cred).map_err(|e| e.to_string())).await?;
+    if let Ok(mut p) = state.presence.lock() {
+        let live = !q.view.ended;
+        if live && !p.live {
+            p.live_since = Some(presence::now_s());
+        }
+        p.live = live;
+        p.requests_open = q.intake;
+        p.queue_length = q.active.iter().filter(|e| e.state == "queued" || e.state == "pending_approval").count() as u64;
+        p.played = q.stats.completed;
+    }
+    Ok(q)
 }
 
 #[tauri::command]
@@ -202,6 +215,14 @@ fn pear_disconnect(state: tauri::State<'_, AppState>) -> Res<()> {
     save(&state, &s)
 }
 
+#[tauri::command]
+fn set_discord(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Settings> {
+    let mut s = lock(&state)?;
+    s.discord.enabled = enabled;
+    save(&state, &s)?;
+    Ok(s.clone())
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -215,12 +236,15 @@ fn main() {
             let secrets: Arc<dyn Secrets> = Arc::new(bys_store::MemorySecrets::default());
             let settings = Arc::new(Mutex::new(settings));
             let player = Arc::new(Mutex::new(playback::PlayerStatus::default()));
-            playback::spawn(settings.clone(), secrets.clone(), player.clone());
+            let presence = Arc::new(Mutex::new(bys_discord::PresenceInput::default()));
+            playback::spawn(settings.clone(), secrets.clone(), player.clone(), presence.clone());
+            presence::spawn(settings.clone(), presence.clone());
             app.manage(AppState {
                 settings,
                 path,
                 secrets,
                 player,
+                presence,
             });
             Ok(())
         })
@@ -236,7 +260,8 @@ fn main() {
             end_session,
             player_status,
             pear_connect,
-            pear_disconnect
+            pear_disconnect,
+            set_discord
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

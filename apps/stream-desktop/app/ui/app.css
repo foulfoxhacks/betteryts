@@ -102,3 +102,4 @@ summary { cursor: pointer; color: var(--muted); }
 .player { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .player b { display: block; font-size: 13px; }
 .player span { display: block; font-size: 13px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-actions { display: flex; align-items: center; gap: 12px; }

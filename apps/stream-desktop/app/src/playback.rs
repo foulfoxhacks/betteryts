@@ -54,7 +54,7 @@ fn set(status: &Mutex<PlayerStatus>, f: impl FnOnce(&mut PlayerStatus)) {
 }
 
 /// One loop iteration. Returns quietly on every error; the status explains what's wrong.
-fn tick(settings: &Mutex<Settings>, secrets: &dyn Secrets, status: &Mutex<PlayerStatus>) {
+fn tick(settings: &Mutex<Settings>, secrets: &dyn Secrets, status: &Mutex<PlayerStatus>, presence: &Mutex<bys_discord::PresenceInput>) {
     let Ok(s) = settings.lock().map(|s| s.clone()) else { return };
     if !s.pear.enabled {
         set(status, |st| {
@@ -75,6 +75,17 @@ fn tick(settings: &Mutex<Settings>, secrets: &dyn Secrets, status: &Mutex<Player
     };
     let ready = match pear.now_playing() {
         Ok(now) => {
+            if let Ok(mut p) = presence.lock() {
+                p.track = now.as_ref().map(|n| bys_discord::Track {
+                    title: n.title.clone(),
+                    artist: n.artist.clone(),
+                    requester: None,
+                    duration_s: n.duration_s,
+                    elapsed_s: n.elapsed_s,
+                    paused: n.paused.unwrap_or(false),
+                    artwork: n.artwork.clone(),
+                });
+            }
             set(status, |st| {
                 st.state = "ready".into();
                 st.now_playing = now.map(Playing::from);
@@ -118,12 +129,12 @@ fn tick(settings: &Mutex<Settings>, secrets: &dyn Secrets, status: &Mutex<Player
 }
 
 /// Start the loop on its own thread for the life of the app.
-pub fn spawn(settings: Arc<Mutex<Settings>>, secrets: Arc<dyn Secrets>, status: Arc<Mutex<PlayerStatus>>) {
+pub fn spawn(settings: Arc<Mutex<Settings>>, secrets: Arc<dyn Secrets>, status: Arc<Mutex<PlayerStatus>>, presence: Arc<Mutex<bys_discord::PresenceInput>>) {
     std::thread::Builder::new()
         .name("bys-playback".into())
         .spawn(move || {
             loop {
-                tick(&settings, secrets.as_ref(), &status);
+                tick(&settings, secrets.as_ref(), &status, &presence);
                 std::thread::sleep(TICK);
             }
         })
