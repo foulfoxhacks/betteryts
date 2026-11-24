@@ -1,3 +1,6 @@
+/* BetterYTS XML sitemap presentation.
+   Mirrors the live site's warm charcoal, cream, gold and ember palette from web/styles.css.
+   Kept deliberately CSS-only: no XSLT, scripts, or changes to sitemap XML data. */
 @charset "UTF-8";
 @namespace sm url("http://www.sitemaps.org/schemas/sitemap/0.9");
 @namespace img url("http://www.google.com/schemas/sitemap-image/1.1");
@@ -5,81 +8,118 @@
 sm|urlset {
   display: block;
   box-sizing: border-box;
-  max-width: 980px;
-  margin: 36px auto;
-  padding: 34px clamp(18px, 4vw, 42px);
-  color: #f0edff;
-  background: #10101b;
-  border: 1px solid #34304e;
-  border-radius: 18px;
-  font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  box-shadow: 0 18px 60px rgb(0 0 0 / 28%);
+  max-width: 1040px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px);
+  color: #fff7e7;
+  background:
+    radial-gradient(760px 360px at 88% 0%, rgb(255 104 30 / 0.13), transparent 70%),
+    radial-gradient(620px 340px at 0% 18%, rgb(155 108 255 / 0.10), transparent 72%),
+    #050302;
+  border-inline: 1px solid rgb(255 200 87 / 0.12);
+  font: 15px/1.65 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
 }
 sm|urlset::before {
   display: block;
   margin: 0 0 8px;
-  color: #c4b5fd;
-  content: "BetterYTS · XML sitemap";
-  font-size: 26px;
-  font-weight: 750;
-  letter-spacing: -.04em;
+  padding: 0 0 18px;
+  border-bottom: 1px solid rgb(255 200 87 / 0.28);
+  color: #fff7e7;
+  content: url("/brand/logo-64.png") "  BetterYTS";
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -.035em;
+  line-height: 1.25;
 }
 sm|urlset::after {
   display: block;
-  margin-top: 22px;
-  padding-top: 16px;
-  color: #a7a2bc;
-  border-top: 1px solid #34304e;
-  content: "Canonical, indexable pages only · Human-readable directory: https://yts.foulfoxhacks.dev/sitemap";
-  font-size: 12px;
+  margin-top: 28px;
+  padding: 18px 0 0;
+  border-top: 1px solid rgb(255 200 87 / 0.24);
+  color: #cdbda9;
+  content: "BETTER YOUTUBE SEARCH  ·  BY FOULFOXHACKS  ·  Canonical, indexable pages only  ·  Human sitemap: yts.foulfoxhacks.dev/sitemap";
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .045em;
 }
 sm|url {
   display: block;
+  position: relative;
   margin: 14px 0;
-  padding: 17px 19px;
-  background: #191827;
-  border: 1px solid #35314e;
-  border-radius: 12px;
+  padding: 18px 20px;
+  background: linear-gradient(110deg, #120c08, #1b120b);
+  border: 1px solid rgb(255 200 87 / 0.20);
+  border-left: 3px solid #b87333;
+  border-radius: 2px;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 0.22);
+  transition: border-color .18s ease, background .18s ease;
+}
+sm|url:hover {
+  border-color: rgb(255 200 87 / 0.58);
+  border-left-color: #ffc857;
+  background: linear-gradient(110deg, #1b120b, #24150c);
 }
 sm|loc, sm|lastmod, sm|changefreq, sm|priority {
   display: block;
   overflow-wrap: anywhere;
 }
 sm|loc {
-  color: #c4b5fd;
+  color: #ffd083;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 750;
+  text-decoration: none;
+  text-decoration-color: #ff994a;
+  text-underline-offset: 4px;
+}
+sm|loc:hover {
+  color: #ffc857;
   text-decoration: underline;
-  text-decoration-color: #6c3fa0;
-  text-underline-offset: 3px;
 }
 sm|loc::before {
   display: block;
-  margin-bottom: 3px;
-  color: #a7a2bc;
-  content: "PAGE URL";
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .12em;
-  text-decoration: none;
+  margin-bottom: 4px;
+  color: #b87333;
+  content: "CANONICAL PAGE";
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .16em;
 }
 sm|lastmod, sm|changefreq, sm|priority {
   display: inline-block;
-  margin: 12px 14px 0 0;
-  color: #b8b3ca;
+  margin: 12px 18px 0 0;
+  color: #cdbda9;
   font-size: 12px;
 }
-sm|lastmod::before { content: "Updated: "; color: #8f89a7; }
-sm|changefreq::before { content: "Change frequency: "; color: #8f89a7; }
-sm|priority::before { content: "Priority: "; color: #8f89a7; }
+sm|lastmod::before { content: "Updated: "; color: #ff994a; font-weight: 700; }
+sm|changefreq::before { content: "Frequency: "; color: #ff994a; font-weight: 700; }
+sm|priority::before { content: "Priority: "; color: #ff994a; font-weight: 700; }
 img|image { display: none; }
+
 @media (prefers-color-scheme: light) {
-  sm|urlset { color: #242038; background: #f7f5ff; border-color: #ded8f3; box-shadow: 0 18px 50px rgb(35 25 70 / 10%); }
-  sm|url { background: #fff; border-color: #e5e0f2; }
-  sm|loc { color: #56318d; }
-  sm|lastmod, sm|changefreq, sm|priority, sm|urlset::after { color: #5e5870; }
+  sm|urlset {
+    color: #2a1a10;
+    background: #fff8ef;
+    border-color: rgb(184 115 51 / 0.18);
+    color-scheme: light;
+  }
+  sm|urlset::before { color: #1d1005; }
+  sm|urlset::after { color: #6e5a48; }
+  sm|url {
+    background: linear-gradient(110deg, #fff, #fff8ef);
+    border-color: rgb(184 115 51 / 0.24);
+    box-shadow: 0 8px 22px rgb(60 30 10 / 0.07);
+  }
+  sm|url:hover { background: #fff1d6; }
+  sm|loc { color: #9a4a0b; }
+  sm|lastmod, sm|changefreq, sm|priority { color: #6e5a48; }
 }
 @media (max-width: 640px) {
-  sm|urlset { margin: 0; min-height: 100vh; padding: 24px 16px; border: 0; border-radius: 0; }
-  sm|url { padding: 14px; }
+  sm|urlset { padding: 24px 16px; border: 0; }
+  sm|urlset::before { font-size: 25px; }
+  sm|url { padding: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  sm|url { transition: none; }
 }
