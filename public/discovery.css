@@ -15,7 +15,7 @@ main{padding-top:36px}
 h1{margin:0;color:#fff7e7;font-size:clamp(32px,6vw,54px);line-height:1.08;letter-spacing:-.055em}
 .lede{max-width:760px;margin:16px 0 0;color:#d2cbc1;font-size:17px}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0}
-.action{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 15px;border:1px solid rgb(255 200 87/.35);border-radius:8px;background:linear-gradient(135deg,#3a2a1b,#292522);color:#ffe0a0;font:700 13px inherit;text-decoration:none;cursor:pointer}
+.action{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 15px;border:1px solid rgb(255 200 87/.35);border-radius:8px;background:linear-gradient(135deg,#3a2a1b,#292522);color:#ffe0a0;font:700 13px/1.2 ui-sans-serif,system-ui,sans-serif;text-decoration:none;cursor:pointer}
 .action.primary{border-color:#b87333;background:linear-gradient(120deg,#8f431b,#b87333);color:white}
 .action:hover{border-color:var(--accent);filter:brightness(1.12)}
 .notice{margin:22px 0;padding:16px 18px;border:1px solid rgb(255 200 87/.2);border-left:3px solid var(--copper);border-radius:8px;background:rgb(20 17 14/.52);color:#d6cfc5}
