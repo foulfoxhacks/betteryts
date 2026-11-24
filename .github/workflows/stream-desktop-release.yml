@@ -1,0 +1,91 @@
+# BetterYTS Stream Desktop releases.
+# Push a tag named stream-desktop-v<version in app/tauri.conf.json>, e.g. stream-desktop-v0.1.0.
+# Builds Windows .msi + .exe (NSIS) and Linux .deb with the Tauri bundler, after lint, tests and
+# the dependency audit, then creates a DRAFT pre-release with SHA-256 sums. Nothing is public
+# until the owner reviews and publishes it. Builds are unsigned until code signing is set up.
+name: Stream Desktop release
+
+on:
+  push:
+    tags: ["stream-desktop-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stream-desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            bundles: msi,nsis
+          - os: ubuntu-22.04
+            bundles: deb
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/stream-desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tag must match the app version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=$(node -p "require('./app/tauri.conf.json').version")
+          [ "$TAG" = "stream-desktop-v$version" ] || { echo "Tag $TAG does not match app version $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - run: rustup toolchain install stable --profile minimal --component clippy && rustup default stable
+      - name: Linux system libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libdbus-1-dev pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libayatana-appindicator3-dev
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - run: cargo install cargo-audit --locked && cargo audit
+      - run: cargo install tauri-cli --version "^2" --locked
+      - name: Bundle
+        working-directory: apps/stream-desktop/app
+        run: cargo tauri build --bundles ${{ matrix.bundles }}
+      - name: Collect installers and checksums
+        run: |
+          mkdir -p out
+          find target/release/bundle -type f \( -name "*.msi" -o -name "*-setup.exe" -o -name "*.deb" \) -exec cp {} out/ \;
+          ls out | grep -q . || { echo "no installers were produced"; exit 1; }
+          cd out && for f in *; do sha256sum "$f" > "$f.sha256"; done && ls -l
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: apps/stream-desktop/out/
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Draft release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # only this job may create the draft release
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create draft pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -l dist
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --draft --prerelease \
+            --title "BetterYTS Stream Desktop ${TAG#stream-desktop-v}" \
+            --notes "BetterYTS Stream Desktop ${TAG#stream-desktop-v} (preview). Windows: .msi or setup .exe. Linux: .deb. Unsigned preview builds: verify each download with its .sha256 file. Details: https://yts.foulfoxhacks.dev/stream"
