@@ -60,7 +60,7 @@ export default defineConfig({
     },
     search: { provider: 'local' },
     outline: { level: [2, 3], label: 'On this page' },
-    editLink: { pattern: 'https://github.com/foulfoxhacks/PearConnect-Song-Requests/edit/main/website/content/:path', text: 'Improve this page on GitHub' },
+    editLink: { pattern: 'https://github.com/foulfoxhacks/betteryts/edit/main/apps/pearconnect/website/content/:path', text: 'Improve this page on GitHub' },
     footer: { message: 'Independent community software · MIT licensed', copyright: 'PearConnect by FoulFoxHacks · Your stream. In tune.' },
     docFooter: { prev: 'Previous guide', next: 'Next guide' }
   },

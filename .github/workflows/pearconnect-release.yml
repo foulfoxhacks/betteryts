@@ -1,0 +1,65 @@
+# PearConnect Desktop releases from the monorepo.
+# Push a tag named pearconnect-v<package.json version>, e.g. pearconnect-v0.3.0-beta.6.
+# This builds the Windows x64 portable ZIP, records its SHA-256 and creates a DRAFT pre-release:
+# nothing is public until the owner reviews the draft and publishes it on GitHub.
+name: PearConnect release
+
+on:
+  push:
+    tags: ["pearconnect-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pearconnect-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # only this job may create the draft release
+    defaults:
+      run:
+        working-directory: apps/pearconnect
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/pearconnect/package-lock.json
+      - name: Tag must match package.json version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($env:TAG -ne "pearconnect-v$version") { throw "Tag $env:TAG does not match package.json version $version." }
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - run: npm ci --ignore-scripts
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm test
+      - run: node node_modules/electron/install.js
+      - run: npm run test:desktop
+      - run: npm run package:win
+      - name: Zip and checksum
+        run: |
+          $zip = "PearConnect-$env:VERSION-win-x64.zip"
+          Compress-Archive -Path dist/PearConnect-win32-x64 -DestinationPath "dist/$zip"
+          $hash = (Get-FileHash "dist/$zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zip" | Out-File -FilePath "dist/$zip.sha256" -Encoding ascii
+          "ZIP=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Create draft pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create $env:TAG "dist/$env:ZIP" "dist/$env:ZIP.sha256" `
+            --repo $env:GITHUB_REPOSITORY --draft --prerelease `
+            --title "PearConnect $env:VERSION" `
+            --notes "PearConnect Desktop $env:VERSION (Windows x64 portable, unsigned community build). Verify the download with the .sha256 file. Release notes: https://pearconnect.mellozone.site/docs/releases"

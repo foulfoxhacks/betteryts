@@ -33,7 +33,7 @@ Open the PR from `stream/foundation`. Merge once every check is green. Merging d
 ### 4. ~~Wire PearConnect Desktop to Stream~~ (done: `src/engine.js` `streamRequest`, optional `BETTERYTS_STREAM_DESTINATION_TOKEN` for least privilege)
 In `apps/pearconnect/src/engine.js` and `src/index.js`: when `streamSettings()` (in `src/betteryts-stream.js`) returns settings, pass chat adapters a queue adapter whose `handleRequest` calls `BetterYTSStream.submit()`. Then call `start(() => engine.playerState === 'ready')` for playback. Keep `!np`, `!queue` and `!skip` local. The local queue stays the default. Add tests next to `test/betteryts-stream.test.js`.
 
-### 5. Repoint PearConnect links and releases
+### 5. ~~Repoint PearConnect links and releases~~ (done: source, issues, clone, license and integration links point at `apps/pearconnect`; published release downloads and CI history intentionally stay on the old repo; new releases via `.github/workflows/pearconnect-release.yml`, tag `pearconnect-v<version>`, draft for owner review)
 28 references point at `github.com/foulfoxhacks/PearConnect-Song-Requests`:
 ```powershell
 cd E:\Codebase\betteryts; git grep -n "PearConnect-Song-Requests" apps/pearconnect

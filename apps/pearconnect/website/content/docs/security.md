@@ -62,4 +62,4 @@ Cloudflare serves the website and GitHub serves downloads and source. Requests t
 
 ## Reporting a problem
 
-Use the project's [GitHub issues](https://github.com/foulfoxhacks/PearConnect-Song-Requests/issues) for reproducible problems, with sanitized details. Do not include credentials, private configuration or information that would expose another user's account.
+Use the project's [GitHub issues](https://github.com/foulfoxhacks/betteryts/issues) for reproducible problems, with sanitized details. Do not include credentials, private configuration or information that would expose another user's account.

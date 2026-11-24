@@ -126,7 +126,7 @@ const download = 'https://github.com/foulfoxhacks/PearConnect-Song-Requests/rele
     <footer class="home-footer">
       <a class="home-brand" href="/"><img src="/pear.svg" width="23" height="28" alt="" aria-hidden="true"><span>Pear<span>Connect</span></span></a>
       <p>Independent community software. Not affiliated with TikTok, TikFinity or Pear Desktop.</p>
-      <div><a href="https://github.com/foulfoxhacks">By FoulFoxHacks</a><a href="/docs/security">Privacy &amp; security</a><a href="https://github.com/foulfoxhacks/PearConnect-Song-Requests/blob/main/LICENSE">MIT license</a></div>
+      <div><a href="https://github.com/foulfoxhacks">By FoulFoxHacks</a><a href="/docs/security">Privacy &amp; security</a><a href="https://github.com/foulfoxhacks/betteryts/blob/main/apps/pearconnect/LICENSE">MIT license</a></div>
     </footer>
   </div>
 </template>

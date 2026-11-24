@@ -45,7 +45,7 @@ Use **Import .pearplugin** to select a single HTML/CSS/JavaScript package. A nat
 
 The first API supports **read-only playback information and artwork**. Widgets run in separate sandboxed windows without the player's login session, network access, filesystem access or playback/queue controls. Unknown permissions are rejected. This does not make an arbitrary author's code trustworthy.
 
-Choose **Save starter plugin** for a working now-playing widget. [Read the package format and developer API](https://github.com/foulfoxhacks/PearConnect-Song-Requests/blob/main/player/PLUGINS.md). Compiled upstream plugins, Node packages and ZIP archives cannot be imported through this interface.
+Choose **Save starter plugin** for a working now-playing widget. [Read the package format and developer API](https://github.com/foulfoxhacks/betteryts/blob/main/apps/pearconnect/player/PLUGINS.md). Compiled upstream plugins, Node packages and ZIP archives cannot be imported through this interface.
 
 ## What has been checked
 

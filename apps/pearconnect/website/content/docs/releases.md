@@ -5,6 +5,8 @@ description: Download the current PearConnect desktop preview and understand wha
 
 # Release notes
 
+PearConnect now lives in the [BetterYTS monorepo](https://github.com/foulfoxhacks/betteryts/tree/main/apps/pearconnect). New releases are published there with tags like `pearconnect-v0.3.0-beta.6` ([all PearConnect releases](https://github.com/foulfoxhacks/betteryts/releases?q=pearconnect)). The downloads below stay on the original repository and keep working.
+
 ## 0.3.0-beta.5 · Stream overlays & Discord presence
 
 **5 September 2026** · Windows x64 · Portable ZIP

@@ -10,8 +10,8 @@ The CLI runs the same engine without loading a desktop interface. Use Node.js **
 ## Install from source
 
 ```sh
-git clone https://github.com/foulfoxhacks/PearConnect-Song-Requests.git
-cd PearConnect-Song-Requests
+git clone https://github.com/foulfoxhacks/betteryts.git
+cd betteryts/apps/pearconnect
 npm ci --omit=dev --ignore-scripts
 npm run setup
 ```

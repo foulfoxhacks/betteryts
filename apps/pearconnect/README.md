@@ -88,8 +88,8 @@ For the graphical application, use the project documentation:
 CLI workflow:
 
 ```bash
-git clone https://github.com/foulfoxhacks/PearConnect-Song-Requests.git
-cd PearConnect-Song-Requests
+git clone https://github.com/foulfoxhacks/betteryts.git
+cd betteryts/apps/pearconnect
 npm ci --omit=dev --ignore-scripts
 npm run setup
 ```

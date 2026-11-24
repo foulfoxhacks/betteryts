@@ -19,7 +19,7 @@ The default local webhook origin is `http://127.0.0.1:7280`. Use the port config
 
 ## Import the action package
 
-Select **Export actions** in Connections, or download [PearConnect.sb from the repository](https://github.com/foulfoxhacks/PearConnect-Song-Requests/raw/main/integrations/streamerbot/PearConnect.sb).
+Select **Export actions** in Connections, or download [PearConnect.sb from the repository](https://github.com/foulfoxhacks/betteryts/raw/main/apps/pearconnect/integrations/streamerbot/PearConnect.sb).
 
 Back up Streamer.bot first. Open **Import**, drag in the file or paste its complete encoded contents, and review the import preview. It should contain exactly five actions in the **PearConnect** group:
 
@@ -107,6 +107,6 @@ This is a separate reply route. PearConnect cannot verify actual TikTok delivery
 
 ## Troubleshooting and manual setup
 
-If the import does not compile, use **Find Refs** in Streamer.bot's C# editor. The [full integration guide](https://github.com/foulfoxhacks/PearConnect-Song-Requests/blob/main/docs/STREAMERBOT.md) includes required references and the manual five-action fallback.
+If the import does not compile, use **Find Refs** in Streamer.bot's C# editor. The [full integration guide](https://github.com/foulfoxhacks/betteryts/blob/main/apps/pearconnect/docs/STREAMERBOT.md) includes required references and the manual five-action fallback.
 
 After a timeout, inspect the player queue before retrying. Running an action again creates a new request; repeated unrelated executions are not automatically recognized as the same TikTok message.

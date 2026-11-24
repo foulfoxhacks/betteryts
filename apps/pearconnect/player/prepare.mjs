@@ -72,7 +72,7 @@ await edit('src/menu.ts', text => replace(text, `          label: t('main.menu.o
           click(item: MenuItem) {
             config.setMenuOption('options.autoUpdates', item.checked);
           },`, `          label: 'PearConnect Player releases',
-          click() { void shell.openExternal('https://github.com/foulfoxhacks/PearConnect-Song-Requests/releases'); },`));
+          click() { void shell.openExternal('https://github.com/foulfoxhacks/betteryts/releases?q=pearconnect'); },`));
 await edit('src/index.ts', text => {
   text = text.replace("import { autoUpdater } from 'electron-updater';\n", '').replace('autoUpdater.autoDownload = false;\n', '');
   const start = text.indexOf("  if (!is.dev() && config.get('options.autoUpdates')) {");

@@ -35,12 +35,13 @@
   "author": "Aleksandr \"Sammy\" Freyermuth (foulfoxhacks)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/foulfoxhacks/PearConnect-Song-Requests.git"
+    "url": "https://github.com/foulfoxhacks/betteryts.git",
+    "directory": "apps/pearconnect"
   },
   "bugs": {
-    "url": "https://github.com/foulfoxhacks/PearConnect-Song-Requests/issues"
+    "url": "https://github.com/foulfoxhacks/betteryts/issues"
   },
-  "homepage": "https://github.com/foulfoxhacks/PearConnect-Song-Requests#readme",
+  "homepage": "https://github.com/foulfoxhacks/betteryts/tree/main/apps/pearconnect#readme",
   "license": "MIT",
   "engines": {
     "node": ">=22"

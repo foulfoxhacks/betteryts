@@ -7,7 +7,7 @@ description: Answers about requirements, chat replies, request tracking, desktop
 
 ## Is PearConnect free?
 
-PearConnect is open-source software under the [MIT license](https://github.com/foulfoxhacks/PearConnect-Song-Requests/blob/main/LICENSE). It has no PearConnect subscription. Other applications and platforms have their own terms and requirements.
+PearConnect is open-source software under the [MIT license](https://github.com/foulfoxhacks/betteryts/blob/main/apps/pearconnect/LICENSE). It has no PearConnect subscription. Other applications and platforms have their own terms and requirements.
 
 ## Do I need Streamer.bot?
 

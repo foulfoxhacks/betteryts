@@ -95,4 +95,4 @@ Simple receives events only. Its replies appear in PearConnect. Advanced needs t
 
 Open **Activity & diagnostics → Preview report**, review it, then select **Export previewed report**. The export omits credentials, identities, song/request text, configuration URLs, local paths and raw logs.
 
-[Open a GitHub issue](https://github.com/foulfoxhacks/PearConnect-Song-Requests/issues/new) with the app version, connection mode, observed result and relevant sanitized diagnostics. Don't paste tokens, an entire `.env`, or a private Streamer.bot argument dictionary.
+[Open a GitHub issue](https://github.com/foulfoxhacks/betteryts/issues/new) with the app version, connection mode, observed result and relevant sanitized diagnostics. Don't paste tokens, an entire `.env`, or a private Streamer.bot argument dictionary.
