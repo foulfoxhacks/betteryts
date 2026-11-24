@@ -1,6 +1,6 @@
 # BetterYTS Stream Desktop — Feature Blueprint
 
-Version 1.0 · 2026-11-24 · Status: approved direction, implementation starting
+Version 1.1 · 2026-11-24 · Status: Phase 0 and Phase 1 built (see PHASE1.md); Phase 2 next (PHASE2.md)
 Code: `apps/stream-desktop/` (Rust workspace) · Server side: `src/stream/` (already live at `/api/stream/v1`)
 
 BetterYTS Stream Desktop is the native client for BetterYTS Stream. It replaces PearConnect Desktop (Electron) and grows into a full live-interaction toolkit: requests, chat sources, automation, overlays, VRChat and hardware outputs. Everything below is **BetterYTS's own design and code**.
@@ -216,7 +216,7 @@ The governor applies hard limits that **no chain, API call or viewer can raise**
 | Phase | Scope | Done when |
 |---|---|---|
 | **0** | Workspace, `bys-core` (events, conditions, chains, planner, governor), `bys-osc` codec, CI (`fmt`, `clippy -D warnings`, tests, `cargo audit`) | Tests green in CI |
-| **1** | Tauri shell + **Get Live** console; `bys-stream-api`; Pear Desktop + BetterYTS player destination; `bys-store` + keychain; MSI and deb builds | A streamer runs a session end to end without PearConnect |
+| **1** ✅ | Tauri shell + **Get Live** console; `bys-stream-api`; Pear Desktop + BetterYTS player destination; `bys-store` + keychain; MSI and deb builds | A streamer runs a session end to end without PearConnect |
 | **2** | TikTok (unofficial WS) and Twitch sources; chat replies; overlays; Streamer.bot / TikFinity compatibility | Requests and gifts from TikTok and Twitch drive chains and the queue |
 | **3** | Chain editor UI, variables, OBS, VRChat OSC, local API, YouTube official API | Creators automate scenes and avatars without code |
 | **4** | OSCQuery, live input, haptics behind the governor, paid requests (provider + legal review) | Opt-in hardware with every safety rule in §8 tested |

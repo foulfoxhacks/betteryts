@@ -30,4 +30,4 @@ Blueprint: [desktop-blueprint.md](desktop-blueprint.md) · Code: `apps/stream-de
   - Privacy: viewer names are hidden unless the owner enables them; every field can be toggled; presence updates are rate-limited to Discord's 15 s rule.
   - Port of `apps/pearconnect/desktop/discord-presence.js`.
 - [ ] Build workflow: `.msi` (Windows) and `.deb` (Ubuntu) through the Tauri bundler, as draft releases tagged `stream-desktop-v*`.
-- [ ] Docs: update `desktop-blueprint.md` §9 when Phase 1 is done; start `PHASE2.md` (TikTok unofficial WebSocket source, Twitch).
+- [x] Docs: update `desktop-blueprint.md` §9 when Phase 1 is done; start `PHASE2.md` (TikTok unofficial WebSocket source, Twitch).
