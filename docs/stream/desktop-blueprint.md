@@ -64,6 +64,7 @@ apps/stream-desktop/
 │   ├── bys-twitch/ bys-youtube/ bys-kick/ bys-streamerbot/                             Phase 2–3
 │   ├── bys-stream-api/   client for /api/stream/v1 (intake + destination)              Phase 1
 │   ├── bys-player/       Pear Desktop + BetterYTS player control                       Phase 1
+│   ├── bys-discord/      Discord Rich Presence over local IPC                          Phase 1
 │   ├── bys-obs/ bys-haptics/ bys-vrchat/                                               Phase 3–4
 │   ├── bys-store/        SQLite + OS keychain secrets                                   Phase 1
 │   └── bys-api/          loopback HTTP API                                              Phase 3
@@ -132,6 +133,7 @@ Every source emits the same normalized event: `chat`, `gift`, `like`, `follow`, 
 | VRChat OSC | Set avatar parameters (bool/int/float), chatbox "now playing", typed and range-checked | P1 |
 | VRChat OSCQuery | Discover the current avatar and its parameters; per-avatar saved layouts; avatar-change handling | P2 |
 | Haptics | Intiface/Buttplug (vibrate, rotate, oscillate, linear), OwO, GiggleTech, DG-LAB, PiShock, all behind §8 | P2 |
+| Discord Rich Presence | Local IPC only. Live status, session timer, now playing with artwork, viewer / audience counts, request counters, last trigger or alert. Viewer names hidden by default, every field toggleable, updates rate-limited. | P0 |
 | Webhooks out | Allowlisted URLs only, signed payloads | P2 |
 
 ### 3.5 Live input (VRChat contacts and OSC parameters)
