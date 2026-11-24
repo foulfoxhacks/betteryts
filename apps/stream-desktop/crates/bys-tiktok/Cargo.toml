@@ -1,0 +1,16 @@
+[package]
+name = "bys-tiktok"
+description = "TikTok LIVE source for BetterYTS Stream: read-only webcast decoding (unofficial protocol)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+bys-core = { path = "../bys-core" }
+# flate2 (pure-Rust miniz_oxide backend): webcast frames may be gzip-compressed. Output is size-capped.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+[lints]
+workspace = true

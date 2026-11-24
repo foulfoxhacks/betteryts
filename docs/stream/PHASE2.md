@@ -16,7 +16,8 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
   - Shoutouts are text-only, moderated, and length-capped.
   - Per-kind intake switches in `manage`; the console's Video / Shoutout toggles become live.
   - Tests in `test/stream.test.ts`.
-- [ ] **`bys-tiktok`**: TikTok LIVE source over the unofficial WebSocket, read-only (blueprint §4.1).
+- [x] **`bys-tiktok` decoder**: own bounded protobuf reader; webcast push frames (gzip, capped against bombs); chat, gift (final streak message only), like, follow, share, join, viewer count, stream end; mapping to `bys_core` events keyed on the numeric user ID; ack frames; fuzz tests.
+- [ ] **`bys-tiktok` connection** (needs the owner's signer decision, see below): TikTok LIVE source over the unofficial WebSocket, read-only (blueprint §4.1).
   - Resolve `@user` or a LIVE URL to a room.
   - Pluggable signer (`None` / `Remote(url)`, off by default, never sends credentials).
   - Webcast protobuf decoding of chat, gift (with combo end), like, follow, share, join and room-user count.
@@ -32,5 +33,6 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 - [ ] **Audience counts** (TikTok room users, Twitch viewers) feed Discord presence and the console.
 - [ ] **Local overlay server.** Loopback WebSocket with now playing, queue, alerts and goals; per-overlay read-only token. The hosted `/stream/overlay` stays as is.
 - [ ] **Compatibility sources:** Streamer.bot and TikFinity local WebSockets, so existing PearConnect setups keep working.
+- [ ] **Owner decision: TikTok signing.** TikTok's webcast connection needs signed URLs. Options: (a) a third-party signing service such as Euler Stream (sends the room ID and connection parameters, never credentials; needs its API key as a keychain secret); (b) TikFinity as the TikTok source (already supported in PearConnect, no signing on our side); (c) both, with TikFinity as fallback. Until decided, the decoder ships and the live connection stays off.
 - [ ] **Owner action (can't be automated):** rename or replace the Discord application `1545979656262389900` so presence reads "BetterYTS Stream" instead of the old PearConnect name, then update `bys_discord::CLIENT_ID` if the ID changes.
 - [ ] **Docs:** update `desktop-blueprint.md` §9 when Phase 2 is done; start `PHASE3.md` (chain editor UI, variables, OBS, VRChat OSC, local API, YouTube official API).
