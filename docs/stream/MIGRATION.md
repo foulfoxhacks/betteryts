@@ -10,13 +10,13 @@ Branch: `stream/foundation` (pushed). Background: [audit.md](audit.md). SEO rule
 - [x] PearConnect workflows moved to `.github/workflows/pearconnect-*.yml`
 - [x] Worker CI green; local tests: Worker 73/73, PearConnect 104/104
 - [x] PearConnect root package: audit clean (qs 6.17.1, body-parser 1.20.9, Electron 44.11.5)
-- [ ] Relay and website still fail `npm audit`: dev-only tooling (relay: miniflare alpha + wrangler 4.129 → bump to miniflare 5.20261123.0-beta + wrangler 4.167.0, `package.json` already edited locally, lockfile pending; website: `npm audit fix` resolves vite/sharp/undici/source-map-js)
+- [x] Relay and website audit clean (relay: miniflare 5.20261123.0-beta + wrangler 4.167.0, tests 5/5; website: `npm audit fix`, build OK)
 - [x] `stream/foundation` merged to `main` (PR #4, then fast-forward to `b6e4386`)
 - [x] Step 4 done: engine routes `!sr` to Stream when `STREAM_BACKEND=betteryts` (tests 107/107)
 
 ## Steps
 
-### 1. Fix the dependency audit (unblocks the merge)
+### 1. ~~Fix the dependency audit~~ (done; re-run if new advisories appear)
 ```powershell
 cd E:\Codebase\betteryts\apps\pearconnect; npm audit fix --ignore-scripts; npm test
 cd relay; npm audit fix; npm test
