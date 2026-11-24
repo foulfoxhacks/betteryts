@@ -1,0 +1,230 @@
+// BetterYTS Stream Desktop: Get Live console. Talks only to the Rust commands in src/main.rs.
+// All request data (titles, names, input) is untrusted: it is written with textContent, never HTML.
+"use strict";
+
+const invoke = (cmd, args) => window.__TAURI__.core.invoke(cmd, args);
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => {
+	const n = document.createElement(tag);
+	if (cls) n.className = cls;
+	if (text !== undefined) n.textContent = text;
+	return n;
+};
+
+const LABELS = { queued: "Queued", pending_approval: "Needs approval", approved: "Approved", dispatching: "Sending to player", playing: "Playing", completed: "Completed", rejected: "Rejected", skipped: "Skipped", failed: "Failed", cancelled: "Removed", resolving: "Looking up", received: "Received" };
+const filters = { active: "all", history: "all" };
+let settings = null;
+let last = null;
+let pollTimer = null;
+let busy = false;
+
+function toast(message) {
+	const t = $("toast");
+	t.textContent = String(message).slice(0, 300);
+	t.hidden = false;
+	clearTimeout(toast.timer);
+	toast.timer = setTimeout(() => (t.hidden = true), 5000);
+}
+
+async function run(fn) {
+	if (busy) return;
+	busy = true;
+	try {
+		await fn();
+	} catch (e) {
+		toast(typeof e === "string" ? e : "Something went wrong. Try again.");
+	} finally {
+		busy = false;
+	}
+}
+
+// ---- profile ----
+function initials(name) {
+	return (name || "B").trim().split(/\s+/).slice(0, 2).map((w) => w[0] || "").join("").toUpperCase() || "B";
+}
+function showProfile() {
+	const p = settings.profile;
+	$("name").value = p.displayName;
+	$("handle").value = p.handle;
+	$("venue").value = p.venue;
+	$("avatar").textContent = initials(p.displayName);
+}
+let profileTimer = null;
+for (const id of ["name", "handle", "venue"]) {
+	$(id).addEventListener("input", () => {
+		$("avatar").textContent = initials($("name").value);
+		clearTimeout(profileTimer);
+		profileTimer = setTimeout(async () => {
+			try {
+				settings = await invoke("save_profile", { profile: { displayName: $("name").value, handle: $("handle").value, venue: $("venue").value } });
+			} catch (e) {
+				toast(e);
+			}
+		}, 600);
+	});
+}
+
+// ---- session timer (local start time per session code) ----
+function liveSinceKey() {
+	return `bys.liveSince.${settings.sessionCode}`;
+}
+function tickClock() {
+	if (!settings?.sessionCode) return;
+	const since = Number(localStorage.getItem(liveSinceKey())) || Date.now();
+	const s = Math.max(0, Math.floor((Date.now() - since) / 1000));
+	const pad = (n) => String(n).padStart(2, "0");
+	const clock = $("clock");
+	clock.replaceChildren(pad(Math.floor(s / 3600)), el("small", "", "h"), " : ", pad(Math.floor((s % 3600) / 60)), el("small", "", "m"), " : ", pad(s % 60), el("small", "", "s"));
+}
+
+// ---- rendering ----
+function itemNode(r, historyList) {
+	const node = el("article", `item ${r.state}`);
+	const thumb = r.media?.thumbnail || (r.media?.id ? `https://i.ytimg.com/vi/${encodeURIComponent(r.media.id)}/mqdefault.jpg` : "");
+	if (thumb.startsWith("https://i.ytimg.com/")) {
+		const img = el("img");
+		img.src = thumb;
+		img.alt = "";
+		img.loading = "lazy";
+		node.append(img);
+	} else node.append(el("div", "noart"));
+	const mid = el("div");
+	mid.append(el("div", "t", r.media?.title || r.input || "Request"));
+	mid.append(el("div", "s", [r.media?.creator, r.requester && `requested by ${r.requester}`, r.platform].filter(Boolean).join(" · ")));
+	if (historyList && r.message && r.state !== "completed") mid.append(el("div", "s", r.message));
+	node.append(mid);
+	const side = el("div", "side-col");
+	side.append(el("span", `tag ${r.state}`, LABELS[r.state] || r.state));
+	if (!historyList) {
+		if (r.state === "pending_approval") {
+			side.append(button("Approve", "primary", () => act("approve", r.id)));
+			side.append(button("Reject", "", () => act("reject", r.id)));
+		} else if (["queued", "dispatching", "playing"].includes(r.state)) {
+			side.append(button("Mark as completed", "", () => act("complete", r.id)));
+		}
+	}
+	node.append(side);
+	return node;
+}
+function button(text, cls, onClick) {
+	const b = el("button", `btn small ${cls}`, text);
+	b.type = "button";
+	b.addEventListener("click", onClick);
+	return b;
+}
+function renderList(id, rows, historyList) {
+	const f = filters[id];
+	const shown = rows.filter((r) => f === "all" || r.state === f || (f === "playing" && r.state === "dispatching"));
+	const box = $(id);
+	if (!shown.length) {
+		box.replaceChildren(el("p", "empty", historyList ? "Nothing here yet." : "No requests in the queue."));
+		return;
+	}
+	box.replaceChildren(...shown.map((r) => itemNode(r, historyList)));
+}
+function render(q) {
+	last = q;
+	$("s-received").textContent = q.stats.received;
+	$("s-accepted").textContent = q.stats.accepted;
+	$("s-rejected").textContent = q.stats.rejected;
+	$("s-completed").textContent = q.stats.completed;
+	$("t-songs").checked = q.intake;
+	$("pause").textContent = q.intake ? "Pause" : "Go live";
+	$("conn").textContent = q.destinationOnline ? "Connected · player online" : "Connected · no player connected";
+	$("session-pill").textContent = `${q.code} · ${q.command}`;
+	$("session-pill").hidden = false;
+	renderList("active", q.active, false);
+	renderList("history", q.history, true);
+}
+
+for (const group of document.querySelectorAll(".filters")) {
+	group.addEventListener("click", (e) => {
+		const b = e.target.closest("button");
+		if (!b) return;
+		for (const x of group.querySelectorAll("button")) x.classList.toggle("on", x === b);
+		filters[group.dataset.list] = b.dataset.f;
+		if (last) render(last);
+	});
+}
+
+// ---- actions ----
+async function refresh() {
+	try {
+		render(await invoke("queue_state"));
+	} catch (e) {
+		$("conn").textContent = "Connection problem: retrying";
+		if (/credential|Connect/.test(String(e))) showConnect();
+	}
+}
+function act(action, id) {
+	run(async () => {
+		await invoke("moderate", { action, id });
+		await refresh();
+	});
+}
+function setIntake(songs) {
+	run(async () => {
+		await invoke("set_intake", { songs, videos: false, shoutouts: false });
+		await refresh();
+	});
+}
+$("t-songs").addEventListener("change", (e) => setIntake(e.target.checked));
+$("pause").addEventListener("click", () => setIntake(!(last && last.intake)));
+$("end").addEventListener("click", () => {
+	if (!confirm("End this session? Viewers can no longer send requests with this code.")) return;
+	run(async () => {
+		await invoke("end_session");
+		localStorage.removeItem(liveSinceKey());
+		settings = await invoke("get_settings");
+		showConnect();
+	});
+});
+
+function startPolling() {
+	clearInterval(pollTimer);
+	refresh();
+	pollTimer = setInterval(() => document.visibilityState === "visible" && refresh(), 3000);
+}
+function showConsole() {
+	$("connect").hidden = true;
+	$("console").hidden = false;
+	if (!localStorage.getItem(liveSinceKey())) localStorage.setItem(liveSinceKey(), String(Date.now()));
+	showProfile();
+	startPolling();
+}
+function showConnect() {
+	clearInterval(pollTimer);
+	$("console").hidden = true;
+	$("connect").hidden = false;
+	$("session-pill").hidden = true;
+	$("conn").textContent = "Not connected";
+}
+
+$("create").addEventListener("click", () =>
+	run(async () => {
+		await invoke("create_session", { minutes: Number($("minutes").value) });
+		settings = await invoke("get_settings");
+		toast(`Session ${settings.sessionCode} created. Turn on song requests when you're ready.`);
+		showConsole();
+	}),
+);
+$("connect-btn").addEventListener("click", () =>
+	run(async () => {
+		await invoke("connect_session", { code: $("code").value, credential: $("credential").value });
+		$("credential").value = "";
+		settings = await invoke("get_settings");
+		showConsole();
+	}),
+);
+
+setInterval(tickClock, 1000);
+(async () => {
+	try {
+		settings = await invoke("get_settings");
+	} catch (e) {
+		toast(e);
+		return;
+	}
+	if (settings.sessionCode) showConsole();
+	else showConnect();
+})();

@@ -14,8 +14,8 @@ Blueprint: [desktop-blueprint.md](desktop-blueprint.md) · Code: `apps/stream-de
 - [x] Server: moderator `complete` action + session counters (`stats`) in the queue response (`634474c`)
 - [x] `bys-stream-api` crate: typed client for `/api/stream/v1`. The HTTP transport is a trait so tests use a fake. HTTPS only (loopback excepted), response size cap, credentials redacted in `Debug`. Endpoints: create session, public view, queue, moderate, manage, mint/revoke tokens, destination claim/report.
 - [x] `bys-store` crate: settings JSON (atomic write, schema version) + secrets through the OS keychain (`keyring`), with an in-memory secret store for tests. Secrets never go to disk in plain text.
-- [ ] `app/` Tauri 2 shell (workspace member). UI is plain HTML/CSS/JS, no framework. CSP locked to self + the BetterYTS API origin.
-- [ ] Get Live console UI (BetterYTS branding, not a copy of the reference):
+- [x] `app/` Tauri 2 shell (workspace member). UI is plain HTML/CSS/JS, no framework. CSP locked to self + the BetterYTS API origin.
+- [x] Get Live console UI (BetterYTS branding, not a copy of the reference):
   - profile card + venue;
   - session timer;
   - Song / Video / Shoutout intake toggles, Pause, End Session;
@@ -23,7 +23,7 @@ Blueprint: [desktop-blueprint.md](desktop-blueprint.md) · Code: `apps/stream-de
   - Current Queue with filters and "Mark as completed";
   - Played Requests with status filters;
   - approve / reject.
-- [ ] Session connect flow: create a session, or paste an existing code + credential. The credential goes to the keychain.
+- [x] Session connect flow: create a session, or paste an existing code + credential. The credential goes to the keychain.
 - [ ] Pear Desktop destination in Rust (`bys-player`): port `apps/pearconnect/src/ytmd.js` + `player-queue.js` (verified queue add, no write retries), driven by destination claim/report.
 - [ ] `bys-discord`: Discord Rich Presence over local IPC (named pipe on Windows, Unix socket on Linux). No Discord login or tokens; public application ID only.
   - Shows: live status and session timer, now playing (title, artist, artwork, elapsed), viewer / audience count per platform, queue length and request counters, the last trigger or alert (e.g. "Gift goal reached").

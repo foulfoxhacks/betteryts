@@ -87,7 +87,7 @@ pub trait Transport {
 
 // ---- response types ----------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicView {
     pub code: String,
@@ -110,7 +110,7 @@ pub struct SessionCreated {
     pub owner_token: Credential,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Media {
     pub id: String,
@@ -121,7 +121,7 @@ pub struct Media {
     pub thumbnail: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub id: String,
@@ -146,7 +146,7 @@ pub struct Entry {
     pub position: Option<f64>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq)]
 pub struct Stats {
     pub received: u64,
     pub accepted: u64,
@@ -154,7 +154,7 @@ pub struct Stats {
     pub completed: u64,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct QueueState {
     #[serde(flatten)]
@@ -167,7 +167,7 @@ pub struct QueueState {
     pub history: Vec<Entry>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Claimed {
     pub id: String,
     pub requester: String,
@@ -176,7 +176,7 @@ pub struct Claimed {
     pub media: Media,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct ClaimResult {
     #[serde(flatten)]
     pub view: PublicView,
