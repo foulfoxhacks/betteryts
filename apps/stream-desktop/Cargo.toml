@@ -1,0 +1,22 @@
+# BetterYTS Stream Desktop: native Rust client. Design: docs/stream/desktop-blueprint.md
+[workspace]
+resolver = "3"
+members = ["crates/bys-core", "crates/bys-osc"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+rust-version = "1.85"
+repository = "https://github.com/foulfoxhacks/betteryts"
+
+# Security baseline for every crate (blueprint §7).
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "warn"
