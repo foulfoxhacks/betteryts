@@ -1,0 +1,16 @@
+[package]
+name = "bys-twitch"
+description = "Twitch source for BetterYTS Stream: IRC chat and EventSub parsing, OAuth device flow (official APIs)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+bys-core = { path = "../bys-core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[lints]
+workspace = true
