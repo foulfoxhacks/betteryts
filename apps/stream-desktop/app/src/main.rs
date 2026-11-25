@@ -327,6 +327,18 @@ fn set_streamerbot(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Sett
     Ok(s.clone())
 }
 
+#[tauri::command]
+fn chains_get() -> Res<String> {
+    automation::chains_json(&automation::current())
+}
+
+/// Validate and save chains JSON (also used for import); the engine reloads immediately.
+#[tauri::command]
+fn chains_save(state: tauri::State<'_, AppState>, json: String) -> Res<usize> {
+    let path = state.path.with_file_name("chains.json");
+    automation::save(&path, &json)
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -344,7 +356,12 @@ fn main() {
             playback::spawn(settings.clone(), secrets.clone(), player.clone(), presence.clone());
             presence::spawn(settings.clone(), presence.clone());
             // Automation engine (chains come from the Phase 3 editor; none yet).
-            automation::init(presence.clone(), Vec::new())?;
+            // Saved chains; a damaged file is reported and nothing runs (the file is left as is).
+            let chains = automation::load(&dir.join("chains.json")).unwrap_or_else(|e| {
+                eprintln!("BetterYTS Stream: {e}");
+                Vec::new()
+            });
+            automation::init(presence.clone(), chains)?;
             // Local overlay: reuse the saved token, or make one and keep it in the keychain.
             let overlay_token = match secrets.get(Secret::OverlayToken).ok().flatten() {
                 Some(t) => t,
@@ -409,7 +426,9 @@ fn main() {
             set_twitch_replies,
             overlay_url,
             streamerbot_status,
-            set_streamerbot
+            set_streamerbot,
+            chains_get,
+            chains_save
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

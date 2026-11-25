@@ -19,7 +19,7 @@ bys-stream-api = { path = "../crates/bys-stream-api" }
 bys-store = { path = "../crates/bys-store" }
 bys-player = { path = "../crates/bys-player" }
 bys-discord = { path = "../crates/bys-discord" }
-bys-core = { path = "../crates/bys-core" }
+bys-core = { path = "../crates/bys-core", features = ["serde"] }
 bys-twitch = { path = "../crates/bys-twitch" }
 bys-tiktok = { path = "../crates/bys-tiktok" }
 # getrandom: overlay token (already in the tree through Tauri, same major version).

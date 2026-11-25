@@ -8,6 +8,8 @@ use crate::event::{Event, EventKind, Platform, Value};
 use std::fmt;
 
 /// What to tell an output.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
     /// Physical or level-based outputs (haptics, lights): level 0.0..=1.0 for `duration_ms`.
@@ -20,6 +22,7 @@ pub enum Command {
     Stop,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Action {
     /// Output ID as registered with the governor (e.g. "intiface.main", "osc.avatar", "chat.twitch").
@@ -27,6 +30,8 @@ pub struct Action {
     pub command: Command,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Step {
     Do(Action),
@@ -49,6 +54,7 @@ pub enum Step {
 }
 
 /// Which events start a chain.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Trigger {
     pub kinds: Vec<EventKind>,
@@ -63,6 +69,7 @@ impl Trigger {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq)]
 pub struct Chain {
     pub id: String,

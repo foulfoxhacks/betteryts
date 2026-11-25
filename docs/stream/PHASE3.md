@@ -11,7 +11,7 @@ Phase 3 goal: creators automate scenes, avatars and chat responses without code.
 
 ## Steps
 
-- [ ] **Chain storage:** chains saved as schema-versioned JSON (serde on `bys_core` chain types), validated on load with the engine's existing limits, and loaded into `automation::init`. Import/export, with credentials never included.
+- [x] **Chain storage:** `chains.json` (schema 1) next to settings; optional `serde` feature on `bys-core` (core stays dependency-free); load validates size (512 KB), nesting (serde_json limit) and engine rules (IDs, conditions); atomic save; the engine reloads live. Commands `chains_get` / `chains_save` (also used for import).
 - [ ] **Chain editor UI:** a step list (trigger, conditions, do / delay / branch / random / repeat), a dry-run preview of the planned timeline, and enable/disable per chain. Text is rendered with `textContent` only.
 - [ ] **Outputs:**
   - `console` (done);

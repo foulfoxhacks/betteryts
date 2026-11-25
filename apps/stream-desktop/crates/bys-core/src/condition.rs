@@ -4,6 +4,8 @@
 use crate::event::{Event, Role, Value};
 
 /// Something a condition compares.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Operand {
     /// `kind`, `platform`, `text`, `amount`, `actor.id`, `actor.name`, `actor.role` or `field.<name>`.
@@ -11,6 +13,8 @@ pub enum Operand {
     Const(Value),
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cond {
     Always,

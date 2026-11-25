@@ -8,6 +8,7 @@ use bys_core::event::Event;
 use bys_core::governor::{Governor, OutputLimits};
 use bys_core::{Engine, Outcome};
 use bys_discord::PresenceInput;
+use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -35,6 +36,61 @@ pub fn console_texts(engine: &mut Engine, ev: &Event, now: u64) -> Vec<(u64, Str
             _ => None,
         })
         .collect()
+}
+
+pub const CHAINS_SCHEMA: u32 = 1;
+pub const MAX_CHAINS_FILE: usize = 512 * 1024;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct ChainsFile {
+    schema: u32,
+    chains: Vec<Chain>,
+}
+
+/// Parse and validate chains JSON (size cap; serde_json's nesting limit; engine validation).
+pub fn parse_chains(json: &str) -> Result<Vec<Chain>, String> {
+    if json.len() > MAX_CHAINS_FILE {
+        return Err("chains file is larger than 512 KB".into());
+    }
+    let f: ChainsFile = serde_json::from_str(json).map_err(|e| format!("chains file is invalid: {e}"))?;
+    if f.schema != CHAINS_SCHEMA {
+        return Err(format!("chains file schema {} isn't supported", f.schema));
+    }
+    Engine::default().set_chains(f.chains.clone())?;
+    Ok(f.chains)
+}
+
+pub fn chains_json(chains: &[Chain]) -> Result<String, String> {
+    serde_json::to_string_pretty(&ChainsFile {
+        schema: CHAINS_SCHEMA,
+        chains: chains.to_vec(),
+    })
+    .map_err(|e| e.to_string())
+}
+
+/// Missing file = no chains. A damaged file is an error and is left untouched.
+pub fn load(path: &Path) -> Result<Vec<Chain>, String> {
+    match std::fs::read_to_string(path) {
+        Ok(s) => parse_chains(&s),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Validate, save atomically, then swap the engine's chains.
+pub fn save(path: &Path, json: &str) -> Result<usize, String> {
+    let chains = parse_chains(json)?;
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, chains_json(&chains)?).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, path).map_err(|e| e.to_string())?;
+    if let Some(state) = STATE.get() {
+        state.engine.lock().map_err(|_| "engine unavailable".to_owned())?.set_chains(chains.clone())?;
+    }
+    Ok(chains.len())
+}
+
+pub fn current() -> Vec<Chain> {
+    STATE.get().and_then(|s| s.engine.lock().ok().map(|e| e.chains().to_vec())).unwrap_or_default()
 }
 
 pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>) -> Result<(), String> {
@@ -80,6 +136,27 @@ mod tests {
     use bys_core::chain::{Action, Step, Trigger};
     use bys_core::condition::Cond;
     use bys_core::event::{EventKind, Platform, RawEvent, Role};
+
+    #[test]
+    fn chains_round_trip_and_bad_files_are_refused() {
+        let json = r#"{"schema":1,"chains":[{"id":"thanks","name":"Thank gifters","enabled":true,
+            "trigger":{"kinds":["gift"],"platforms":["tiktok"],"when":{"ge":[{"field":"amount"},{"const":10}]}},
+            "steps":[{"do":{"output":"console","command":{"text":"Thank you!"}}},{"delay":{"ms":500}},
+                     {"random":[[1,[{"do":{"output":"console","command":{"text":"Big gift!"}}}]]]}],
+            "cooldown_ms":0,"per_user_cooldown_ms":5000}]}"#;
+        let chains = parse_chains(json).unwrap();
+        assert_eq!(chains[0].trigger.platforms, vec![bys_core::event::Platform::TikTok]);
+        assert_eq!(parse_chains(&chains_json(&chains).unwrap()).unwrap(), chains, "round trip");
+        assert!(parse_chains(r#"{"schema":2,"chains":[]}"#).is_err());
+        assert!(parse_chains(&json.replace("\"id\":\"thanks\"", "\"id\":\"\"")).is_err(), "empty id");
+        assert!(parse_chains(&"x".repeat(MAX_CHAINS_FILE + 1)).is_err());
+        let deep = format!(
+            "{{\"schema\":1,\"chains\":[{{\"id\":\"d\",\"name\":\"d\",\"enabled\":true,\"trigger\":{{\"kinds\":[\"gift\"],\"platforms\":[],\"when\":{}\"always\"{}}},\"steps\":[],\"cooldown_ms\":0,\"per_user_cooldown_ms\":0}}]}}",
+            "{\"not\":".repeat(300),
+            "}".repeat(300)
+        );
+        assert!(parse_chains(&deep).is_err(), "deep nesting refused");
+    }
 
     #[test]
     fn gift_chain_reaches_the_console_through_the_governor() {

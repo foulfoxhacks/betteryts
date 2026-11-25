@@ -6,6 +6,8 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 /// Where an event came from.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Platform {
     TikTok,
@@ -35,6 +37,8 @@ impl Platform {
 }
 
 /// What happened.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum EventKind {
     Chat,
@@ -84,6 +88,8 @@ pub enum Role {
 }
 
 /// A typed value carried by events, conditions and outputs.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Bool(bool),
