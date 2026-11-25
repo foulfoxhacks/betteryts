@@ -224,7 +224,7 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "betteryts-stream"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bys-core",
  "bys-discord",
@@ -371,22 +371,22 @@ checksum = "87a0cf66fd1eb2fb7b822cb78370d82303750809bc6ba855f3f58e517d3238db"
 
 [[package]]
 name = "bys-core"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "bys-discord"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "bys-osc"
-version = "0.1.0"
+version = "0.2.0"
 
 [[package]]
 name = "bys-player"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -395,7 +395,7 @@ dependencies = [
 
 [[package]]
 name = "bys-store"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "keyring",
  "serde",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "bys-stream-api"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "bys-tiktok"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bys-core",
  "flate2",
@@ -423,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "bys-twitch"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bys-core",
  "serde",
