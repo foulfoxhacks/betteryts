@@ -69,7 +69,7 @@ From `docs/stream/PHASE2.md`:
 
 - ~~TikTok signing~~: decided, TikFinity only. Its source is built; gift / like / follow / share fields still need checking against a live TikFinity.
 - **Discord application `1545979656262389900`:** rename it so presence reads "BetterYTS Stream", or create a new one and update `bys_discord::CLIENT_ID`.
-- **Publish decisions:** draft release `stream-desktop-v0.1.0` is unpublished; the builds are unsigned until code signing is set up.
+- **Publish decisions:** draft releases `stream-desktop-v0.1.0` and `stream-desktop-v0.2.0` (Twitch, TikFinity, replies, viewer counts; built from `9b25580`, before the overlay server) are unpublished. Builds are unsigned until code signing is set up. The next tag (0.3.0) will include the local overlay.
 
 ## Other projects (not in this repo)
 
