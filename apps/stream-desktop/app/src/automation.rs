@@ -19,6 +19,8 @@ struct State {
     presence: Arc<Mutex<PresenceInput>>,
     /// Posts to Twitch chat (honours the Replies switch and its rate limit).
     chat: Sink,
+    /// Runs one OBS action (loopback obs-websocket, password from the keychain).
+    obs: Box<dyn Fn(bys_obs::ObsAction) + Send + Sync>,
 }
 
 static STATE: OnceLock<State> = OnceLock::new();
@@ -28,7 +30,8 @@ fn now_ms() -> u64 {
 }
 
 /// Outputs automation text can go to.
-pub const OUTPUTS: [&str; 3] = ["console", "twitch.chat", "overlay.alert"];
+/// `obs.scene` text = scene name; `obs.text` text = "Source name|text".
+pub const OUTPUTS: [&str; 5] = ["console", "twitch.chat", "overlay.alert", "obs.scene", "obs.text"];
 
 /// Text actions (delay ms, output, text) from one event's accepted plans.
 pub fn texts(engine: &mut Engine, ev: &Event, now: u64) -> Vec<(u64, String, String)> {
@@ -100,7 +103,7 @@ pub fn current() -> Vec<Chain> {
     STATE.get().and_then(|s| s.engine.lock().ok().map(|e| e.chains().to_vec())).unwrap_or_default()
 }
 
-pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>, chat: Sink) -> Result<(), String> {
+pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>, chat: Sink, obs: Box<dyn Fn(bys_obs::ObsAction) + Send + Sync>) -> Result<(), String> {
     let mut governor = Governor::new();
     governor.configure(
         "console",
@@ -123,12 +126,27 @@ pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>, chat: Sink)
             ..OutputLimits::digital_default()
         },
     );
+    governor.configure(
+        "obs.scene",
+        OutputLimits {
+            max_per_minute: 10,
+            ..OutputLimits::digital_default()
+        },
+    );
+    governor.configure(
+        "obs.text",
+        OutputLimits {
+            max_per_minute: 30,
+            ..OutputLimits::digital_default()
+        },
+    );
     let mut engine = Engine::new(governor);
     engine.set_chains(chains)?;
     let _ = STATE.set(State {
         engine: Mutex::new(engine),
         presence,
         chat,
+        obs,
     });
     Ok(())
 }
@@ -146,6 +164,12 @@ pub fn feed(ev: &Event) {
             match output.as_str() {
                 "twitch.chat" => (state.chat)(&text),
                 "overlay.alert" => crate::overlay::set_alert(text),
+                "obs.scene" => (state.obs)(bys_obs::ObsAction::Scene(text)),
+                "obs.text" => {
+                    if let Some((source, value)) = text.split_once('|') {
+                        (state.obs)(bys_obs::ObsAction::Text(source.trim().to_owned(), value.to_owned()));
+                    }
+                }
                 _ => {
                     if let Ok(mut p) = state.presence.lock() {
                         p.last_trigger = Some(text);

@@ -228,6 +228,7 @@ version = "0.2.0"
 dependencies = [
  "bys-core",
  "bys-discord",
+ "bys-obs",
  "bys-player",
  "bys-store",
  "bys-stream-api",
@@ -383,6 +384,16 @@ name = "bys-discord"
 version = "0.2.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "bys-obs"
+version = "0.2.0"
+dependencies = [
+ "data-encoding",
+ "serde_json",
+ "sha2 0.10.9",
+ "tungstenite",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@
 	let steps = [];
 
 	// A chain the simple editor can show: only `do console text` and `delay` steps.
-	const WHERE = { console: "show", "overlay.alert": "alert", "twitch.chat": "say in chat" };
+	const WHERE = { console: "show", "overlay.alert": "alert", "twitch.chat": "say in chat", "obs.scene": "OBS scene", "obs.text": "OBS text" };
 	const simple = (c) => c.steps.every((s) => s.delay || (s.do && WHERE[s.do.output] && s.do.command.text !== undefined));
 	const minAmount = (c) => (c.trigger.when && c.trigger.when.ge ? c.trigger.when.ge[1].const : 0);
 

@@ -339,6 +339,35 @@ fn chains_save(state: tauri::State<'_, AppState>, json: String) -> Res<usize> {
     automation::save(&path, &json)
 }
 
+/// Turn OBS control on or off.
+#[tauri::command]
+fn set_obs(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Settings> {
+    let mut s = lock(&state)?;
+    s.obs.enabled = enabled;
+    save(&state, &s)?;
+    Ok(s.clone())
+}
+
+/// Store the obs-websocket password in the keychain (empty = forget it). It is never returned.
+#[tauri::command]
+fn set_obs_password(state: tauri::State<'_, AppState>, password: String) -> Res<()> {
+    if password.is_empty() {
+        state.secrets.delete(Secret::ObsPassword).map_err(|e| e.to_string())
+    } else if password.len() > 256 {
+        Err("password is too long".into())
+    } else {
+        state.secrets.set(Secret::ObsPassword, &password).map_err(|e| e.to_string())
+    }
+}
+
+/// Try OBS now: switch to the given scene.
+#[tauri::command]
+async fn obs_test(state: tauri::State<'_, AppState>, scene: String) -> Res<()> {
+    let url = lock(&state)?.obs.url.clone();
+    let password = state.secrets.get(Secret::ObsPassword).ok().flatten();
+    blocking(move || bys_obs::run(&url, password.as_deref(), &bys_obs::ObsAction::Scene(scene))).await
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -383,7 +412,17 @@ fn main() {
             });
             twitch::spawn(twitch.clone());
             let chat_twitch = twitch.clone();
-            automation::init(presence.clone(), chains, Box::new(move |t: &str| twitch::reply(&chat_twitch, t)))?;
+            let (obs_settings, obs_secrets) = (settings.clone(), secrets.clone());
+            let obs = Box::new(move |action: bys_obs::ObsAction| {
+                let Some(cfg) = obs_settings.lock().ok().map(|s| s.obs.clone()).filter(|o| o.enabled) else {
+                    return;
+                };
+                let password = obs_secrets.get(Secret::ObsPassword).ok().flatten();
+                if let Err(e) = bys_obs::run(&cfg.url, password.as_deref(), &action) {
+                    eprintln!("BetterYTS Stream: OBS: {e}");
+                }
+            });
+            automation::init(presence.clone(), chains, Box::new(move |t: &str| twitch::reply(&chat_twitch, t)), obs)?;
             let sb_status = Arc::new(Mutex::new(streamerbot::SbStatus::default()));
             streamerbot::spawn(settings.clone(), secrets.clone(), sb_status.clone());
             let tikfinity_status = Arc::new(Mutex::new(tikfinity::TikFinityStatus::default()));
@@ -430,7 +469,10 @@ fn main() {
             streamerbot_status,
             set_streamerbot,
             chains_get,
-            chains_save
+            chains_save,
+            set_obs,
+            set_obs_password,
+            obs_test
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

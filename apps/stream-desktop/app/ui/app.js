@@ -52,6 +52,7 @@ function showProfile() {
 	$("t-discord").checked = !!settings.discord?.enabled;
 	$("t-tiktok").checked = !!settings.tikfinity?.enabled;
 	$("t-sb").checked = !!settings.streamerbot?.enabled;
+	$("t-obs").checked = !!settings.obs?.enabled;
 	$("t-replies").checked = !!settings.twitch?.replies;
 }
 let profileTimer = null;
@@ -236,6 +237,20 @@ $("overlay-btn").addEventListener("click", () =>
 	run(async () => {
 		await navigator.clipboard.writeText(await invoke("overlay_url"));
 		toast("Overlay URL copied. In OBS add a Browser Source and paste it. Keep it private: it includes the overlay key.");
+	}),
+);
+
+// ---- OBS ----
+$("t-obs").addEventListener("change", (e) =>
+	run(async () => {
+		settings = await invoke("set_obs", { enabled: e.target.checked });
+	}),
+);
+$("obs-save").addEventListener("click", () =>
+	run(async () => {
+		await invoke("set_obs_password", { password: $("obs-pass").value });
+		$("obs-pass").value = "";
+		toast("OBS password saved in your system keychain.");
 	}),
 );
 
