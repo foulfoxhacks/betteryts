@@ -31,7 +31,8 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
   - `!sr` / `!np` / `!queue` / `!skip` commands go to the Stream API;
   - gifts, follows and other events go to chains.
 - [ ] **Chat replies.** Per platform, templated, rate-limited, toggleable. The TikTok source is read-only, so its replies go to the console and overlay.
-- [ ] **Audience counts** (TikTok room users, Twitch viewers) feed Discord presence and the console.
+- [x] **Audience counts, Twitch:** viewer count from Helix `streams` once a minute while connected, shown next to the Twitch name in the console and in Discord presence ("N watching").
+- [ ] **Audience counts, TikTok:** room user count, once a TikTok source is connected.
 - [ ] **Local overlay server.** Loopback WebSocket with now playing, queue, alerts and goals; per-overlay read-only token. The hosted `/stream/overlay` stays as is.
 - [ ] **Compatibility sources:** Streamer.bot and TikFinity local WebSockets, so existing PearConnect setups keep working.
 - [x] **Owner action: Twitch application.** Done: "BetterYTS Connector", public client.

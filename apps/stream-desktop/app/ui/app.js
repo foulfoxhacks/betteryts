@@ -202,7 +202,7 @@ async function refreshTwitch() {
 			info.replaceChildren("Enter ", el("span", "code", t.userCode), " at twitch.tv/activate");
 		} else {
 			$("twitch-state").textContent =
-				twitchState === "connected" ? `Twitch: @${t.login}` : twitchState === "connecting" ? "Twitch: connecting…" : twitchState === "error" ? "Twitch: problem" : "Twitch: off";
+				twitchState === "connected" ? `Twitch: @${t.login}${typeof t.viewers === "number" ? ` · ${t.viewers} watching` : ""}` : twitchState === "connecting" ? "Twitch: connecting…" : twitchState === "error" ? "Twitch: problem" : "Twitch: off";
 			info.textContent = (twitchState === "error" ? t.error : t.lastEvent) || "";
 		}
 		$("twitch-btn").textContent = ["connected", "connecting"].includes(twitchState) ? "Disconnect" : "Connect Twitch";

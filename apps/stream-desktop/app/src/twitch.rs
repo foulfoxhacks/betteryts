@@ -25,6 +25,8 @@ pub struct TwitchStatus {
     pub verification_uri: Option<String>,
     pub last_event: Option<String>,
     pub error: Option<String>,
+    /// Live viewer count (None when offline or unknown).
+    pub viewers: Option<u64>,
 }
 
 pub struct Shared {
@@ -337,7 +339,20 @@ pub fn spawn(shared: Arc<Shared>) {
                 })
             };
             // Watch for sign-out / disable, or either connection ending.
+            let mut next_count = Instant::now();
             while enabled(&shared) && !stop.load(Ordering::Relaxed) {
+                // Viewer count once a minute (Helix rate limits are far above this).
+                if Instant::now() >= next_count {
+                    next_count = Instant::now() + Duration::from_secs(60);
+                    let n = live::viewers(&access, &id.user_id).unwrap_or(None);
+                    set(&shared.status, |s| s.viewers = n);
+                    if let Ok(mut p) = shared.presence.lock() {
+                        p.audience.retain(|(name, _)| name != "Twitch");
+                        if let Some(n) = n {
+                            p.audience.push(("Twitch".into(), n));
+                        }
+                    }
+                }
                 std::thread::sleep(Duration::from_secs(2));
             }
             stop.store(true, Ordering::Relaxed);

@@ -105,6 +105,30 @@ pub fn validate(access_token: &str) -> Result<Identity, String> {
     })
 }
 
+/// `viewer_count` from a Helix `streams` response: `Some(n)` while live, `None` when offline.
+pub fn parse_viewers(body: &str) -> Result<Option<u64>, String> {
+    let v: Value = serde_json::from_str(body).map_err(|_| "unexpected streams response".to_owned())?;
+    let data = v.get("data").and_then(Value::as_array).ok_or("unexpected streams response")?;
+    Ok(data.first().and_then(|s| s.get("viewer_count")).and_then(Value::as_u64))
+}
+
+/// Current viewer count of a channel (Helix, read-only, needs no extra scope).
+pub fn viewers(access_token: &str, user_id: &str) -> Result<Option<u64>, String> {
+    if user_id.is_empty() || !user_id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid user ID".into());
+    }
+    let mut r = agent()
+        .get(&format!("{HELIX}/streams?user_id={user_id}"))
+        .header("Authorization", &format!("Bearer {access_token}"))
+        .header("Client-Id", CLIENT_ID)
+        .call()
+        .map_err(|e| e.to_string())?;
+    if r.status().as_u16() != 200 {
+        return Err(format!("Twitch answered HTTP {}", r.status().as_u16()));
+    }
+    parse_viewers(&r.body_mut().with_config().limit(MAX_BODY).read_to_string().map_err(|e| e.to_string())?)
+}
+
 /// Condition for each subscription type (raids are "to" the broadcaster; follows need a moderator ID).
 pub fn condition(sub_type: &str, broadcaster: &str) -> Value {
     match sub_type {
@@ -267,6 +291,14 @@ pub fn run_irc(stop: &AtomicBool, auth: Option<(&str, &str)>, channel: &str, mut
 mod tests {
     #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::indexing_slicing)]
     use super::*;
+
+    #[test]
+    fn viewer_counts() {
+        assert_eq!(parse_viewers(r#"{"data":[{"viewer_count":812,"type":"live"}],"pagination":{}}"#), Ok(Some(812)));
+        assert_eq!(parse_viewers(r#"{"data":[],"pagination":{}}"#), Ok(None), "offline");
+        assert!(parse_viewers("<html>").is_err());
+        assert!(viewers("token", "12a").is_err(), "user ID must be numeric");
+    }
 
     #[test]
     fn conditions_per_type() {

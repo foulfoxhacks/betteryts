@@ -60,7 +60,7 @@ Last updated 2026-11-25. Read this file first, then the linked checklists. It's 
 From `docs/stream/PHASE2.md`:
 1. **Source → engine wiring:** feed Twitch and TikTok `bys_core::Event`s into `bys_core::Engine` so chains run; gifts and cheers become triggers.
 2. **Chat replies** (Twitch first): templated, rate-limited, toggleable. Needs the `user:write:chat` scope only when replies are on.
-3. **Audience counts:** Twitch viewers through Helix `streams`, and TikTok room users. Feed them to Discord presence and the console.
+3. **Audience counts:** Twitch is done; TikTok room users come once a TikTok source is connected.
 4. **Local overlay server:** loopback WebSocket with a read-only token per overlay.
 5. **Compatibility sources:** Streamer.bot and TikFinity local WebSockets.
 6. **Then:** blueprint §9, write `PHASE3.md` (chain editor UI, OBS, VRChat OSC, local API, official YouTube API).
