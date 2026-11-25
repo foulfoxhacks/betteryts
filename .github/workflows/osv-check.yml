@@ -1,0 +1,26 @@
+# Every locked dependency (Rust + all npm projects) against OSV.dev: GitHub advisories, RustSec and npm,
+# with NVD CVE links. Fails on any advisory not reviewed in tools/osv-check.py (ACCEPTED, with a reason).
+name: Dependency advisories (OSV)
+
+on:
+  push:
+    branches: [main]
+    paths: ["**/Cargo.lock", "**/package-lock.json", "tools/osv-check.py", ".github/workflows/osv-check.yml"]
+  pull_request:
+    paths: ["**/Cargo.lock", "**/package-lock.json", "tools/osv-check.py", ".github/workflows/osv-check.yml"]
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  osv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -I tools/osv-check.py

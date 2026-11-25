@@ -1,0 +1,79 @@
+# BetterYTS — agent handoff
+
+Last updated 2026-11-25. Read this file first, then the linked checklists. It's written for an agent picking up the work cold.
+
+## Owner rules (always apply)
+
+- **Autopilot:** continue without asking. Commit, push to `main` and deploy after each step.
+  - Every push to `main` deploys the Worker (Cloudflare Git build). Run the tests before pushing, then confirm `https://yts.foulfoxhacks.dev/api/health` shows the new commit.
+- **Code:** short code; no long or unnecessary code. Original code only: other products (Stream Connector, TikFinity, the QUEUE dashboard) are references for scope, never sources of code or text.
+- **Dependencies:** no vulnerable or high-risk dependencies. Keep them minimal and justify each one. Check them with `python -I tools/osv-check.py` (OSV.dev: GitHub advisories, RustSec, npm, NVD CVE links), `cargo audit` and `npm audit`. Unfixable notices go into `ACCEPTED` in that script, each with a reason.
+- **Secrets:** never in files, logs, commits or messages. App credentials live in the OS keychain; Worker secrets are set by the owner.
+- **Cloudflare:** this repo has `cloudflare.config.ts`, so use the `cf` CLI, not Wrangler.
+- **SEO:** don't change how yts.foulfoxhacks.dev is indexed. `/stream*` is noindex and isn't in the sitemap until launch (`docs/stream/seo.md`).
+- **Products:** PearConnect is becoming BetterYTS. Never redeploy pearconnect.mellozone.site; its old GitHub repo was deleted.
+- **Desktop client:** Rust (Tauri 2), not Electron. Packages: `.msi` (preferred), `.exe`, `.deb`.
+- **TikTok:** the unofficial TikTok LIVE WebSocket, read-only. Never use TikTok logins or cookies.
+
+## Repo map (`E:\Codebase\betteryts`, GitHub `foulfoxhacks/betteryts`)
+
+| Path | What |
+|---|---|
+| `src/` | Worker: YouTube search API, VRChat endpoints, rooms; `src/stream/` = **BetterYTS Stream** API `/api/stream/v1` (queue Durable Object `StreamSession`) |
+| `stream/`, `web/stream*.js` | `/stream` hub (docs + API + request form) and `/stream/overlay`, noindex |
+| `apps/stream-desktop/` | **Native desktop client** (Rust workspace): `app/` (Tauri) and `crates/` (`bys-core`, `bys-osc`, `bys-stream-api`, `bys-store`, `bys-player`, `bys-discord`, `bys-tiktok`, `bys-twitch`) |
+| `apps/pearconnect/` | Legacy PearConnect (Node/Electron), imported with history; still works, with an optional Stream backend |
+| `docs/stream/` | `desktop-blueprint.md` (design), `PHASE1.md` ✅, `PHASE2.md` (current), `MIGRATION.md` ✅, `audit.md`, `seo.md` |
+| `tools/osv-check.py` | Dependency advisory check (CI: `osv-check.yml`) |
+| `.github/workflows/` | `ci.yml` (Worker), `stream-desktop-ci.yml`, `stream-desktop-release.yml` (tag `stream-desktop-v*` → draft release), `pearconnect-*.yml`, `osv-check.yml` |
+
+**Checks:**
+- Worker: `npm test`, `npx tsc`.
+- Desktop: `cd apps/stream-desktop && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
+- PearConnect: `cd apps/pearconnect && npm test`.
+- Live tests are `#[ignore]` and run with `cargo test -p <crate> -- --ignored live`.
+
+## Completed
+
+1. **Monorepo:** PearConnect imported with history; migration steps 1–6 done (`docs/stream/MIGRATION.md`).
+2. **Stream server, live:**
+   - requests with policy: cooldown, per-user limit, duration, block/allow lists, duplicates, queue capacity, manual approval;
+   - request kinds song / video / shoutout, with a per-kind switch under the master Pause switch;
+   - moderation with an audit log, scoped tokens (owner, moderator, intake, destination, overlay), session counters;
+   - destination claim/report without redelivery, read-only overlay;
+   - security: header-only overlay token, per-network (/64) rate limits, bounded request bodies.
+3. **SEO fix, live:** unknown paths no longer redirect browsers or crawlers to YouTube; only media players are redirected.
+4. **Desktop Phase 1 ✅** (`PHASE1.md`):
+   - Get Live console, OS keychain, Pear Desktop playback with verified adds, Discord Rich Presence;
+   - `.msi` / `.exe` / `.deb` release workflow; draft release `stream-desktop-v0.1.0` (unpublished).
+5. **PearConnect 0.3.0-beta.6** published from the monorepo (pre-release).
+6. **Phase 2 so far:**
+   - request kinds;
+   - TikTok decoder (fuzz-tested, gzip-bomb safe);
+   - Twitch: parsing plus live connection. Client ID `5ddaqfcv7ehy3gwuw7va5tadgh5d99` ("BetterYTS Connector", public client). Device-flow sign-in from the console; `!sr` / `!video` / `!shoutout` become requests.
+     - Verified live without signing in: device code, EventSub welcome, anonymous chat.
+     - The signed-in path is not verified until the owner approves once at twitch.tv/activate.
+7. **Dependency check:** 972 locked versions checked against OSV. npm is clean; the 6 Rust notices are reviewed and accepted with reasons.
+
+## Next (in order)
+
+From `docs/stream/PHASE2.md`:
+1. **Source → engine wiring:** feed Twitch and TikTok `bys_core::Event`s into `bys_core::Engine` so chains run; gifts and cheers become triggers.
+2. **Chat replies** (Twitch first): templated, rate-limited, toggleable. Needs the `user:write:chat` scope only when replies are on.
+3. **Audience counts:** Twitch viewers through Helix `streams`, and TikTok room users. Feed them to Discord presence and the console.
+4. **Local overlay server:** loopback WebSocket with a read-only token per overlay.
+5. **Compatibility sources:** Streamer.bot and TikFinity local WebSockets.
+6. **Then:** blueprint §9, write `PHASE3.md` (chain editor UI, OBS, VRChat OSC, local API, official YouTube API).
+
+## Waiting on the owner
+
+- **TikTok signing:** choose a third-party signer (such as Euler Stream; its API key would go in the keychain) or TikFinity only. The `bys-tiktok` live connection waits on this.
+- **Discord application `1545979656262389900`:** rename it so presence reads "BetterYTS Stream", or create a new one and update `bys_discord::CLIENT_ID`.
+- **Publish decisions:** draft release `stream-desktop-v0.1.0` is unpublished; the builds are unsigned until code signing is set up.
+
+## Other projects (not in this repo)
+
+- **Ametherian** (`E:\Codebase\Ametherian-NodeJS`, `foulfoxhacks/Ametherian-NodeJS`):
+  - PR #19 is merged (`b0bd10a`).
+  - PR #20 (`site/i18n-themes`, translations) is still being written by the Ametherian session. The owner approved merging it when its checks pass: update it from `main` first, and keep the live site's canonical URLs, sitemap and robots unchanged.
+- **Midnight Cabin** (a VRChat world, a Unity project under VRChat Creator Companion): an optimization audit runs in its own session and writes `OPTIMIZATION.md` in that project.

@@ -20,6 +20,12 @@ Design: [docs/stream/desktop-blueprint.md](../../docs/stream/desktop-blueprint.m
 - New dependencies need a reason in the PR description. Core crates (`bys-core`, `bys-osc`) have none.
 - Credentials, chat text and device commands never go into logs unredacted.
 
+## Dependency advisories
+
+`tools/osv-check.py` checks every locked dependency (Rust and all npm projects) against OSV.dev, which aggregates GitHub advisories, RustSec and npm and links NVD CVEs. CI runs it weekly and on every lockfile change (`osv-check.yml`), next to `cargo audit` and `npm audit`. A new advisory fails the build until it is fixed or reviewed. Reviewed advisories and their reasons are listed in `ACCEPTED` in that script:
+- The only real one is RUSTSEC-2024-0429 in `glib` 0.18 (Linux GTK3 stack of Tauri). It is low severity (CVSS 4.0 integrity Low), has no CVE, and is in code we don't call.
+- The rest are "unmaintained" notices.
+
 ## Reporting
 
 Open an issue at https://github.com/foulfoxhacks/betteryts/issues without exploit details, and ask for a private contact.
