@@ -12,7 +12,7 @@ Phase 3 goal: creators automate scenes, avatars and chat responses without code.
 ## Steps
 
 - [x] **Chain storage:** `chains.json` (schema 1) next to settings; optional `serde` feature on `bys-core` (core stays dependency-free); load validates size (512 KB), nesting (serde_json limit) and engine rules (IDs, conditions); atomic save; the engine reloads live. Commands `chains_get` / `chains_save` (also used for import).
-- [ ] **Chain editor UI:** a step list (trigger, conditions, do / delay / branch / random / repeat), a dry-run preview of the planned timeline, and enable/disable per chain. Text is rendered with `textContent` only.
+- [x] **Chain editor UI (simple):** the Automations view lists chains (on/off, delete) and builds "when event [on platform] [amount ≥ N] [cooldown]: show text / wait" chains, with a dry-run timeline preview. Advanced imported chains (branch / random / repeat) are kept as-is and shown read-only. Text is set with `textContent` only. A Rust test parses the editor's exact JSON. Branch / random / repeat editing comes later.
 - [ ] **Outputs:**
   - `console` (done);
   - chat reply (Twitch);

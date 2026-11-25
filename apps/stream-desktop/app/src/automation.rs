@@ -158,6 +158,16 @@ mod tests {
         assert!(parse_chains(&deep).is_err(), "deep nesting refused");
     }
 
+    /// Exactly what the Automations editor saves (captured from ui/automations.js), so the UI and
+    /// the Rust schema can't drift apart.
+    #[test]
+    fn editor_payload_parses() {
+        let ui = r#"{"schema":1,"chains":[{"id":"adv","name":"Imported raid party","enabled":true,"trigger":{"kinds":["raid"],"platforms":[],"when":"always"},"steps":[{"random":[[1,[]]]}],"cooldown_ms":0,"per_user_cooldown_ms":0},{"id":"cmwwik5fy","name":"Thank gifters <b>x</b>","enabled":true,"trigger":{"kinds":["gift"],"platforms":["tiktok"],"when":{"ge":[{"field":"amount"},{"const":10}]}},"steps":[{"do":{"output":"console","command":{"text":"Thank you!"}}},{"delay":{"ms":1500}},{"do":{"output":"console","command":{"text":"Gift goal +1"}}}],"cooldown_ms":0,"per_user_cooldown_ms":0}]}"#;
+        let chains = parse_chains(ui).unwrap();
+        assert_eq!(chains.len(), 2);
+        assert_eq!(chains[1].steps.len(), 3);
+    }
+
     #[test]
     fn gift_chain_reaches_the_console_through_the_governor() {
         let mut g = Governor::new();

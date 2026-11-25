@@ -10,10 +10,10 @@
 		<aside class="side">
 			<div class="brand"><img src="logo.png" alt="" width="44" height="44" /><div><b>BetterYTS</b><small>Stream</small></div></div>
 			<nav>
-				<a class="nav active" href="#live"><span class="dot live"></span>Get Live</a>
+				<a class="nav active" href="#live" data-view="live"><span class="dot live"></span>Get Live</a>
 				<a class="nav soon" title="Coming in a later release">Dashboard</a>
 				<a class="nav soon" title="Coming in a later release">Requests</a>
-				<a class="nav soon" title="Coming in a later release">Automations</a>
+				<a class="nav" href="#automations" data-view="automations">Automations</a>
 				<a class="nav soon" title="Coming in a later release">Earnings</a>
 				<a class="nav soon" title="Coming in a later release">Settings</a>
 			</nav>
@@ -24,6 +24,7 @@
 			<header class="top"><h1>Get Live</h1><span class="pill" id="session-pill" hidden></span></header>
 
 			<!-- Shown until a session is connected. -->
+			<div id="live-view">
 			<section class="card connect" id="connect" hidden>
 				<h2>Start a BetterYTS Stream session</h2>
 				<p class="muted">Create a new session, or connect to one you already have. The session credential is kept in your system keychain, never in a file.</p>
@@ -83,8 +84,35 @@
 				</section>
 			</div>
 
+			</div>
+
+			<section id="automations" hidden>
+				<div class="list-head"><h2>Automations</h2><span class="muted">Runs on every source; checked by the safety governor</span></div>
+				<div class="list" id="chain-list"></div>
+				<div class="card chain-form">
+					<h2>New automation</h2>
+					<div class="row">
+						<input id="chain-name" maxlength="60" placeholder="Name, e.g. Thank gifters" />
+						<label>When <select id="chain-kind"><option value="gift">Gift</option><option value="follow">Follow</option><option value="cheer">Cheer (bits)</option><option value="raid">Raid</option><option value="share">Share</option><option value="subscribe">Sub</option><option value="like">Like</option></select></label>
+						<label>on <select id="chain-platform"><option value="">any platform</option><option value="twitch">Twitch</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option><option value="kick">Kick</option></select></label>
+						<label>amount ≥ <input id="chain-min" type="number" min="0" value="0" /></label>
+						<label>cooldown s <input id="chain-cooldown" type="number" min="0" value="0" /></label>
+					</div>
+					<div class="row">
+						<input id="step-text" maxlength="200" placeholder="Text to show, e.g. Thank you!" />
+						<button class="btn small" id="add-text" type="button">Add text</button>
+						<input id="step-wait" type="number" min="0" placeholder="ms" />
+						<button class="btn small" id="add-wait" type="button">Add wait</button>
+					</div>
+					<ol id="step-list"></ol>
+					<pre class="muted" id="chain-preview"></pre>
+					<button class="btn primary" id="chain-create" type="button">Save automation</button>
+				</div>
+			</section>
+
 			<p class="toast" id="toast" role="status" aria-live="polite" hidden></p>
 		</main>
 		<script src="app.js"></script>
+		<script src="automations.js"></script>
 	</body>
 </html>

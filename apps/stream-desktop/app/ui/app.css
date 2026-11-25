@@ -109,3 +109,7 @@ summary { cursor: pointer; color: var(--muted); }
 .kind.video { background: #2b4fa8; }
 .kind.shoutout { background: #5b3aa8; }
 .item.k-shoutout .t { font-weight: 600; white-space: normal; }
+.chain-form { display: grid; gap: 4px; margin-top: 14px; }
+.chain-form h2 { margin: 0; font-size: 18px; }
+.chain-form input[type="number"] { width: 90px; }
+#chain-preview { white-space: pre-wrap; margin: 4px 0; }
