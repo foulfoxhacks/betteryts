@@ -135,6 +135,7 @@ pub fn spawn(settings: Arc<Mutex<Settings>>, secrets: Arc<dyn Secrets>, status: 
             };
             set(&status, &|s| s.state = "connected".into());
             let result = run(&cfg.url, &stop, |ev, kind, query| {
+                crate::automation::feed(&ev);
                 let line: String = crate::chat::submit(&settings, secrets.as_ref(), &ev, kind, query).chars().take(200).collect();
                 set(&status, &|s| s.last_event = Some(line.clone()));
             });

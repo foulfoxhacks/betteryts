@@ -27,7 +27,7 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 - [x] **`bys-twitch` parsing**: IRC chat (IRCv3 tags, roles from badges, cheers, subs, raids), EventSub messages (welcome, keepalive, reconnect pinned to Twitch's host, revocation, notifications for follow / sub / gift / resub / cheer / raid / channel points) with duplicate and replay protection, OAuth device-flow requests and responses with minimal scopes.
 - [x] **`bys-twitch` connection** (client ID `5ddaqfcv7ehy3gwuw7va5tadgh5d99`, "BetterYTS Connector", public client): device-flow sign-in from the console, tokens in the keychain with refresh, EventSub + chat supervised with backoff; `!sr` / `!video` / `!shoutout` become Stream requests keyed on the Twitch message ID. Verified live: device code, EventSub welcome, anonymous chat. The signed-in path runs the first time the owner approves at twitch.tv/activate. official EventSub WebSocket (follows, subs, cheers, raids, channel points) + IRC over TLS for chat.
   - OAuth device flow with minimal scopes; tokens kept in the keychain.
-- [ ] **Source → engine wiring.** Every source builds `bys_core::Event` values and feeds them to the engine:
+- [x] **Source → engine wiring.** `app/src/automation.rs`: every Twitch / TikFinity / Streamer.bot event goes through `bys_core::Engine` + governor; `console` output wired. Chains load from the Phase 3 editor.
   - `!sr` / `!np` / `!queue` / `!skip` commands go to the Stream API;
   - gifts, follows and other events go to chains.
 - [x] **Chat replies (Twitch).** Off by default; the console's Replies switch asks for `user:write:chat` only on the next Twitch sign-in. Each request's result is sent via Helix `chat/messages`, at most one every 1.5 s (extras dropped), cleaned and capped at 500 characters. TikFinity stays read-only (results show in the console). Not yet verified live: needs a signed-in Twitch with replies on.
@@ -38,4 +38,4 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 - [x] **Owner action: Twitch application.** Done: "BetterYTS Connector", public client.
 - [x] **Owner decision: TikTok signing.** Decided 2026-11-25: **TikFinity only**. No third-party signer; the `bys-tiktok` decoder stays for a possible later direct source.
 - [ ] **Owner action (can't be automated):** rename or replace the Discord application `1545979656262389900` so presence reads "BetterYTS Stream" instead of the old PearConnect name, then update `bys_discord::CLIENT_ID` if the ID changes.
-- [ ] **Docs:** update `desktop-blueprint.md` §9 when Phase 2 is done; start `PHASE3.md` (chain editor UI, variables, OBS, VRChat OSC, local API, YouTube official API).
+- [x] **Docs:** update `desktop-blueprint.md` §9 when Phase 2 is done; start `PHASE3.md` (chain editor UI, variables, OBS, VRChat OSC, local API, YouTube official API).

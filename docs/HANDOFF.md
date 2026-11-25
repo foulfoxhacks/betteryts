@@ -57,13 +57,15 @@ Last updated 2026-11-25. Read this file first, then the linked checklists. It's 
 
 ## Next (in order)
 
-From `docs/stream/PHASE2.md`:
-1. **Source → engine wiring:** feed Twitch and TikTok `bys_core::Event`s into `bys_core::Engine` so chains run; gifts and cheers become triggers.
-2. ~~Chat replies~~: done for Twitch (off by default; needs a sign-in with replies on to verify live).
-3. **Audience counts:** done for Twitch (Helix) and TikTok (TikFinity `roomUser`).
-4. ~~Local overlay server~~: done (`127.0.0.1:47823/overlay#token`, Copy overlay URL in the console).
-5. ~~Compatibility sources~~: TikFinity and Streamer.bot done (`docs/stream/streamerbot.md`); live Streamer.bot check pending.
-6. **Then:** blueprint §9, write `PHASE3.md` (chain editor UI, OBS, VRChat OSC, local API, official YouTube API).
+Phase 2 is done. Continue with [docs/stream/PHASE3.md](stream/PHASE3.md):
+1. Chain storage
+2. Chain editor UI
+3. Outputs
+4. OBS
+5. VRChat OSC
+6. Local API
+7. YouTube official API
+8. Release 0.3.0
 
 ## Waiting on the owner
 

@@ -7,6 +7,7 @@
 //! - Network calls run on a blocking worker thread, never on the UI thread.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod automation;
 mod chat;
 mod overlay;
 mod playback;
@@ -342,6 +343,8 @@ fn main() {
             let presence = Arc::new(Mutex::new(bys_discord::PresenceInput::default()));
             playback::spawn(settings.clone(), secrets.clone(), player.clone(), presence.clone());
             presence::spawn(settings.clone(), presence.clone());
+            // Automation engine (chains come from the Phase 3 editor; none yet).
+            automation::init(presence.clone(), Vec::new())?;
             // Local overlay: reuse the saved token, or make one and keep it in the keychain.
             let overlay_token = match secrets.get(Secret::OverlayToken).ok().flatten() {
                 Some(t) => t,

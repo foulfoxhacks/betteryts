@@ -84,6 +84,7 @@ pub fn submit(settings: &Mutex<Settings>, secrets: &dyn Secrets, ev: &Event, kin
 
 /// Route one event: a chat command → request; a trigger → `on_trigger(text)`. Returns the line to show.
 pub fn route(settings: &Mutex<Settings>, secrets: &dyn Secrets, ev: &Event) -> Option<String> {
+    crate::automation::feed(ev);
     if ev.kind == EventKind::Chat {
         let (kind, input) = chat_command(&ev.text)?;
         return Some(submit(settings, secrets, ev, kind, input).chars().take(200).collect());
