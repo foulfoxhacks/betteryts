@@ -7,4 +7,6 @@
 
 pub mod eventsub;
 pub mod irc;
+#[cfg(feature = "net")]
+pub mod live;
 pub mod oauth;

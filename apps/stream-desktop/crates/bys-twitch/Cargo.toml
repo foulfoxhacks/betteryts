@@ -11,6 +11,13 @@ repository.workspace = true
 bys-core = { path = "../bys-core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Live connection (feature "net"): HTTPS via ureq, WebSockets via tungstenite, both on rustls.
+ureq = { version = "3", optional = true, default-features = false, features = ["rustls"] }
+tungstenite = { version = "0.30", optional = true, default-features = false, features = ["handshake", "rustls-tls-webpki-roots"] }
+
+[features]
+default = ["net"]
+net = ["dep:ureq", "dep:tungstenite"]
 
 [lints]
 workspace = true
