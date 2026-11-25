@@ -8,6 +8,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod chat;
+mod overlay;
 mod playback;
 mod presence;
 mod tikfinity;
@@ -299,6 +300,13 @@ fn set_twitch_replies(state: tauri::State<'_, AppState>, on: bool) -> Res<Settin
     Ok(s.clone())
 }
 
+/// The OBS browser-source address for the local overlay (token in the #fragment).
+#[tauri::command]
+fn overlay_url(state: tauri::State<'_, AppState>) -> Res<String> {
+    let token = state.secrets.get(Secret::OverlayToken).map_err(|e| e.to_string())?.ok_or("overlay not ready")?;
+    Ok(format!("http://127.0.0.1:{}/overlay#{token}", overlay::PORT))
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -315,6 +323,16 @@ fn main() {
             let presence = Arc::new(Mutex::new(bys_discord::PresenceInput::default()));
             playback::spawn(settings.clone(), secrets.clone(), player.clone(), presence.clone());
             presence::spawn(settings.clone(), presence.clone());
+            // Local overlay: reuse the saved token, or make one and keep it in the keychain.
+            let overlay_token = match secrets.get(Secret::OverlayToken).ok().flatten() {
+                Some(t) => t,
+                None => {
+                    let t = overlay::new_token()?;
+                    secrets.set(Secret::OverlayToken, &t).map_err(|e| e.to_string())?;
+                    t
+                }
+            };
+            overlay::spawn(overlay_token, presence.clone());
             let twitch = Arc::new(twitch::Shared {
                 settings: settings.clone(),
                 path: path.clone(),
@@ -363,7 +381,8 @@ fn main() {
             twitch_disconnect,
             tikfinity_status,
             set_tikfinity,
-            set_twitch_replies
+            set_twitch_replies,
+            overlay_url
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

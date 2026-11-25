@@ -217,6 +217,8 @@ pub enum Secret {
     /// Twitch user access token and its (rotating) refresh token.
     TwitchAccess,
     TwitchRefresh,
+    /// Token for the local overlay server (OBS browser sources).
+    OverlayToken,
 }
 
 impl Secret {
@@ -228,6 +230,7 @@ impl Secret {
             Secret::PearToken => "pear-desktop",
             Secret::TwitchAccess => "twitch-access",
             Secret::TwitchRefresh => "twitch-refresh",
+            Secret::OverlayToken => "local-overlay",
         }
     }
 }

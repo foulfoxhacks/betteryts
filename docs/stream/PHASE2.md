@@ -33,7 +33,7 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 - [x] **Chat replies (Twitch).** Off by default; the console's Replies switch asks for `user:write:chat` only on the next Twitch sign-in. Each request's result is sent via Helix `chat/messages`, at most one every 1.5 s (extras dropped), cleaned and capped at 500 characters. TikFinity stays read-only (results show in the console). Not yet verified live: needs a signed-in Twitch with replies on.
 - [x] **Audience counts, Twitch:** viewer count from Helix `streams` once a minute while connected, shown next to the Twitch name in the console and in Discord presence ("N watching").
 - [x] **Audience counts, TikTok:** room viewer count from TikFinity `roomUser` events.
-- [ ] **Local overlay server.** Loopback WebSocket with now playing, queue, alerts and goals; per-overlay read-only token. The hosted `/stream/overlay` stays as is.
+- [x] **Local overlay server.** `http://127.0.0.1:47823/overlay#<token>` for OBS: loopback-only std HTTP (no new crates), token in the #fragment and an `X-Overlay-Token` header (kept in the keychain), Host check against DNS rebinding, no CORS, strict CSP. Shows now playing, queue length, last trigger and audience. Verified live: page 200, state 401 without or with a wrong token, 421 for a foreign Host, bound to 127.0.0.1.
 - [ ] **Compatibility sources:** Streamer.bot local WebSocket (TikFinity is done).
 - [x] **Owner action: Twitch application.** Done: "BetterYTS Connector", public client.
 - [x] **Owner decision: TikTok signing.** Decided 2026-11-25: **TikFinity only**. No third-party signer; the `bys-tiktok` decoder stays for a possible later direct source.

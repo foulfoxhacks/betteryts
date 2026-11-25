@@ -22,6 +22,8 @@ bys-discord = { path = "../crates/bys-discord" }
 bys-core = { path = "../crates/bys-core" }
 bys-twitch = { path = "../crates/bys-twitch" }
 bys-tiktok = { path = "../crates/bys-tiktok" }
+# getrandom: overlay token (already in the tree through Tauri, same major version).
+getrandom = "0.3"
 # tauri: native window + system WebView (WebView2 / WebKitGTK), MSI/deb bundling.
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }

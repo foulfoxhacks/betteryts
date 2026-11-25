@@ -231,6 +231,13 @@ $("t-replies").addEventListener("change", (e) =>
 	}),
 );
 
+$("overlay-btn").addEventListener("click", () =>
+	run(async () => {
+		await navigator.clipboard.writeText(await invoke("overlay_url"));
+		toast("Overlay URL copied. In OBS add a Browser Source and paste it. Keep it private: it includes the overlay key.");
+	}),
+);
+
 // ---- TikTok via TikFinity ----
 async function refreshTikTok() {
 	try {

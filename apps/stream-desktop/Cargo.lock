@@ -233,6 +233,7 @@ dependencies = [
  "bys-stream-api",
  "bys-tiktok",
  "bys-twitch",
+ "getrandom 0.3.4",
  "serde",
  "serde_json",
  "tauri",
