@@ -10,6 +10,7 @@
 			.now { display: flex; gap: 12px; align-items: center; }
 			.now img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
 			.small { font-size: 15px; font-weight: 500; opacity: .85; }
+			#alert { font-size: 24px; font-weight: 800; color: #ffc857; }
 			[hidden] { display: none !important; }
 		</style>
 	</head>
@@ -18,6 +19,7 @@
 			<div class="now"><img id="art" alt="" hidden /><div><div id="title"></div><div class="small" id="artist"></div></div></div>
 			<div class="small" id="line"></div>
 			<div class="small" id="trigger"></div>
+			<div id="alert" hidden></div>
 		</div>
 		<script>
 			// Token from the #fragment: never sent to any server, sent only to this local app in a header.
@@ -28,7 +30,7 @@
 					const r = await fetch("/state", { headers: { "X-Overlay-Token": token }, cache: "no-store" });
 					if (r.ok) {
 						const s = await r.json();
-						$("box").hidden = !s.live && !s.nowPlaying;
+						$("box").hidden = !s.live && !s.nowPlaying && !s.alert;
 						$("title").textContent = s.nowPlaying ? s.nowPlaying.title : "Live";
 						$("artist").textContent = s.nowPlaying ? s.nowPlaying.artist : "";
 						const art = s.nowPlaying && s.nowPlaying.artwork;
@@ -37,6 +39,8 @@
 						const watching = (s.audience || []).reduce((n, a) => n + a[1], 0);
 						$("line").textContent = [s.requestsOpen ? `Requests open · ${s.queueLength} in queue` : "Requests paused", watching ? `${watching} watching` : ""].filter(Boolean).join(" · ");
 						$("trigger").textContent = s.lastTrigger || "";
+						$("alert").hidden = !s.alert;
+						$("alert").textContent = s.alert || "";
 					}
 				} catch {}
 				setTimeout(poll, 2000);

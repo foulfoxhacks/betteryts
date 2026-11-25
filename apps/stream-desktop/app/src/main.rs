@@ -361,7 +361,7 @@ fn main() {
                 eprintln!("BetterYTS Stream: {e}");
                 Vec::new()
             });
-            automation::init(presence.clone(), chains)?;
+
             // Local overlay: reuse the saved token, or make one and keep it in the keychain.
             let overlay_token = match secrets.get(Secret::OverlayToken).ok().flatten() {
                 Some(t) => t,
@@ -382,6 +382,8 @@ fn main() {
                 last_reply: Mutex::new(None),
             });
             twitch::spawn(twitch.clone());
+            let chat_twitch = twitch.clone();
+            automation::init(presence.clone(), chains, Box::new(move |t: &str| twitch::reply(&chat_twitch, t)))?;
             let sb_status = Arc::new(Mutex::new(streamerbot::SbStatus::default()));
             streamerbot::spawn(settings.clone(), secrets.clone(), sb_status.clone());
             let tikfinity_status = Arc::new(Mutex::new(tikfinity::TikFinityStatus::default()));

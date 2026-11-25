@@ -11,7 +11,8 @@
 	let steps = [];
 
 	// A chain the simple editor can show: only `do console text` and `delay` steps.
-	const simple = (c) => c.steps.every((s) => s.delay || (s.do && s.do.output === "console" && s.do.command.text !== undefined));
+	const WHERE = { console: "show", "overlay.alert": "alert", "twitch.chat": "say in chat" };
+	const simple = (c) => c.steps.every((s) => s.delay || (s.do && WHERE[s.do.output] && s.do.command.text !== undefined));
 	const minAmount = (c) => (c.trigger.when && c.trigger.when.ge ? c.trigger.when.ge[1].const : 0);
 
 	function timeline(list) {
@@ -19,7 +20,7 @@
 		const out = [];
 		for (const s of list) {
 			if (s.delay) t += s.delay.ms;
-			else if (s.do) out.push(`${(t / 1000).toFixed(1)} s — show “${s.do.command.text}”`);
+			else if (s.do) out.push(`${(t / 1000).toFixed(1)} s — ${WHERE[s.do.output] || s.do.output} “${s.do.command.text}”`);
 		}
 		return out;
 	}
@@ -59,7 +60,7 @@
 	function renderSteps() {
 		$("step-list").replaceChildren(
 			...steps.map((s, i) => {
-				const li = el("li", "", s.delay ? `Wait ${s.delay.ms} ms` : `Show “${s.do.command.text}”`);
+				const li = el("li", "", s.delay ? `Wait ${s.delay.ms} ms` : `${WHERE[s.do.output]} “${s.do.command.text}”`);
 				const x = el("button", "btn small", "×");
 				x.onclick = () => ((steps.splice(i, 1), renderSteps()));
 				li.append(" ", x);
@@ -71,7 +72,7 @@
 
 	$("add-text").onclick = () => {
 		const t = $("step-text").value.trim().slice(0, 200);
-		if (t) steps.push({ do: { output: "console", command: { text: t } } }), ($("step-text").value = ""), renderSteps();
+		if (t) steps.push({ do: { output: $("step-output").value, command: { text: t } } }), ($("step-text").value = ""), renderSteps();
 	};
 	$("add-wait").onclick = () => {
 		const ms = Math.min(600000, Math.max(0, Math.round(Number($("step-wait").value) || 0)));

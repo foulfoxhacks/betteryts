@@ -193,7 +193,7 @@ fn on_event(shared: &Shared, ev: Event) {
 }
 
 /// Answer a chat request in Twitch chat, at most once every 1.5 s (extra replies are dropped).
-fn reply(shared: &Shared, text: &str) {
+pub fn reply(shared: &Shared, text: &str) {
     if !shared.settings.lock().map(|s| s.twitch.replies).unwrap_or(false) {
         return;
     }

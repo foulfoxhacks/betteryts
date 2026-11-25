@@ -12,9 +12,13 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+type Sink = Box<dyn Fn(&str) + Send + Sync>;
+
 struct State {
     engine: Mutex<Engine>,
     presence: Arc<Mutex<PresenceInput>>,
+    /// Posts to Twitch chat (honours the Replies switch and its rate limit).
+    chat: Sink,
 }
 
 static STATE: OnceLock<State> = OnceLock::new();
@@ -23,8 +27,11 @@ fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
-/// Text actions (delay in ms, text) for the `console` output from one event's accepted plans.
-pub fn console_texts(engine: &mut Engine, ev: &Event, now: u64) -> Vec<(u64, String)> {
+/// Outputs automation text can go to.
+pub const OUTPUTS: [&str; 3] = ["console", "twitch.chat", "overlay.alert"];
+
+/// Text actions (delay ms, output, text) from one event's accepted plans.
+pub fn texts(engine: &mut Engine, ev: &Event, now: u64) -> Vec<(u64, String, String)> {
     let mut rng = XorShift::new(now ^ 0x5bd1_e995);
     engine
         .handle(ev, now, &mut rng)
@@ -32,7 +39,7 @@ pub fn console_texts(engine: &mut Engine, ev: &Event, now: u64) -> Vec<(u64, Str
         .filter_map(|o| if let Outcome::Accepted { plan, .. } = o { Some(plan) } else { None })
         .flat_map(|plan| plan.actions)
         .filter_map(|p| match p.action.command {
-            Command::Text(t) if p.action.output == "console" => Some((p.at_ms, t.chars().take(200).collect())),
+            Command::Text(t) if OUTPUTS.contains(&p.action.output.as_str()) => Some((p.at_ms, p.action.output, t.chars().take(200).collect())),
             _ => None,
         })
         .collect()
@@ -93,7 +100,7 @@ pub fn current() -> Vec<Chain> {
     STATE.get().and_then(|s| s.engine.lock().ok().map(|e| e.chains().to_vec())).unwrap_or_default()
 }
 
-pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>) -> Result<(), String> {
+pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>, chat: Sink) -> Result<(), String> {
     let mut governor = Governor::new();
     governor.configure(
         "console",
@@ -102,28 +109,48 @@ pub fn init(presence: Arc<Mutex<PresenceInput>>, chains: Vec<Chain>) -> Result<(
             ..OutputLimits::digital_default()
         },
     );
+    governor.configure(
+        "twitch.chat",
+        OutputLimits {
+            max_per_minute: 20,
+            ..OutputLimits::digital_default()
+        },
+    );
+    governor.configure(
+        "overlay.alert",
+        OutputLimits {
+            max_per_minute: 60,
+            ..OutputLimits::digital_default()
+        },
+    );
     let mut engine = Engine::new(governor);
     engine.set_chains(chains)?;
     let _ = STATE.set(State {
         engine: Mutex::new(engine),
         presence,
+        chat,
     });
     Ok(())
 }
 
-/// Feed one source event; console texts are shown at their planned times.
+/// Feed one source event; each text goes to its output at its planned time.
 pub fn feed(ev: &Event) {
     let Some(state) = STATE.get() else { return };
-    let texts = match state.engine.lock() {
-        Ok(mut e) => console_texts(&mut e, ev, now_ms()),
-        Err(_) => return,
+    let Ok(list) = state.engine.lock().map(|mut e| texts(&mut e, ev, now_ms())) else {
+        return;
     };
-    for (delay, text) in texts {
-        let presence = state.presence.clone();
+    for (delay, output, text) in list {
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(delay));
-            if let Ok(mut p) = presence.lock() {
-                p.last_trigger = Some(text);
+            let Some(state) = STATE.get() else { return };
+            match output.as_str() {
+                "twitch.chat" => (state.chat)(&text),
+                "overlay.alert" => crate::overlay::set_alert(text),
+                _ => {
+                    if let Ok(mut p) = state.presence.lock() {
+                        p.last_trigger = Some(text);
+                    }
+                }
             }
         });
     }
@@ -223,11 +250,52 @@ mod tests {
             },
         )
         .unwrap();
-        let texts = console_texts(&mut e, &gift, 1_000);
+        let out = texts(&mut e, &gift, 1_000);
         assert_eq!(
-            texts,
-            vec![(0, "Thank you!".into()), (500, "Gift goal +1".into())],
+            out,
+            vec![(0, "console".into(), "Thank you!".into()), (500, "console".into(), "Gift goal +1".into())],
             "unknown outputs are refused by the governor"
         );
+    }
+
+    #[test]
+    fn new_outputs_pass_the_governor() {
+        let mut g = Governor::new();
+        for o in OUTPUTS {
+            g.configure(o, OutputLimits::digital_default());
+        }
+        let mut e = Engine::new(g);
+        let step = |o: &str| {
+            Step::Do(Action {
+                output: o.into(),
+                command: Command::Text(o.into()),
+            })
+        };
+        e.set_chains(vec![Chain {
+            id: "x".into(),
+            name: "x".into(),
+            enabled: true,
+            trigger: Trigger {
+                kinds: vec![EventKind::Follow],
+                platforms: vec![],
+                when: Cond::Always,
+            },
+            steps: vec![step("twitch.chat"), step("overlay.alert")],
+            cooldown_ms: 0,
+            per_user_cooldown_ms: 0,
+        }])
+        .unwrap();
+        let ev = Event::new(
+            Platform::Twitch,
+            EventKind::Follow,
+            RawEvent {
+                id: "f1",
+                actor: Some(("1", "fan", Role::Viewer)),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let outs: Vec<String> = texts(&mut e, &ev, 0).into_iter().map(|(_, o, _)| o).collect();
+        assert_eq!(outs, vec!["twitch.chat".to_owned(), "overlay.alert".to_owned()]);
     }
 }

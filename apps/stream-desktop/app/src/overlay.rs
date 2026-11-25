@@ -11,6 +11,25 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 pub const PORT: u16 = 47823;
+const ALERT_MS: u128 = 8_000;
+
+static ALERT: Mutex<Option<(String, std::time::Instant)>> = Mutex::new(None);
+
+/// Show a line on the overlay for a few seconds (automation output `overlay.alert`).
+pub fn set_alert(text: String) {
+    if let Ok(mut a) = ALERT.lock() {
+        *a = Some((text, std::time::Instant::now()));
+    }
+}
+
+fn current_alert() -> Option<String> {
+    ALERT
+        .lock()
+        .ok()?
+        .as_ref()
+        .filter(|(_, t)| t.elapsed().as_millis() < ALERT_MS)
+        .map(|(s, _)| s.clone())
+}
 const PAGE: &str = include_str!("../ui/local-overlay.html");
 
 /// A fresh 256-bit token as hex.
@@ -37,7 +56,7 @@ pub fn respond(method: &str, path: &str, host: &str, token_header: &str, token: 
                 .track
                 .as_ref()
                 .map(|t| json!({ "title": t.title, "artist": t.artist, "artwork": t.artwork }));
-            let body = json!({ "live": input.live, "requestsOpen": input.requests_open, "queueLength": input.queue_length, "nowPlaying": track, "lastTrigger": input.last_trigger, "audience": input.audience });
+            let body = json!({ "live": input.live, "requestsOpen": input.requests_open, "queueLength": input.queue_length, "nowPlaying": track, "lastTrigger": input.last_trigger, "audience": input.audience, "alert": current_alert() });
             (200, "application/json", body.to_string())
         }
         ("GET", "/state") => (401, "text/plain", "overlay token required".into()),
