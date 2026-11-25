@@ -226,10 +226,12 @@ checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 name = "betteryts-stream"
 version = "0.1.0"
 dependencies = [
+ "bys-core",
  "bys-discord",
  "bys-player",
  "bys-store",
  "bys-stream-api",
+ "bys-twitch",
  "serde",
  "serde_json",
  "tauri",

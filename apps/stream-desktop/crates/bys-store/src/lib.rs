@@ -97,6 +97,15 @@ impl Default for DiscordSettings {
     }
 }
 
+/// Twitch connection (tokens are in the keychain, not here).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TwitchSettings {
+    pub enabled: bool,
+    pub login: String,
+    pub user_id: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
@@ -107,6 +116,7 @@ pub struct Settings {
     pub profile: Profile,
     pub pear: PearSettings,
     pub discord: DiscordSettings,
+    pub twitch: TwitchSettings,
     /// Which request types the Get Live toggles accept.
     pub accept_songs: bool,
     pub accept_videos: bool,
@@ -122,6 +132,7 @@ impl Default for Settings {
             profile: Profile::default(),
             pear: PearSettings::default(),
             discord: DiscordSettings::default(),
+            twitch: TwitchSettings::default(),
             accept_songs: true,
             accept_videos: false,
             accept_shoutouts: false,
@@ -182,6 +193,9 @@ pub enum Secret {
     LocalApiToken,
     /// Pear Desktop API Server access token.
     PearToken,
+    /// Twitch user access token and its (rotating) refresh token.
+    TwitchAccess,
+    TwitchRefresh,
 }
 
 impl Secret {
@@ -191,6 +205,8 @@ impl Secret {
             Secret::DestinationCredential => "stream-destination",
             Secret::LocalApiToken => "local-api",
             Secret::PearToken => "pear-desktop",
+            Secret::TwitchAccess => "twitch-access",
+            Secret::TwitchRefresh => "twitch-refresh",
         }
     }
 }

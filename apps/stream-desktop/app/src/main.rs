@@ -9,6 +9,7 @@
 
 mod playback;
 mod presence;
+mod twitch;
 
 use bys_store::{Profile, Secret, Secrets, Settings};
 use bys_stream_api::{Action, Client, Credential, HttpTransport, Kinds, Manage, QueueState};
@@ -23,6 +24,7 @@ struct AppState {
     secrets: Arc<dyn Secrets>,
     player: Arc<Mutex<playback::PlayerStatus>>,
     presence: Arc<Mutex<bys_discord::PresenceInput>>,
+    twitch: Arc<twitch::Shared>,
 }
 
 type Res<T> = Result<T, String>;
@@ -238,6 +240,39 @@ fn set_discord(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Settings
     Ok(s.clone())
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TwitchCode {
+    user_code: String,
+    verification_uri: String,
+}
+
+/// Start Twitch sign-in: the console shows the code; the user enters it at twitch.tv/activate.
+#[tauri::command]
+async fn twitch_connect(state: tauri::State<'_, AppState>) -> Res<TwitchCode> {
+    let shared = state.twitch.clone();
+    let code = blocking(move || twitch::sign_in(shared)).await?;
+    Ok(TwitchCode {
+        user_code: code.user_code,
+        verification_uri: code.verification_uri,
+    })
+}
+
+#[tauri::command]
+fn twitch_status(state: tauri::State<'_, AppState>) -> Res<twitch::TwitchStatus> {
+    state
+        .twitch
+        .status
+        .lock()
+        .map(|s| s.clone())
+        .map_err(|_| "Twitch status unavailable".to_owned())
+}
+
+#[tauri::command]
+fn twitch_disconnect(state: tauri::State<'_, AppState>) -> Res<()> {
+    twitch::sign_out(&state.twitch)
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -254,12 +289,21 @@ fn main() {
             let presence = Arc::new(Mutex::new(bys_discord::PresenceInput::default()));
             playback::spawn(settings.clone(), secrets.clone(), player.clone(), presence.clone());
             presence::spawn(settings.clone(), presence.clone());
+            let twitch = Arc::new(twitch::Shared {
+                settings: settings.clone(),
+                path: path.clone(),
+                secrets: secrets.clone(),
+                status: Arc::new(Mutex::new(twitch::TwitchStatus::default())),
+                presence: presence.clone(),
+            });
+            twitch::spawn(twitch.clone());
             app.manage(AppState {
                 settings,
                 path,
                 secrets,
                 player,
                 presence,
+                twitch,
             });
             Ok(())
         })
@@ -277,7 +321,10 @@ fn main() {
             player_status,
             pear_connect,
             pear_disconnect,
-            set_discord
+            set_discord,
+            twitch_connect,
+            twitch_status,
+            twitch_disconnect
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

@@ -240,6 +240,21 @@ fn song() -> String {
     "song".into()
 }
 
+/// A request typed in chat, for [`Client::submit_event`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChatRequest {
+    pub event_id: String,
+    /// "twitch", "tiktok", "youtube", ...
+    pub platform: String,
+    pub user_id: String,
+    pub display_name: String,
+    pub input: String,
+    /// "song", "video" or "shoutout".
+    pub kind: String,
+    /// RFC 3339 UTC.
+    pub occurred_at: String,
+}
+
 /// Fields for `POST /manage`; `None` leaves a setting unchanged.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct Manage {
@@ -399,6 +414,24 @@ impl<T: Transport> Client<T> {
             Some(owner),
             Some(json!({ "id": id })),
         )
+    }
+
+    /// Submit a request from a chat source (intake or owner credential). `event_id` must be stable
+    /// per chat message (e.g. Twitch's message ID) so a redelivered message is never queued twice.
+    pub fn submit_event(&self, code: &str, cred: &Credential, req: &ChatRequest) -> Result<Entry, ApiError> {
+        if req.event_id.len() < 8 || req.event_id.len() > 128 || !req.event_id.bytes().all(|b| b.is_ascii_alphanumeric() || b"._:-".contains(&b)) {
+            return Err(ApiError::Invalid("event id must be 8-128 URL-safe characters".into()));
+        }
+        let body = json!({
+            "schemaVersion": "1",
+            "eventId": req.event_id,
+            "eventType": "song_request.submitted",
+            "source": { "platform": req.platform },
+            "actor": { "platformUserId": req.user_id, "displayName": req.display_name },
+            "request": { "input": req.input, "inputType": "text", "kind": req.kind },
+            "occurredAt": req.occurred_at,
+        });
+        self.call(Method::Post, &format!("{}/events", Self::session(code)?), Some(cred), Some(body))
     }
 
     /// Heartbeat + claim of the next queued request for this playback destination.
@@ -615,6 +648,38 @@ mod tests {
         )
         .unwrap();
         assert!(f.sent.borrow()[1].3.as_deref().unwrap().contains(r#""state":"completed""#));
+    }
+
+    #[test]
+    fn chat_requests_are_canonical_events() {
+        let f = Fake::default();
+        f.replies.borrow_mut().push((200, r#"{"ok":true,"id":"r1","kind":"song","state":"resolving","code":null,"message":"Looking up your song.","media":null,"ahead":null,"outcomeUncertain":false}"#.into()));
+        let c = Client::new(DEFAULT_ORIGIN, &f).unwrap();
+        let cred = Credential::new(&tok('e')).unwrap();
+        let req = ChatRequest {
+            event_id: "twitch-chat-abc-123".into(),
+            platform: "twitch".into(),
+            user_id: "42".into(),
+            display_name: "Fox".into(),
+            input: "Daft Punk".into(),
+            kind: "song".into(),
+            occurred_at: "2026-11-24T20:00:00Z".into(),
+        };
+        assert_eq!(c.submit_event("ABCD2345", &cred, &req).unwrap().state, "resolving");
+        let body: Value = serde_json::from_str(f.sent.borrow()[0].3.as_deref().unwrap()).unwrap();
+        assert_eq!(body.pointer("/request/kind"), Some(&json!("song")));
+        assert_eq!(body.pointer("/eventId"), Some(&json!("twitch-chat-abc-123")));
+        assert!(
+            c.submit_event(
+                "ABCD2345",
+                &cred,
+                &ChatRequest {
+                    event_id: "bad id!".into(),
+                    ..req
+                }
+            )
+            .is_err()
+        );
     }
 
     #[test]

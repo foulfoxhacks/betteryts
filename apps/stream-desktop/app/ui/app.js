@@ -190,6 +190,38 @@ $("t-discord").addEventListener("change", (e) =>
 	}),
 );
 
+// ---- Twitch ----
+let twitchState = "off";
+async function refreshTwitch() {
+	try {
+		const t = await invoke("twitch_status");
+		twitchState = t.state || "off";
+		const info = $("twitch-info");
+		if (twitchState === "waiting_for_approval" && t.userCode) {
+			$("twitch-state").textContent = "Twitch: waiting for approval";
+			info.replaceChildren("Enter ", el("span", "code", t.userCode), " at twitch.tv/activate");
+		} else {
+			$("twitch-state").textContent =
+				twitchState === "connected" ? `Twitch: @${t.login}` : twitchState === "connecting" ? "Twitch: connecting…" : twitchState === "error" ? "Twitch: problem" : "Twitch: off";
+			info.textContent = (twitchState === "error" ? t.error : t.lastEvent) || "";
+		}
+		$("twitch-btn").textContent = ["connected", "connecting"].includes(twitchState) ? "Disconnect" : "Connect Twitch";
+	} catch {
+		/* keep the last status */
+	}
+}
+$("twitch-btn").addEventListener("click", () =>
+	run(async () => {
+		if (["connected", "connecting"].includes(twitchState)) {
+			await invoke("twitch_disconnect");
+		} else {
+			const code = await invoke("twitch_connect");
+			toast(`Go to twitch.tv/activate and enter ${code.userCode}. Chat commands: !sr, !video, !shoutout.`);
+		}
+		await refreshTwitch();
+	}),
+);
+
 // ---- actions ----
 async function refresh() {
 	try {
@@ -232,10 +264,12 @@ function startPolling() {
 	clearInterval(pollTimer);
 	refresh();
 	refreshPlayer();
+	refreshTwitch();
 	pollTimer = setInterval(() => {
 		if (document.visibilityState !== "visible") return;
 		refresh();
 		refreshPlayer();
+		refreshTwitch();
 	}, 3000);
 }
 function showConsole() {
