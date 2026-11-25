@@ -51,6 +51,7 @@ function showProfile() {
 	$("avatar").textContent = initials(p.displayName);
 	$("t-discord").checked = !!settings.discord?.enabled;
 	$("t-tiktok").checked = !!settings.tikfinity?.enabled;
+	$("t-sb").checked = !!settings.streamerbot?.enabled;
 	$("t-replies").checked = !!settings.twitch?.replies;
 }
 let profileTimer = null;
@@ -238,6 +239,24 @@ $("overlay-btn").addEventListener("click", () =>
 	}),
 );
 
+// ---- Streamer.bot ----
+async function refreshSb() {
+	try {
+		const t = await invoke("streamerbot_status");
+		const labels = { off: "off", connecting: "waiting for Streamer.bot", connected: "connected", error: "problem" };
+		$("sb-state").textContent = `Streamer.bot: ${labels[t.state] || "off"}`;
+		$("sb-info").textContent = (t.state === "error" ? t.error : t.lastEvent) || "";
+	} catch {
+		/* keep the last status */
+	}
+}
+$("t-sb").addEventListener("change", (e) =>
+	run(async () => {
+		settings = await invoke("set_streamerbot", { enabled: e.target.checked });
+		await refreshSb();
+	}),
+);
+
 // ---- TikTok via TikFinity ----
 async function refreshTikTok() {
 	try {
@@ -301,12 +320,14 @@ function startPolling() {
 	refreshPlayer();
 	refreshTwitch();
 	refreshTikTok();
+	refreshSb();
 	pollTimer = setInterval(() => {
 		if (document.visibilityState !== "visible") return;
 		refresh();
 		refreshPlayer();
 		refreshTwitch();
 		refreshTikTok();
+		refreshSb();
 	}, 3000);
 }
 function showConsole() {

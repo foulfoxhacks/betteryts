@@ -24,6 +24,8 @@ bys-twitch = { path = "../crates/bys-twitch" }
 bys-tiktok = { path = "../crates/bys-tiktok" }
 # getrandom: overlay token (already in the tree through Tauri, same major version).
 getrandom = "0.3"
+# Streamer.bot local WebSocket (same version already used by bys-twitch / bys-tiktok).
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 # tauri: native window + system WebView (WebView2 / WebKitGTK), MSI/deb bundling.
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }

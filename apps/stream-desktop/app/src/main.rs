@@ -11,6 +11,7 @@ mod chat;
 mod overlay;
 mod playback;
 mod presence;
+mod streamerbot;
 mod tikfinity;
 mod twitch;
 
@@ -29,6 +30,7 @@ struct AppState {
     presence: Arc<Mutex<bys_discord::PresenceInput>>,
     twitch: Arc<twitch::Shared>,
     tikfinity: Arc<Mutex<tikfinity::TikFinityStatus>>,
+    streamerbot: Arc<Mutex<streamerbot::SbStatus>>,
 }
 
 type Res<T> = Result<T, String>;
@@ -307,6 +309,23 @@ fn overlay_url(state: tauri::State<'_, AppState>) -> Res<String> {
     Ok(format!("http://127.0.0.1:{}/overlay#{token}", overlay::PORT))
 }
 
+#[tauri::command]
+fn streamerbot_status(state: tauri::State<'_, AppState>) -> Res<streamerbot::SbStatus> {
+    state
+        .streamerbot
+        .lock()
+        .map(|s| s.clone())
+        .map_err(|_| "Streamer.bot status unavailable".to_owned())
+}
+
+#[tauri::command]
+fn set_streamerbot(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Settings> {
+    let mut s = lock(&state)?;
+    s.streamerbot.enabled = enabled;
+    save(&state, &s)?;
+    Ok(s.clone())
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -343,6 +362,8 @@ fn main() {
                 last_reply: Mutex::new(None),
             });
             twitch::spawn(twitch.clone());
+            let sb_status = Arc::new(Mutex::new(streamerbot::SbStatus::default()));
+            streamerbot::spawn(settings.clone(), secrets.clone(), sb_status.clone());
             let tikfinity_status = Arc::new(Mutex::new(tikfinity::TikFinityStatus::default()));
             tikfinity::spawn(Arc::new(tikfinity::Shared {
                 settings: settings.clone(),
@@ -358,6 +379,7 @@ fn main() {
                 presence,
                 twitch,
                 tikfinity: tikfinity_status,
+                streamerbot: sb_status,
             });
             Ok(())
         })
@@ -382,7 +404,9 @@ fn main() {
             tikfinity_status,
             set_tikfinity,
             set_twitch_replies,
-            overlay_url
+            overlay_url,
+            streamerbot_status,
+            set_streamerbot
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

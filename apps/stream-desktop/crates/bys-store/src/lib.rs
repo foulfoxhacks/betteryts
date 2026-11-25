@@ -97,6 +97,23 @@ impl Default for DiscordSettings {
     }
 }
 
+/// Streamer.bot local WebSocket (BetterYTS request broadcasts from YouTube, Kick, ...).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct StreamerBotSettings {
+    pub enabled: bool,
+    pub url: String,
+}
+
+impl Default for StreamerBotSettings {
+    fn default() -> Self {
+        StreamerBotSettings {
+            enabled: false,
+            url: "ws://127.0.0.1:8080/".into(),
+        }
+    }
+}
+
 /// TikTok through TikFinity's local WebSocket (owner's chosen TikTok source).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -137,6 +154,7 @@ pub struct Settings {
     pub discord: DiscordSettings,
     pub twitch: TwitchSettings,
     pub tikfinity: TikFinitySettings,
+    pub streamerbot: StreamerBotSettings,
     /// Which request types the Get Live toggles accept.
     pub accept_songs: bool,
     pub accept_videos: bool,
@@ -154,6 +172,7 @@ impl Default for Settings {
             discord: DiscordSettings::default(),
             twitch: TwitchSettings::default(),
             tikfinity: TikFinitySettings::default(),
+            streamerbot: StreamerBotSettings::default(),
             accept_songs: true,
             accept_videos: false,
             accept_shoutouts: false,

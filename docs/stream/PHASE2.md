@@ -34,7 +34,7 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 - [x] **Audience counts, Twitch:** viewer count from Helix `streams` once a minute while connected, shown next to the Twitch name in the console and in Discord presence ("N watching").
 - [x] **Audience counts, TikTok:** room viewer count from TikFinity `roomUser` events.
 - [x] **Local overlay server.** `http://127.0.0.1:47823/overlay#<token>` for OBS: loopback-only std HTTP (no new crates), token in the #fragment and an `X-Overlay-Token` header (kept in the keychain), Host check against DNS rebinding, no CORS, strict CSP. Shows now playing, queue length, last trigger and audience. Verified live: page 200, state 401 without or with a wrong token, 421 for a foreign Host, bound to 127.0.0.1.
-- [ ] **Compatibility sources:** Streamer.bot local WebSocket (TikFinity is done).
+- [x] **Compatibility sources:** TikFinity (done earlier) and Streamer.bot: the desktop subscribes to `General.Custom` on Streamer.bot's local WebSocket and accepts only the BetterYTS request contract (`"bys": 1`) sent by the action in `docs/stream/streamerbot.md`. That covers YouTube, Kick and other platforms. Not yet verified against a live Streamer.bot.
 - [x] **Owner action: Twitch application.** Done: "BetterYTS Connector", public client.
 - [x] **Owner decision: TikTok signing.** Decided 2026-11-25: **TikFinity only**. No third-party signer; the `bys-tiktok` decoder stays for a possible later direct source.
 - [ ] **Owner action (can't be automated):** rename or replace the Discord application `1545979656262389900` so presence reads "BetterYTS Stream" instead of the old PearConnect name, then update `bys_discord::CLIENT_ID` if the ID changes.

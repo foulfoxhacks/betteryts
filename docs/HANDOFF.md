@@ -62,7 +62,7 @@ From `docs/stream/PHASE2.md`:
 2. ~~Chat replies~~: done for Twitch (off by default; needs a sign-in with replies on to verify live).
 3. **Audience counts:** done for Twitch (Helix) and TikTok (TikFinity `roomUser`).
 4. ~~Local overlay server~~: done (`127.0.0.1:47823/overlay#token`, Copy overlay URL in the console).
-5. **Compatibility sources:** Streamer.bot (TikFinity is done).
+5. ~~Compatibility sources~~: TikFinity and Streamer.bot done (`docs/stream/streamerbot.md`); live Streamer.bot check pending.
 6. **Then:** blueprint §9, write `PHASE3.md` (chain editor UI, OBS, VRChat OSC, local API, official YouTube API).
 
 ## Waiting on the owner
