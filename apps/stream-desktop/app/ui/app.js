@@ -51,6 +51,7 @@ function showProfile() {
 	$("avatar").textContent = initials(p.displayName);
 	$("t-discord").checked = !!settings.discord?.enabled;
 	$("t-tiktok").checked = !!settings.tikfinity?.enabled;
+	$("t-replies").checked = !!settings.twitch?.replies;
 }
 let profileTimer = null;
 for (const id of ["name", "handle", "venue"]) {
@@ -220,6 +221,13 @@ $("twitch-btn").addEventListener("click", () =>
 			toast(`Go to twitch.tv/activate and enter ${code.userCode}. Chat commands: !sr, !video, !shoutout.`);
 		}
 		await refreshTwitch();
+	}),
+);
+
+$("t-replies").addEventListener("change", (e) =>
+	run(async () => {
+		settings = await invoke("set_twitch_replies", { on: e.target.checked });
+		if (settings.twitch.replies) toast("Replies on. Disconnect and connect Twitch again once to allow chat messages.");
 	}),
 );
 

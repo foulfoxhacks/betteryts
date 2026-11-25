@@ -30,7 +30,7 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
 - [ ] **Source → engine wiring.** Every source builds `bys_core::Event` values and feeds them to the engine:
   - `!sr` / `!np` / `!queue` / `!skip` commands go to the Stream API;
   - gifts, follows and other events go to chains.
-- [ ] **Chat replies.** Per platform, templated, rate-limited, toggleable. The TikTok source is read-only, so its replies go to the console and overlay.
+- [x] **Chat replies (Twitch).** Off by default; the console's Replies switch asks for `user:write:chat` only on the next Twitch sign-in. Each request's result is sent via Helix `chat/messages`, at most one every 1.5 s (extras dropped), cleaned and capped at 500 characters. TikFinity stays read-only (results show in the console). Not yet verified live: needs a signed-in Twitch with replies on.
 - [x] **Audience counts, Twitch:** viewer count from Helix `streams` once a minute while connected, shown next to the Twitch name in the console and in Discord presence ("N watching").
 - [x] **Audience counts, TikTok:** room viewer count from TikFinity `roomUser` events.
 - [ ] **Local overlay server.** Loopback WebSocket with now playing, queue, alerts and goals; per-overlay read-only token. The hosted `/stream/overlay` stays as is.

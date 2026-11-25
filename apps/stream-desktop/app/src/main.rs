@@ -290,6 +290,15 @@ fn set_tikfinity(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Settin
     Ok(s.clone())
 }
 
+/// Chat replies need the write scope, so turning them on means connecting Twitch again.
+#[tauri::command]
+fn set_twitch_replies(state: tauri::State<'_, AppState>, on: bool) -> Res<Settings> {
+    let mut s = lock(&state)?;
+    s.twitch.replies = on;
+    save(&state, &s)?;
+    Ok(s.clone())
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -312,6 +321,8 @@ fn main() {
                 secrets: secrets.clone(),
                 status: Arc::new(Mutex::new(twitch::TwitchStatus::default())),
                 presence: presence.clone(),
+                live: Mutex::new(None),
+                last_reply: Mutex::new(None),
             });
             twitch::spawn(twitch.clone());
             let tikfinity_status = Arc::new(Mutex::new(tikfinity::TikFinityStatus::default()));
@@ -351,7 +362,8 @@ fn main() {
             twitch_status,
             twitch_disconnect,
             tikfinity_status,
-            set_tikfinity
+            set_tikfinity,
+            set_twitch_replies
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

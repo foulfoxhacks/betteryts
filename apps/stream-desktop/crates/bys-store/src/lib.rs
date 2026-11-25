@@ -119,6 +119,8 @@ impl Default for TikFinitySettings {
 #[serde(default, rename_all = "camelCase")]
 pub struct TwitchSettings {
     pub enabled: bool,
+    /// Reply in Twitch chat with each request's result (needs a sign-in with the write scope).
+    pub replies: bool,
     pub login: String,
     pub user_id: String,
 }

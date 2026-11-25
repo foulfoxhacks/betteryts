@@ -129,6 +129,28 @@ pub fn viewers(access_token: &str, user_id: &str) -> Result<Option<u64>, String>
     parse_viewers(&r.body_mut().with_config().limit(MAX_BODY).read_to_string().map_err(|e| e.to_string())?)
 }
 
+/// Post a chat message as the signed-in user (needs the `user:write:chat` scope). Text is cleaned
+/// and capped at Twitch's 500 characters.
+pub fn send_chat(access_token: &str, broadcaster: &str, sender: &str, message: &str) -> Result<(), String> {
+    let text: String = message.chars().filter(|c| !c.is_control()).take(500).collect();
+    if text.trim().is_empty() {
+        return Ok(());
+    }
+    let body = json!({ "broadcaster_id": broadcaster, "sender_id": sender, "message": text }).to_string();
+    let r = agent()
+        .post(&format!("{HELIX}/chat/messages"))
+        .header("Authorization", &format!("Bearer {access_token}"))
+        .header("Client-Id", CLIENT_ID)
+        .header("Content-Type", "application/json")
+        .send(body.as_str())
+        .map_err(|e| e.to_string())?;
+    match r.status().as_u16() {
+        200 => Ok(()),
+        401 | 403 => Err("Twitch didn't allow the reply: connect Twitch again with replies on".into()),
+        s => Err(format!("Twitch answered HTTP {s}")),
+    }
+}
+
 /// Condition for each subscription type (raids are "to" the broadcaster; follows need a moderator ID).
 pub fn condition(sub_type: &str, broadcaster: &str) -> Value {
     match sub_type {

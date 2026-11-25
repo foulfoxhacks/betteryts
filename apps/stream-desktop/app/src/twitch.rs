@@ -34,6 +34,9 @@ pub struct Shared {
     pub secrets: Arc<dyn Secrets>,
     pub status: Arc<Mutex<TwitchStatus>>,
     pub presence: Arc<Mutex<bys_discord::PresenceInput>>,
+    /// (access token, user ID) of the running connection, for replies.
+    pub live: Mutex<Option<(String, String)>>,
+    pub last_reply: Mutex<Option<Instant>>,
 }
 
 fn set(status: &Mutex<TwitchStatus>, f: impl FnOnce(&mut TwitchStatus)) {
@@ -44,7 +47,8 @@ fn set(status: &Mutex<TwitchStatus>, f: impl FnOnce(&mut TwitchStatus)) {
 
 /// Start sign-in: returns the code to show, and polls Twitch in the background until approved.
 pub fn sign_in(shared: Arc<Shared>) -> Result<oauth::DeviceCode, String> {
-    let code = live::device_start(false)?;
+    let replies = shared.settings.lock().map(|s| s.twitch.replies).unwrap_or(false);
+    let code = live::device_start(replies)?;
     set(&shared.status, |s| {
         *s = TwitchStatus {
             state: "waiting_for_approval".into(),
@@ -61,7 +65,7 @@ pub fn sign_in(shared: Arc<Shared>) -> Result<oauth::DeviceCode, String> {
             let mut interval = device.interval.clamp(2, 30);
             while Instant::now() < deadline {
                 std::thread::sleep(Duration::from_secs(interval));
-                match live::device_poll(&device.device_code, false) {
+                match live::device_poll(&device.device_code, replies) {
                     oauth::Poll::Pending => {}
                     oauth::Poll::SlowDown => interval += 5,
                     oauth::Poll::Granted {
@@ -73,6 +77,7 @@ pub fn sign_in(shared: Arc<Shared>) -> Result<oauth::DeviceCode, String> {
                             let mut s = shared.settings.lock().map_err(|_| "settings unavailable".to_owned())?;
                             s.twitch = bys_store::TwitchSettings {
                                 enabled: true,
+                                replies: s.twitch.replies,
                                 login: id.login.clone(),
                                 user_id: id.user_id,
                             };
@@ -179,12 +184,30 @@ fn on_event(shared: &Shared, ev: Event) {
     let Some(line) = crate::chat::route(&shared.settings, shared.secrets.as_ref(), &ev) else {
         return;
     };
-    if ev.kind != bys_core::event::EventKind::Chat
-        && let Ok(mut p) = shared.presence.lock()
-    {
+    if ev.kind == bys_core::event::EventKind::Chat {
+        reply(shared, &line);
+    } else if let Ok(mut p) = shared.presence.lock() {
         p.last_trigger = Some(line.clone());
     }
     set(&shared.status, |s| s.last_event = Some(line));
+}
+
+/// Answer a chat request in Twitch chat, at most once every 1.5 s (extra replies are dropped).
+fn reply(shared: &Shared, text: &str) {
+    if !shared.settings.lock().map(|s| s.twitch.replies).unwrap_or(false) {
+        return;
+    }
+    let Ok(mut last) = shared.last_reply.lock() else { return };
+    if last.is_some_and(|t| t.elapsed() < Duration::from_millis(1500)) {
+        return;
+    }
+    *last = Some(Instant::now());
+    let Some((token, uid)) = shared.live.lock().ok().and_then(|l| l.clone()) else {
+        return;
+    };
+    if let Err(e) = live::send_chat(&token, &uid, &uid, text) {
+        set(&shared.status, |s| s.error = Some(e));
+    }
 }
 
 fn enabled(shared: &Shared) -> bool {
@@ -220,6 +243,9 @@ pub fn spawn(shared: Arc<Shared>) {
                     continue;
                 }
             };
+            if let Ok(mut l) = shared.live.lock() {
+                *l = Some((access.clone(), id.user_id.clone()));
+            }
             set(&shared.status, |s| {
                 s.state = "connected".into();
                 s.login = id.login.clone();

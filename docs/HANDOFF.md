@@ -59,7 +59,7 @@ Last updated 2026-11-25. Read this file first, then the linked checklists. It's 
 
 From `docs/stream/PHASE2.md`:
 1. **Source → engine wiring:** feed Twitch and TikTok `bys_core::Event`s into `bys_core::Engine` so chains run; gifts and cheers become triggers.
-2. **Chat replies** (Twitch first): templated, rate-limited, toggleable. Needs the `user:write:chat` scope only when replies are on.
+2. ~~Chat replies~~: done for Twitch (off by default; needs a sign-in with replies on to verify live).
 3. **Audience counts:** done for Twitch (Helix) and TikTok (TikFinity `roomUser`).
 4. **Local overlay server:** loopback WebSocket with a read-only token per overlay.
 5. **Compatibility sources:** Streamer.bot (TikFinity is done).
