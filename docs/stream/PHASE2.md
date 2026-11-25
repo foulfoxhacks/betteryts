@@ -17,7 +17,7 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
   - Per-kind intake switches in `manage`; the console's Video / Shoutout toggles become live.
   - Tests in `test/stream.test.ts`.
 - [x] **`bys-tiktok` decoder**: own bounded protobuf reader; webcast push frames (gzip, capped against bombs); chat, gift (final streak message only), like, follow, share, join, viewer count, stream end; mapping to `bys_core` events keyed on the numeric user ID; ack frames; fuzz tests.
-- [ ] **`bys-tiktok` connection** (needs the owner's signer decision, see below): TikTok LIVE source over the unofficial WebSocket, read-only (blueprint §4.1).
+- [x] **TikTok connection via TikFinity** (owner's choice): loopback-only WebSocket (`bys_tiktok::tikfinity`), port of PearConnect's parser rules (flat or nested identities must agree, numeric IDs). Chat commands become requests; gifts (final streak), likes, follows and shares become triggers; room viewers feed Discord and the console. Chat shapes match recorded fixtures; gift/like/follow/share/viewer fields still need a live TikFinity check.
   - Resolve `@user` or a LIVE URL to a room.
   - Pluggable signer (`None` / `Remote(url)`, off by default, never sends credentials).
   - Webcast protobuf decoding of chat, gift (with combo end), like, follow, share, join and room-user count.
@@ -32,10 +32,10 @@ Phase 2 goal: requests, gifts and chat from TikTok and Twitch drive the queue an
   - gifts, follows and other events go to chains.
 - [ ] **Chat replies.** Per platform, templated, rate-limited, toggleable. The TikTok source is read-only, so its replies go to the console and overlay.
 - [x] **Audience counts, Twitch:** viewer count from Helix `streams` once a minute while connected, shown next to the Twitch name in the console and in Discord presence ("N watching").
-- [ ] **Audience counts, TikTok:** room user count, once a TikTok source is connected.
+- [x] **Audience counts, TikTok:** room viewer count from TikFinity `roomUser` events.
 - [ ] **Local overlay server.** Loopback WebSocket with now playing, queue, alerts and goals; per-overlay read-only token. The hosted `/stream/overlay` stays as is.
-- [ ] **Compatibility sources:** Streamer.bot and TikFinity local WebSockets, so existing PearConnect setups keep working.
+- [ ] **Compatibility sources:** Streamer.bot local WebSocket (TikFinity is done).
 - [x] **Owner action: Twitch application.** Done: "BetterYTS Connector", public client.
-- [ ] **Owner decision: TikTok signing.** TikTok's webcast connection needs signed URLs. Options: (a) a third-party signing service such as Euler Stream (sends the room ID and connection parameters, never credentials; needs its API key as a keychain secret); (b) TikFinity as the TikTok source (already supported in PearConnect, no signing on our side); (c) both, with TikFinity as fallback. Until decided, the decoder ships and the live connection stays off.
+- [x] **Owner decision: TikTok signing.** Decided 2026-11-25: **TikFinity only**. No third-party signer; the `bys-tiktok` decoder stays for a possible later direct source.
 - [ ] **Owner action (can't be automated):** rename or replace the Discord application `1545979656262389900` so presence reads "BetterYTS Stream" instead of the old PearConnect name, then update `bys_discord::CLIENT_ID` if the ID changes.
 - [ ] **Docs:** update `desktop-blueprint.md` §9 when Phase 2 is done; start `PHASE3.md` (chain editor UI, variables, OBS, VRChat OSC, local API, YouTube official API).

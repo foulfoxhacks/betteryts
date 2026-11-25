@@ -50,6 +50,7 @@ function showProfile() {
 	$("venue").value = p.venue;
 	$("avatar").textContent = initials(p.displayName);
 	$("t-discord").checked = !!settings.discord?.enabled;
+	$("t-tiktok").checked = !!settings.tikfinity?.enabled;
 }
 let profileTimer = null;
 for (const id of ["name", "handle", "venue"]) {
@@ -222,6 +223,25 @@ $("twitch-btn").addEventListener("click", () =>
 	}),
 );
 
+// ---- TikTok via TikFinity ----
+async function refreshTikTok() {
+	try {
+		const t = await invoke("tikfinity_status");
+		const labels = { off: "off", connecting: "waiting for TikFinity", connected: "connected", error: "TikFinity not running" };
+		$("tiktok-state").textContent = `TikTok (TikFinity): ${labels[t.state] || "off"}${typeof t.viewers === "number" ? ` · ${t.viewers} watching` : ""}`;
+		$("tiktok-info").textContent = (t.state === "error" ? t.error : t.lastEvent) || "";
+	} catch {
+		/* keep the last status */
+	}
+}
+$("t-tiktok").addEventListener("change", (e) =>
+	run(async () => {
+		settings = await invoke("set_tikfinity", { enabled: e.target.checked });
+		if (settings.tikfinity.enabled) toast("Open TikFinity and go live. Chat commands: !sr, !video, !shoutout.");
+		await refreshTikTok();
+	}),
+);
+
 // ---- actions ----
 async function refresh() {
 	try {
@@ -265,11 +285,13 @@ function startPolling() {
 	refresh();
 	refreshPlayer();
 	refreshTwitch();
+	refreshTikTok();
 	pollTimer = setInterval(() => {
 		if (document.visibilityState !== "visible") return;
 		refresh();
 		refreshPlayer();
 		refreshTwitch();
+		refreshTikTok();
 	}, 3000);
 }
 function showConsole() {

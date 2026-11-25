@@ -11,6 +11,9 @@ repository.workspace = true
 bys-core = { path = "../bys-core" }
 # flate2 (pure-Rust miniz_oxide backend): webcast frames may be gzip-compressed. Output is size-capped.
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+serde_json = "1"
+# TikFinity runs on this machine: plain WebSocket to loopback only (same version as bys-twitch).
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [lints]
 workspace = true

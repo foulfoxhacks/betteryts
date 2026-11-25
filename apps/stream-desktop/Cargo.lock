@@ -231,6 +231,7 @@ dependencies = [
  "bys-player",
  "bys-store",
  "bys-stream-api",
+ "bys-tiktok",
  "bys-twitch",
  "serde",
  "serde_json",
@@ -416,6 +417,8 @@ version = "0.1.0"
 dependencies = [
  "bys-core",
  "flate2",
+ "serde_json",
+ "tungstenite",
 ]
 
 [[package]]

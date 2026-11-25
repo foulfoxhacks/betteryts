@@ -7,8 +7,10 @@
 //! - Network calls run on a blocking worker thread, never on the UI thread.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod chat;
 mod playback;
 mod presence;
+mod tikfinity;
 mod twitch;
 
 use bys_store::{Profile, Secret, Secrets, Settings};
@@ -25,6 +27,7 @@ struct AppState {
     player: Arc<Mutex<playback::PlayerStatus>>,
     presence: Arc<Mutex<bys_discord::PresenceInput>>,
     twitch: Arc<twitch::Shared>,
+    tikfinity: Arc<Mutex<tikfinity::TikFinityStatus>>,
 }
 
 type Res<T> = Result<T, String>;
@@ -273,6 +276,20 @@ fn twitch_disconnect(state: tauri::State<'_, AppState>) -> Res<()> {
     twitch::sign_out(&state.twitch)
 }
 
+#[tauri::command]
+fn tikfinity_status(state: tauri::State<'_, AppState>) -> Res<tikfinity::TikFinityStatus> {
+    state.tikfinity.lock().map(|s| s.clone()).map_err(|_| "TikFinity status unavailable".to_owned())
+}
+
+/// Turn the TikFinity source on or off (TikFinity must be running on this computer).
+#[tauri::command]
+fn set_tikfinity(state: tauri::State<'_, AppState>, enabled: bool) -> Res<Settings> {
+    let mut s = lock(&state)?;
+    s.tikfinity.enabled = enabled;
+    save(&state, &s)?;
+    Ok(s.clone())
+}
+
 fn main() {
     let result = tauri::Builder::default()
         .setup(|app| {
@@ -297,6 +314,13 @@ fn main() {
                 presence: presence.clone(),
             });
             twitch::spawn(twitch.clone());
+            let tikfinity_status = Arc::new(Mutex::new(tikfinity::TikFinityStatus::default()));
+            tikfinity::spawn(Arc::new(tikfinity::Shared {
+                settings: settings.clone(),
+                secrets: secrets.clone(),
+                status: tikfinity_status.clone(),
+                presence: presence.clone(),
+            }));
             app.manage(AppState {
                 settings,
                 path,
@@ -304,6 +328,7 @@ fn main() {
                 player,
                 presence,
                 twitch,
+                tikfinity: tikfinity_status,
             });
             Ok(())
         })
@@ -324,7 +349,9 @@ fn main() {
             set_discord,
             twitch_connect,
             twitch_status,
-            twitch_disconnect
+            twitch_disconnect,
+            tikfinity_status,
+            set_tikfinity
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

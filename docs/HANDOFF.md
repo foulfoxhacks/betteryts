@@ -13,7 +13,7 @@ Last updated 2026-11-25. Read this file first, then the linked checklists. It's 
 - **SEO:** don't change how yts.foulfoxhacks.dev is indexed. `/stream*` is noindex and isn't in the sitemap until launch (`docs/stream/seo.md`).
 - **Products:** PearConnect is becoming BetterYTS. Never redeploy pearconnect.mellozone.site; its old GitHub repo was deleted.
 - **Desktop client:** Rust (Tauri 2), not Electron. Packages: `.msi` (preferred), `.exe`, `.deb`.
-- **TikTok:** the unofficial TikTok LIVE WebSocket, read-only. Never use TikTok logins or cookies.
+- **TikTok:** through **TikFinity only** (owner decision, 2026-11-25), read-only, loopback. Never use TikTok logins or cookies.
 
 ## Repo map (`E:\Codebase\betteryts`, GitHub `foulfoxhacks/betteryts`)
 
@@ -60,14 +60,14 @@ Last updated 2026-11-25. Read this file first, then the linked checklists. It's 
 From `docs/stream/PHASE2.md`:
 1. **Source → engine wiring:** feed Twitch and TikTok `bys_core::Event`s into `bys_core::Engine` so chains run; gifts and cheers become triggers.
 2. **Chat replies** (Twitch first): templated, rate-limited, toggleable. Needs the `user:write:chat` scope only when replies are on.
-3. **Audience counts:** Twitch is done; TikTok room users come once a TikTok source is connected.
+3. **Audience counts:** done for Twitch (Helix) and TikTok (TikFinity `roomUser`).
 4. **Local overlay server:** loopback WebSocket with a read-only token per overlay.
-5. **Compatibility sources:** Streamer.bot and TikFinity local WebSockets.
+5. **Compatibility sources:** Streamer.bot (TikFinity is done).
 6. **Then:** blueprint §9, write `PHASE3.md` (chain editor UI, OBS, VRChat OSC, local API, official YouTube API).
 
 ## Waiting on the owner
 
-- **TikTok signing:** choose a third-party signer (such as Euler Stream; its API key would go in the keychain) or TikFinity only. The `bys-tiktok` live connection waits on this.
+- ~~TikTok signing~~: decided, TikFinity only. Its source is built; gift / like / follow / share fields still need checking against a live TikFinity.
 - **Discord application `1545979656262389900`:** rename it so presence reads "BetterYTS Stream", or create a new one and update `bys_discord::CLIENT_ID`.
 - **Publish decisions:** draft release `stream-desktop-v0.1.0` is unpublished; the builds are unsigned until code signing is set up.
 

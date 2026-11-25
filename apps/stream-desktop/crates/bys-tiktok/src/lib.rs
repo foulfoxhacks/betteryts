@@ -10,6 +10,7 @@
 //! unknown message types are ignored, malformed frames are dropped, and the source fails closed.
 
 pub mod proto;
+pub mod tikfinity;
 
 use bys_core::event::{Event, EventKind, InvalidEvent, Platform, RawEvent, Role, Value as EvValue};
 use proto::{ProtoError, Value, all, get, parse};

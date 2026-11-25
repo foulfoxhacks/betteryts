@@ -5,15 +5,14 @@
 //! Tokens live only in the OS keychain. The Twitch message ID is the request's event ID, so a
 //! redelivered chat message is never queued twice (the server is idempotent on event IDs).
 
-use bys_core::event::{Event, EventKind};
+use bys_core::event::Event;
 use bys_store::{Secret, Secrets, Settings};
-use bys_stream_api::{ChatRequest, Client, Credential, HttpTransport};
 use bys_twitch::{irc, live, oauth};
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,49 +40,6 @@ fn set(status: &Mutex<TwitchStatus>, f: impl FnOnce(&mut TwitchStatus)) {
     if let Ok(mut s) = status.lock() {
         f(&mut s);
     }
-}
-
-/// `!sr song` → ("song", "song"), `!video q` → video, `!shoutout text` → shoutout.
-pub fn chat_command(text: &str) -> Option<(&'static str, String)> {
-    let t = text.trim();
-    let (cmd, rest) = t.split_once(char::is_whitespace)?;
-    let kind = match cmd.to_ascii_lowercase().as_str() {
-        "!sr" | "!songrequest" => "song",
-        "!video" | "!vr" => "video",
-        "!shoutout" | "!so" => "shoutout",
-        _ => return None,
-    };
-    let input = rest.trim();
-    (!input.is_empty()).then(|| (kind, input.chars().take(512).collect()))
-}
-
-/// RFC 3339 UTC timestamp for "now" (no date library needed).
-pub fn utc_now() -> String {
-    let secs = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0);
-    let (days, rem) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));
-    // Civil from days (Howard Hinnant).
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", rem / 3600, (rem % 3600) / 60, rem % 60)
-}
-
-fn describe(ev: &Event) -> Option<String> {
-    let who = ev.actor.as_ref().map(|a| a.name.clone()).unwrap_or_else(|| "Someone".into());
-    Some(match ev.kind {
-        EventKind::Cheer => format!("{who} cheered {} bits", ev.amount),
-        EventKind::Follow => format!("{who} followed"),
-        EventKind::Subscribe => format!("{who} subscribed"),
-        EventKind::Raid => format!("{who} raided with {} viewers", ev.amount),
-        EventKind::External => format!("{who} redeemed a reward"),
-        _ => return None,
-    })
 }
 
 /// Start sign-in: returns the code to show, and polls Twitch in the background until approved.
@@ -219,55 +175,16 @@ fn token(shared: &Shared) -> Result<(String, live::Identity), String> {
     }
 }
 
-fn submit(shared: &Shared, ev: &Event, kind: &str, input: String) -> String {
-    let Ok(s) = shared.settings.lock().map(|s| s.clone()) else {
-        return "settings unavailable".into();
-    };
-    let Some(code) = s.session_code else {
-        return "No BetterYTS Stream session is connected.".into();
-    };
-    let Some(cred) = shared
-        .secrets
-        .get(Secret::SessionCredential)
-        .ok()
-        .flatten()
-        .and_then(|c| Credential::new(&c).ok())
-    else {
-        return "Session credential missing.".into();
-    };
-    let Some(actor) = ev.actor.as_ref() else {
-        return "Request without a user.".into();
-    };
-    let req = ChatRequest {
-        event_id: ev.id.clone(),
-        platform: "twitch".into(),
-        user_id: actor.id.clone(),
-        display_name: actor.name.clone(),
-        input,
-        kind: kind.into(),
-        occurred_at: utc_now(),
-    };
-    let receipt = Client::new(&s.api_origin, HttpTransport::default()).and_then(|c| c.submit_event(&code, &cred, &req));
-    match receipt {
-        Ok(r) => r.message,
-        Err(e) => e.to_string(),
-    }
-}
-
 fn on_event(shared: &Shared, ev: Event) {
-    if ev.kind == EventKind::Chat {
-        if let Some((kind, input)) = chat_command(&ev.text) {
-            let result = submit(shared, &ev, kind, input);
-            set(&shared.status, |s| s.last_event = Some(result.chars().take(200).collect()));
-        }
+    let Some(line) = crate::chat::route(&shared.settings, shared.secrets.as_ref(), &ev) else {
         return;
+    };
+    if ev.kind != bys_core::event::EventKind::Chat
+        && let Ok(mut p) = shared.presence.lock()
+    {
+        p.last_trigger = Some(line.clone());
     }
-    if let Some(text) = describe(&ev) {
-        if let Ok(mut p) = shared.presence.lock() {
-            p.last_trigger = Some(text.clone());
-        }
-        set(&shared.status, |s| s.last_event = Some(text));
-    }
+    set(&shared.status, |s| s.last_event = Some(line));
 }
 
 fn enabled(shared: &Shared) -> bool {
@@ -371,33 +288,5 @@ pub fn spawn(shared: Arc<Shared>) {
     });
     if let Err(e) = started {
         eprintln!("BetterYTS Stream: Twitch could not start: {e}");
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #![allow(clippy::unwrap_used, clippy::indexing_slicing)]
-    use super::*;
-
-    #[test]
-    fn chat_commands() {
-        assert_eq!(
-            chat_command("!sr Daft Punk - One More Time"),
-            Some(("song", "Daft Punk - One More Time".into()))
-        );
-        assert_eq!(chat_command("!VIDEO  lofi girl "), Some(("video", "lofi girl".into())));
-        assert_eq!(chat_command("!shoutout happy birthday!"), Some(("shoutout", "happy birthday!".into())));
-        assert_eq!(chat_command("!sr"), None);
-        assert_eq!(chat_command("!sr   "), None);
-        assert_eq!(chat_command("hello !sr x"), None);
-        assert_eq!(chat_command("!other x"), None);
-    }
-
-    #[test]
-    fn utc_now_is_rfc3339() {
-        let t = utc_now();
-        assert_eq!(t.len(), 20);
-        assert!(t.ends_with('Z') && t.as_bytes()[10] == b'T');
-        assert!(t.starts_with("20"));
     }
 }

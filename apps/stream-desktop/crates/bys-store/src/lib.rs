@@ -97,6 +97,23 @@ impl Default for DiscordSettings {
     }
 }
 
+/// TikTok through TikFinity's local WebSocket (owner's chosen TikTok source).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct TikFinitySettings {
+    pub enabled: bool,
+    pub url: String,
+}
+
+impl Default for TikFinitySettings {
+    fn default() -> Self {
+        TikFinitySettings {
+            enabled: false,
+            url: "ws://127.0.0.1:21213/".into(),
+        }
+    }
+}
+
 /// Twitch connection (tokens are in the keychain, not here).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -117,6 +134,7 @@ pub struct Settings {
     pub pear: PearSettings,
     pub discord: DiscordSettings,
     pub twitch: TwitchSettings,
+    pub tikfinity: TikFinitySettings,
     /// Which request types the Get Live toggles accept.
     pub accept_songs: bool,
     pub accept_videos: bool,
@@ -133,6 +151,7 @@ impl Default for Settings {
             pear: PearSettings::default(),
             discord: DiscordSettings::default(),
             twitch: TwitchSettings::default(),
+            tikfinity: TikFinitySettings::default(),
             accept_songs: true,
             accept_videos: false,
             accept_shoutouts: false,
