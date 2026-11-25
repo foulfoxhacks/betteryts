@@ -73,7 +73,5 @@ From `docs/stream/PHASE2.md`:
 
 ## Other projects (not in this repo)
 
-- **Ametherian** (`E:\Codebase\Ametherian-NodeJS`, `foulfoxhacks/Ametherian-NodeJS`):
-  - PR #19 is merged (`b0bd10a`).
-  - PR #20 (`site/i18n-themes`, translations) is still being written by the Ametherian session. The owner approved merging it when its checks pass: update it from `main` first, and keep the live site's canonical URLs, sitemap and robots unchanged.
+- **Ametherian** (`E:\Codebase\Ametherian-NodeJS`, `foulfoxhacks/Ametherian-NodeJS`): PR #19 is merged (`b0bd10a`), and so is PR #20, the translations in 8 languages (`76e9978`, all checks green). The live site serves a sitemap index with 8 language sitemaps (98 URLs, all returning 200), and the English canonicals are unchanged. Nothing is pending.
 - **Midnight Cabin** (a VRChat world, a Unity project under VRChat Creator Companion): an optimization audit runs in its own session and writes `OPTIMIZATION.md` in that project.
