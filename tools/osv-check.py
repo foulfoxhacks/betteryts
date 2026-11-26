@@ -5,7 +5,7 @@ import json, os, re, sys, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CARGO = ["apps/stream-desktop/Cargo.lock"]
-NPM = ["package-lock.json", "apps/pearconnect/package-lock.json", "apps/pearconnect/relay/package-lock.json", "apps/pearconnect/website/package-lock.json"]
+NPM = ["package-lock.json", "apps/pearconnect/package-lock.json", "apps/pearconnect/relay/package-lock.json", "apps/pearconnect/website/package-lock.json", "workers/youtube-chat/package-lock.json"]
 
 # Reviewed advisories (id -> reason). Re-review whenever a lockfile changes.
 ACCEPTED = {

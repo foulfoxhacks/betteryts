@@ -13,7 +13,8 @@
 		"typecheck": "cf workers types && tsc"
 	},
 	"dependencies": {
-		"@foulfoxhacks/ametherian-core": "https://github.com/foulfoxhacks/Ametherian-NodeJS/releases/download/v0.1.0-build.8/foulfoxhacks-ametherian-core-0.1.0.tgz"
+		"@foulfoxhacks/ametherian-core": "https://github.com/foulfoxhacks/Ametherian-NodeJS/releases/download/v0.1.0-build.13/foulfoxhacks-ametherian-core-0.1.0.tgz",
+		"@foulfoxhacks/ametherian-youtube-chat": "https://github.com/foulfoxhacks/Ametherian-NodeJS/releases/download/v0.1.0-build.13/foulfoxhacks-ametherian-youtube-chat-0.1.0.tgz"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "2.0.0-beta.v.17",

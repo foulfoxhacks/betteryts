@@ -1,0 +1,40 @@
+# BetterYTS chat Worker (workers/youtube-chat): types, tests, a production build and a dependency audit.
+# Deploys stay manual (`npm run deploy` in workers/youtube-chat) until it has its own Cloudflare Git build.
+name: Chat Worker CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["workers/youtube-chat/**", ".github/workflows/youtube-chat-worker.yml"]
+  pull_request:
+    paths: ["workers/youtube-chat/**", ".github/workflows/youtube-chat-worker.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: workers/youtube-chat
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: workers/youtube-chat/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Route tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Dependency audit
+        run: npm audit --audit-level=high
