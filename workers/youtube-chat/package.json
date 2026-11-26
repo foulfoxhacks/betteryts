@@ -1,0 +1,24 @@
+{
+	"name": "betteryts-youtube-chat",
+	"version": "0.1.0",
+	"description": "BetterYTS chat Worker: YouTube live chat as JSON (ytchat.foulfoxhacks.dev), built on @foulfoxhacks/ametherian-youtube-chat.",
+	"license": "MIT",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "cf dev",
+		"build": "cf build",
+		"deploy": "cf deploy",
+		"test": "node --test \"test/*.test.ts\"",
+		"typecheck": "cf workers types && tsc"
+	},
+	"dependencies": {
+		"@foulfoxhacks/ametherian-core": "https://github.com/foulfoxhacks/Ametherian-NodeJS/releases/download/v0.1.0-build.8/foulfoxhacks-ametherian-core-0.1.0.tgz"
+	},
+	"devDependencies": {
+		"@cloudflare/vite-plugin": "2.0.0-beta.v.17",
+		"cf": "1.0.0-beta.32",
+		"typescript": "^7.0.2",
+		"vite": "^8.3.0"
+	}
+}

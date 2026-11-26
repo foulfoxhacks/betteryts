@@ -87,7 +87,7 @@ export class PearConnectEngine extends EventEmitter {
         }
         if (this.config.channelId) {
           const { startYouTube } = await import('./platforms/youtube.js');
-          this.youtube = startYouTube({ ...shared, channelId: this.config.channelId, queue: this.adapter('youtube') });
+          this.youtube = startYouTube({ ...shared, channelId: this.config.channelId, api: this.config.youtubeChatApi, queue: this.adapter('youtube') });
         }
       }
       this.changed();

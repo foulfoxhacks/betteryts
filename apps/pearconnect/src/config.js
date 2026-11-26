@@ -38,6 +38,18 @@ export function websocketUrl(value = 'ws://127.0.0.1:21213/') {
   return url.href;
 }
 
+/** BetterYTS chat Worker that reads YouTube live chat (workers/youtube-chat). HTTPS only, no credentials in the URL. */
+function youtubeChatApi(value) {
+  const raw = (value || 'https://ytchat.foulfoxhacks.dev').trim();
+  let url;
+  try { url = new URL(raw); } catch { throw new InputError('YOUTUBE_CHAT_API must be a URL.'); }
+  const local = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
+  if ((url.protocol !== 'https:' && !(local && url.protocol === 'http:')) || url.username || url.password || url.search || url.hash) {
+    throw new InputError('YOUTUBE_CHAT_API must be an https:// URL without credentials or query.');
+  }
+  return url.origin + url.pathname.replace(/\/+$/, '');
+}
+
 export function loadConfig(env = process.env, { allowUnconfigured = false } = {}) {
   const commands = {};
   for (const [key, variable, fallback] of [
@@ -76,7 +88,7 @@ export function loadConfig(env = process.env, { allowUnconfigured = false } = {}
     maxSongSeconds: numberSetting(env, 'MAX_SONG_SECONDS', 420, 604800),
     maxPerUser: numberSetting(env, 'MAX_PER_USER', 2, 1000),
     blocklist: split(env.BLOCKLIST), skipAllowlist: split(env.SKIP_ALLOWLIST), requestAllowlist: split(env.REQUEST_ALLOWLIST),
-    twitch, channelId: env.YOUTUBE_CHANNEL_ID?.trim(),
+    twitch, channelId: env.YOUTUBE_CHANNEL_ID?.trim(), youtubeChatApi: youtubeChatApi(env.YOUTUBE_CHAT_API),
     // Opt-in BetterYTS Stream backend (STREAM_BACKEND=betteryts); null keeps the local queue.
     stream: streamSettings(env),
   };
