@@ -1,6 +1,6 @@
 # BetterYTS — agent handoff
 
-Last updated 2026-11-25. Read this file first, then the linked checklists. It's written for an agent picking up the work cold.
+Last updated 2026-11-26. Read this file first, then the linked checklists. It's written for an agent picking up the work cold.
 
 ## Owner rules (always apply)
 
@@ -53,7 +53,9 @@ Last updated 2026-11-25. Read this file first, then the linked checklists. It's 
    - Twitch: parsing plus live connection. Client ID `5ddaqfcv7ehy3gwuw7va5tadgh5d99` ("BetterYTS Connector", public client). Device-flow sign-in from the console; `!sr` / `!video` / `!shoutout` become requests.
      - Verified live without signing in: device code, EventSub welcome, anonymous chat.
      - The signed-in path is not verified until the owner approves once at twitch.tv/activate.
-7. **Dependency check:** 972 locked versions checked against OSV. npm is clean; the 6 Rust notices are reviewed and accepted with reasons.
+7. **Indexing audit (2026-11-26):** the root cause of the drop was the old catch-all that 302'd every unknown path (and `/search?q=` for crawlers) to YouTube, which reads as an open/sneaky redirect (fixed 2026-11-24, item 3). Also fixed: `/llms.html` and `/robots.html` were canonical and in the sitemap but 307 to `/llms` and `/robots`; `workersDev: false`; non-canonical hosts get `noindex`; `npm run check:sitemap` now rejects canonicals that aren't the served route. Owner: request reindexing in Search Console and check Manual actions / Security issues.
+8. **PearConnect dependencies (2026-11-26):** express → `node:http` + `@foulfoxhacks/ametherian-schema` (`parseJson`), dotenv → `process.loadEnvFile` / `util.parseEnv`, tmi.js → built-in IRC-over-WebSocket client on `ws`. Ametherian packages are installed from the `v0.1.0-build.8` GitHub release tarballs (integrity pinned in the lockfile, checked against `SHA256SUMS`). Left: `youtube-chat` (unofficial, pulls axios).
+9. **Dependency check:** 972 locked versions checked against OSV. npm is clean; the 6 Rust notices are reviewed and accepted with reasons.
 
 ## Next (in order)
 

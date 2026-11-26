@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../src/env.js';
 import { loadConfig } from '../src/config.js';
 try {
   const config = loadConfig({ ...process.env, ...(process.argv.includes('--dry-run') ? { DRY_RUN: 'true' } : {}) });

@@ -59,7 +59,7 @@ This is an independent community project and is not an official integration endo
 | --- | --- | --- |
 | TikTok LIVE / Simple | TikFinity local event WebSocket | Desktop activity / CLI results |
 | TikTok LIVE / Advanced | TikFinity -> Streamer.bot -> local JSON API | Optional TikFinity chatbot relay |
-| Twitch | `tmi.js` adapter | Twitch chat |
+| Twitch | built-in IRC-over-WebSocket client (`ws`) | Twitch chat |
 | YouTube Live | unofficial `youtube-chat` adapter | PearConnect terminal only |
 | Local automation | JSON POST API | JSON response |
 

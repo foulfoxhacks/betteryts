@@ -2,7 +2,7 @@ import electron from 'electron';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
-import dotenv from 'dotenv';
+import { parseEnv } from 'node:util';
 import { SettingsStore, SETTING_KEYS } from './settings.js';
 import { DesktopController } from './controller.js';
 import { InputError } from '../src/validation.js';
@@ -131,7 +131,7 @@ export async function launchDesktop({ dataDir = app.getPath('userData'), show = 
       const result = await dialog.showOpenDialog(window, { title: 'Import existing PearConnect .env', properties: ['openFile', 'showHiddenFiles'] });
       if (result.canceled) return { message: 'Import cancelled.' };
       const raw = await readFile(result.filePaths[0], 'utf8'); if (raw.length > 65536) throw new InputError('Configuration file is too large.');
-      const env = Object.fromEntries(Object.entries(dotenv.parse(raw)).filter(([key]) => SETTING_KEYS.includes(key)));
+      const env = Object.fromEntries(Object.entries(parseEnv(raw)).filter(([key]) => SETTING_KEYS.includes(key)));
       return controller.importEnv(env);
     },
     openPlayer: async () => {

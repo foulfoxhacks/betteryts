@@ -1,7 +1,7 @@
 // src/auth.js
 // One-shot script: ask Pear Desktop for a token, print it, exit.
 // Run with: npm run auth
-import 'dotenv/config';
+import './env.js';
 import { apiHost } from './config.js';
 import { YTMDClient } from './ytmd.js';
 

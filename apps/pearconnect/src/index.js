@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './env.js';
 import { writeFile } from 'node:fs/promises';
 import { loadConfig } from './config.js';
 import { PearConnectEngine } from './engine.js';

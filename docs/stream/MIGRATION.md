@@ -22,7 +22,7 @@ cd E:\Codebase\betteryts\apps\pearconnect; npm audit fix --ignore-scripts; npm t
 cd relay; npm audit fix; npm test
 cd ..\website; npm audit fix; npm run build
 ```
-If `audit fix` can't resolve something, bump `overrides` in that package.json (root `apps/pearconnect/package.json` already overrides `qs` and `body-parser`). Commit as "PearConnect: dependency audit fixes".
+If `audit fix` can't resolve something, add `overrides` in that package.json (the root `apps/pearconnect/package.json` needs none since express and its `qs` / `body-parser` chain were removed). Commit as "PearConnect: dependency audit fixes".
 
 ### 2. ~~Merge `stream/foundation` into `main`~~ (done)
 Done. **Every push to `main` deploys the Worker automatically** (Cloudflare's Git build; `/api/health` shows the live commit).
