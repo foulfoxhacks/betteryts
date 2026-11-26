@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import http from 'node:http';
 import assert from 'node:assert/strict';
 import { actions } from './build-streamerbot.mjs';
 import { fixture, log } from '../test/helpers.js';
@@ -13,7 +14,7 @@ for (let i = 0; i < actions.length; i++) {
   await writeFile(`test/streamerbot-csharp/generated/Script${i}.cs`, text);
 }
 const f = fixture();
-const server = createTikfinityApp({ queue: f.queue, secret: 'ci-test-secret', skipAllowlist: ['mod'], log }).listen(0, '127.0.0.1');
+const server = http.createServer(createTikfinityApp({ queue: f.queue, secret: 'ci-test-secret', skipAllowlist: ['mod'], log })).listen(0, '127.0.0.1');
 await once(server, 'listening');
 try {
   const child = spawn('dotnet', ['run', '--project', 'test/streamerbot-csharp/BridgeTests.csproj', '--configuration', 'Release', '--', `http://127.0.0.1:${server.address().port}`], { stdio: 'inherit' });
