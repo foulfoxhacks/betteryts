@@ -191,3 +191,11 @@ test("routes: browsers and search crawlers stay on-site; only media players get 
 	const lucky = await call("/lofi%20hip%20hop?lucky=1", { headers: browser }).catch(() => null);
 	assert.ok(!lucky || lucky.headers.get("Location") !== "/?q=lofi+hip+hop");
 });
+
+test("SEO: the canonical home page stays indexable; other hosts are noindex", async () => {
+	const home = await call("/");
+	assert.equal(home.status, 200);
+	assert.equal(home.headers.get("X-Robots-Tag"), null);
+	const preview = await worker.fetch!(new Request("https://betteryts.example.workers.dev/") as never, env as never, ctx);
+	assert.equal(preview.headers.get("X-Robots-Tag"), "noindex");
+});

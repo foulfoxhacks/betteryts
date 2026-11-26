@@ -59,6 +59,7 @@ if (!xml.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"')) failur
 if (!css.includes("sm|urlset") || !css.includes("sm|url")) failures.push("sitemap.css must style the namespaced sitemap root and URL entries.");
 const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1].trim());
 if (!locs.length) failures.push("sitemap.xml contains no <loc> entries.");
+for (const loc of locs) if (!loc.startsWith(ORIGIN + "/") || /\.html$/.test(loc)) failures.push("sitemap.xml entry is off-site or a redirecting .html URL: " + loc);
 if (new Set(locs).size !== locs.length) failures.push("sitemap.xml contains duplicate <loc> entries.");
 const listed = new Set(locs);
 
@@ -77,6 +78,9 @@ for (const file of walk(ROOT)) {
     failures.push("Indexable static HTML page is missing a canonical URL: " + file);
     continue;
   }
+  // Workers assets (auto-trailing-slash) 307 /page.html → /page and /dir → /dir/, so a canonical or
+  // sitemap entry that isn't the served route points crawlers at a redirect.
+  if (new URL(canonical).pathname !== pagePath(file)) failures.push("Canonical is not the served route (it redirects): " + file + " → " + canonical + " (served at " + pagePath(file) + ")");
   if (!listed.has(canonical)) failures.push("Indexable page is missing from sitemap.xml: " + file + " → " + canonical);
 }
 

@@ -43,12 +43,12 @@
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://yts.foulfoxhacks.dev/llms.html</loc>
+    <loc>https://yts.foulfoxhacks.dev/llms</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://yts.foulfoxhacks.dev/robots.html</loc>
+    <loc>https://yts.foulfoxhacks.dev/robots</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

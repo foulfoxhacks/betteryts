@@ -501,7 +501,7 @@ function apiIndex(origin: string): Response {
 /** First path segments the u2b-style catch-all must never treat as a search. */
 const RESERVED = new Set([
 	"api", "assets", "brand", "docs", "sitemap", "ecosystem", "plugin-sandbox", "inworld", "link", "app", "privacy", "terms", "tt", "media", "favicon.ico", "robots.txt", "sitemap.xml", "llms.txt",
-	"site.webmanifest", "opensearch.xml", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
+	"site.webmanifest", "opensearch.xml", "llms", "robots", "stream", "_headers", "index.html", "docs.html", "sitemap.html", "ecosystem.html", "web", "vrc", "room", "auth",
 ]);
 
 /**
@@ -726,6 +726,9 @@ export default {
 			if (res.status === 101 || res.webSocket) return res;
 			const out = new Response(res.body, res);
 			out.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+			// Preview and other non-canonical hosts must never compete with yts.foulfoxhacks.dev in search.
+			const host = new URL(req.url).hostname;
+			if (host !== "yts.foulfoxhacks.dev" && host !== "localhost" && host !== "127.0.0.1") out.headers.set("X-Robots-Tag", "noindex");
 			return out;
 		} catch (err) {
 			console.error("request failed", redactUrl(req.url), err);

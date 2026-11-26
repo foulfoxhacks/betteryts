@@ -16,6 +16,8 @@ export default defineConfig({
 			runWorkerFirst: ["/"],
 		},
 		domains: ["yts.foulfoxhacks.dev"],
+		// One public host only: a second copy on *.workers.dev would be duplicate content for search engines.
+		workersDev: false,
 		exports: {
 			// In-world search URL pool (docs/vrchat-protocol.md).
 			VrcPool: exports.durableObject({ storage: "sqlite" }),
