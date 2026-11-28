@@ -12,6 +12,8 @@ import { authConfig, finishGoogle, finishSpotify, revokeGoogle, spotifyPlaylists
 import { buildBackup, cleanLibrary, readBackup } from "./backup.js";
 import { qrSvg } from "./qr.js";
 import { store } from "./store.js";
+import { music, smartLists } from "./music.js";
+import * as sync from "./sync.js";
 
 initChrome();
 
@@ -569,6 +571,20 @@ function renderLibrary() {
 		libBody.replaceChildren(
 			h("div", { class: "lib-actions" }, h("button", { type: "button", class: "button small primary", onclick: () => playList(d.favorites), disabled: !d.favorites.length }, "▶ Play all"), h("button", { type: "button", class: "button small secondary", onclick: () => playList(d.favorites, { shuffle: true }), disabled: !d.favorites.length }, "Shuffle"), h("button", { type: "button", class: "button small secondary", onclick: () => copy(shareUrl("Favorites", d.favorites), "Share link"), disabled: !d.favorites.length }, "Copy share link")),
 			d.favorites.length ? h("div", { class: "grid" }, d.favorites.map((v) => videoCard(v))) : empty("No favorites yet. Tap ♡ on any video to keep it here.", "♡", findSomething()),
+		);
+	} else if (libTab === "smart") {
+		const lists = smartLists(d);
+		libBody.replaceChildren(
+			h("p", { class: "fine" }, "Playlists that fill themselves from your favorites, playlists and history. Rules you make in BetterYTS Music show up here through sync or a backup."),
+			lists.length
+				? h("div", { class: "playlist-list" }, lists.map((s) => h("details", { class: "playlist-item" },
+						h("summary", {}, h("b", {}, s.name), h("span", { class: "muted" }, ` · ${s.videos.length} · ${s.description}`)),
+						h("div", { class: "lib-actions" }, h("button", { type: "button", class: "button tiny primary", onclick: () => playList(s.videos), disabled: !s.videos.length }, "▶ Play"), h("button", { type: "button", class: "button tiny secondary", onclick: () => playList(s.videos, { shuffle: true }), disabled: !s.videos.length }, "Shuffle"), h("button", { type: "button", class: "button tiny secondary", onclick: () => (store.createPlaylist(s.name, s.videos), toast("Saved as a playlist")), disabled: !s.videos.length }, "Save as playlist")),
+						h("ol", { class: "row-list" }, s.videos.slice(0, 50).map((v) => rowItem(v, [iconBtn("+", "Add to queue", () => addToQueue(v))]))))))
+				: empty("Like a few videos and these fill in: Recently liked, Never played, Quick ones…", "✦", findSomething()),
+			(d.disliked ?? []).length
+				? h("details", { class: "playlist-item" }, h("summary", {}, h("b", {}, "Disliked"), h("span", { class: "muted" }, ` · ${d.disliked.length}`)), h("ol", { class: "row-list" }, d.disliked.map((v) => rowItem(v, [iconBtn("✕", "Remove dislike", () => store.toggleDislike(v))]))))
+				: null,
 		);
 	} else if (libTab === "history") {
 		const ago = (t) => {
@@ -1734,7 +1750,17 @@ function updateWatchLibraryButtons() {
 	const b = $("#fav-btn");
 	b.textContent = fav ? "♥ Favorited" : "♡ Favorite";
 	b.setAttribute("aria-pressed", String(fav));
+	const dis = store.isDisliked(current.id);
+	$("#dislike-btn").textContent = dis ? "Disliked" : "Dislike";
+	$("#dislike-btn").setAttribute("aria-pressed", String(dis));
 }
+
+$("#dislike-btn").addEventListener("click", () => {
+	if (!current?.video) return;
+	const on = store.toggleDislike(minVideo(current.video));
+	toast(on ? "Disliked: BetterYTS Music won't recommend it" : "Dislike removed");
+	updateWatchLibraryButtons();
+});
 
 $("#fav-btn").addEventListener("click", () => current && toggleFav(current.video) && updateWatchLibraryButtons());
 $("#queue-btn").addEventListener("click", () => current?.video && addToQueue(current.video));
@@ -1879,7 +1905,7 @@ $("#backup-export").addEventListener("click", async () => {
 	} catch {
 		/* offline: export anyway */
 	}
-	const backup = buildBackup({ settings, library: store.get(), plugins: community.all(), version });
+	const backup = buildBackup({ settings, library: store.get(), plugins: community.all(), version, music: music.get() });
 	const blob = new Blob([JSON.stringify(backup, null, 1)], { type: "application/json" });
 	const a = h("a", { href: URL.createObjectURL(blob), download: `betteryts-backup-${new Date().toISOString().slice(0, 10)}.json` });
 	document.body.append(a);
@@ -1904,6 +1930,7 @@ $("#backup-file").addEventListener("change", async (e) => {
 		saveSettings();
 		store.replaceAll(b.library);
 		community.save(b.plugins);
+		if (b.music) music.save(b.music);
 		toast("Backup restored");
 		setTimeout(() => location.reload(), 600);
 	} catch (ex) {
@@ -1911,6 +1938,99 @@ $("#backup-file").addEventListener("change", async (e) => {
 		err.hidden = false;
 	}
 });
+
+// ---- Sync: end-to-end encrypted, with BetterYTS Music and other browsers (web/sync.js) ----
+const SYNC_KEY = "betteryts.sync.v1";
+const syncState = () => {
+	try {
+		return JSON.parse(localStorage.getItem(SYNC_KEY) || "null");
+	} catch {
+		return null;
+	}
+};
+const saveSync = (s) => {
+	try {
+		if (s) localStorage.setItem(SYNC_KEY, JSON.stringify(s));
+		else localStorage.removeItem(SYNC_KEY);
+	} catch {
+		/* storage blocked: sync stays off */
+	}
+};
+let syncing = false;
+let syncTimer = 0;
+
+function renderSync(error) {
+	const s = syncState();
+	$("#sync-off").hidden = !!s;
+	$("#sync-on").hidden = !s;
+	if (!s) $("#sync-code").hidden = true;
+	$("#sync-status").textContent = s ? (s.lastSync ? `On · last synced ${new Date(s.lastSync).toLocaleString()}` : "On") : "Off";
+	$("#sync-error").textContent = error || "";
+	$("#sync-error").hidden = !error;
+}
+
+async function runSync({ quiet = false } = {}) {
+	const s = syncState();
+	if (!s || syncing) return;
+	syncing = true;
+	try {
+		const local = buildBackup({ settings, library: store.get(), plugins: community.all(), version: "web", music: music.get() });
+		const r = await sync.syncOnce(s, local);
+		saveSync(s);
+		if (r.changed) {
+			const clean = cleanLibrary(r.merged.library);
+			store.replaceAll({ ...clean, queue: store.get().queue });
+			for (const k of ["hiddenChannels", "hiddenWords"]) if (typeof r.merged.settings?.[k] === "string") settings[k] = r.merged.settings[k];
+			if (r.merged.settings?.skip && typeof r.merged.settings.skip === "object") settings.skip = { ...settings.skip, ...r.merged.settings.skip };
+			saveSettings();
+			music.save(r.merged.music ?? {});
+			if (!quiet) toast("Synced");
+		}
+		renderSync();
+	} catch (ex) {
+		renderSync(ex.message);
+	} finally {
+		syncing = false;
+	}
+}
+
+$("#sync-create").addEventListener("click", () => {
+	saveSync({ code: sync.codeOf(sync.newKey()), snapshot: {}, ledger: {} });
+	runSync().then(() => showSyncCode());
+});
+$("#sync-join").addEventListener("click", () => {
+	const key = sync.parseCode($("#sync-code-input").value);
+	if (!key) return renderSync("That isn't a sync code (it starts with BTS1-)");
+	saveSync({ code: sync.codeOf(key), snapshot: {}, ledger: {} });
+	$("#sync-code-input").value = "";
+	runSync();
+});
+function showSyncCode() {
+	const s = syncState();
+	if (!s) return;
+	const el = $("#sync-code");
+	el.textContent = `${s.code} — enter it in BetterYTS Music (Settings › Sync) or another browser. Anyone with it can read your synced library.`;
+	el.hidden = false;
+}
+$("#sync-show").addEventListener("click", showSyncCode);
+$("#sync-now").addEventListener("click", () => runSync());
+$("#sync-leave").addEventListener("click", async () => {
+	const s = syncState();
+	if (!s) return;
+	const erase = confirm("Turn off sync in this browser?\n\nOK also deletes the synced copy from the server (other devices keep their own libraries). Cancel keeps it.");
+	if (erase) await sync.eraseVault(s.code).catch(() => {});
+	saveSync(null);
+	renderSync();
+});
+// Sync after local changes (a few seconds later, batched), when the page opens, and every few minutes.
+store.onChange(() => {
+	if (!syncState() || syncing) return;
+	clearTimeout(syncTimer);
+	syncTimer = setTimeout(() => runSync({ quiet: true }), 4000);
+});
+renderSync();
+if (syncState()) runSync({ quiet: true });
+setInterval(() => document.visibilityState === "visible" && runSync({ quiet: true }), 180_000);
 
 // ---- Home: the background video loop (only where it's welcome; the poster shows otherwise) ----
 {

@@ -7,7 +7,7 @@ const MAX_PLAYLISTS = 100;
 const MAX_PLAYLIST_ITEMS = 500;
 const MAX_SUBSCRIPTIONS = 200;
 
-const empty = () => ({ favorites: [], history: [], playlists: [], queue: [], subscriptions: [] });
+const empty = () => ({ favorites: [], history: [], playlists: [], queue: [], subscriptions: [], disliked: [] });
 
 function load() {
 	try {
@@ -19,6 +19,7 @@ function load() {
 			playlists: Array.isArray(raw.playlists) ? raw.playlists : [],
 			queue: Array.isArray(raw.queue) ? raw.queue : [],
 			subscriptions: Array.isArray(raw.subscriptions) ? raw.subscriptions.filter((c) => c && typeof c.id === "string") : [],
+			disliked: Array.isArray(raw.disliked) ? raw.disliked.filter((v) => v && typeof v.id === "string") : [],
 		};
 	} catch {
 		return empty();
@@ -99,6 +100,17 @@ export const store = {
 		if (!video) return false;
 		const on = !store.isFavorite(video.id);
 		data.favorites = on ? [video, ...data.favorites] : data.favorites.filter((v) => v.id !== video.id);
+		save();
+		return on;
+	},
+
+	// Dislikes (shared with BetterYTS Music: never recommended there, hidden from smart playlists here)
+	isDisliked: (id) => (data.disliked ?? []).some((v) => v.id === id),
+	toggleDislike(video) {
+		if (!video) return false;
+		const on = !store.isDisliked(video.id);
+		data.disliked = on ? [video, ...(data.disliked ?? [])].slice(0, 5000) : data.disliked.filter((v) => v.id !== video.id);
+		if (on) data.favorites = data.favorites.filter((v) => v.id !== video.id);
 		save();
 		return on;
 	},

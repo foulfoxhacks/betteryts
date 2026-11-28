@@ -13,7 +13,7 @@ const MAX_BYTES = 5_000_000;
 const vids = (list, max) => (Array.isArray(list) ? list : []).map(minVideo).filter(Boolean).slice(0, max);
 
 /** The backup object for the current state. */
-export function buildBackup({ settings, library, plugins, version }) {
+export function buildBackup({ settings, library, plugins, version, music }) {
 	return {
 		format: BACKUP_FORMAT,
 		version: 1,
@@ -22,6 +22,8 @@ export function buildBackup({ settings, library, plugins, version }) {
 		settings,
 		library,
 		plugins: plugins.map(({ enabled, ...manifest }) => ({ ...manifest, enabled })),
+		// Shared with BetterYTS Music (smart playlist rules). Kept as-is so nothing is lost in a round trip.
+		...(music ? { music } : {}),
 	};
 }
 
@@ -65,7 +67,7 @@ export function cleanLibrary(raw) {
 		.filter((c) => c && typeof c.id === "string" && /^UC[\w-]{22}$/.test(c.id))
 		.map((c) => ({ id: c.id, title: String(c.title || c.id).slice(0, 100), handle: typeof c.handle === "string" ? c.handle.slice(0, 100) : null, avatar: safeUrl(c.avatar), at: Number.isFinite(c.at) ? c.at : Date.now() }))
 		.slice(0, 200);
-	return { favorites: vids(lib.favorites, 1000), history, playlists, queue: vids(lib.queue, 300), subscriptions };
+	return { favorites: vids(lib.favorites, 1000), history, playlists, queue: vids(lib.queue, 300), subscriptions, disliked: vids(lib.disliked, 5000) };
 }
 
 export function cleanPlugins(raw) {
@@ -94,6 +96,8 @@ export function readBackup(text, defaults) {
 		settings: cleanSettings(raw.settings, defaults),
 		library,
 		plugins: cleanPlugins(raw.plugins),
+		// App-only section (smart playlist rules): kept for round trips, size-limited.
+		music: raw.music && typeof raw.music === "object" && !Array.isArray(raw.music) && JSON.stringify(raw.music).length < 200_000 ? raw.music : null,
 		exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt.slice(0, 40) : null,
 		counts: {
 			favorites: library.favorites.length,
