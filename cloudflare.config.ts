@@ -13,7 +13,7 @@ export default defineConfig({
 			notFoundHandling: "none",
 			// The front page goes through the Worker so search URLs (/?q=…) get their own
 			// <title>, canonical and noindex tags. Every other asset is served directly.
-			runWorkerFirst: ["/"],
+			runWorkerFirst: ["/", "/app/update.json"],
 		},
 		domains: ["yts.foulfoxhacks.dev"],
 		// One public host only: a second copy on *.workers.dev would be duplicate content for search engines.
@@ -27,6 +27,8 @@ export default defineConfig({
 			Room: exports.durableObject({ storage: "sqlite" }),
 			// BetterYTS Stream: one object per session code holds its request queue (src/stream/session.ts).
 			StreamSession: exports.durableObject({ storage: "sqlite" }),
+			// Encrypted library sync: one object per vault, ciphertext only (src/sync/vault.ts).
+			SyncVault: exports.durableObject({ storage: "sqlite" }),
 		},
 		env: {
 			ASSETS: bindings.assets(),
@@ -34,6 +36,7 @@ export default defineConfig({
 			VRC_LINKS: bindings.durableObject({ worker: "betteryts", exportName: "VrcLinks" }),
 			ROOMS: bindings.durableObject({ worker: "betteryts", exportName: "Room" }),
 			STREAM: bindings.durableObject({ worker: "betteryts", exportName: "StreamSession" }),
+			SYNC: bindings.durableObject({ worker: "betteryts", exportName: "SyncVault" }),
 			// Composites in-world thumbnail sheets without spending Worker CPU.
 			// dev.remote: the local Images stub can't composite (draw), so dev uses the real service.
 			IMAGES: bindings.images({ dev: { remote: true } }),

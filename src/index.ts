@@ -37,6 +37,10 @@ export { VrcPool } from "./vrc/pool.ts";
 export { VrcLinks } from "./vrc/links.ts";
 export { Room } from "./rooms/room.ts";
 export { StreamSession } from "./stream/session.ts";
+export { SyncVault } from "./sync/vault.ts";
+import { syncRoutes } from "./sync/routes.ts";
+import { APK_PATH, apkResponse, manifest as appManifest } from "./lib/app-update.ts";
+import type { SyncVault } from "./sync/vault.ts";
 
 import { currentPosition, newHostKey, newRoomCode, ROOM_CODE_RE, originAllowed } from "./rooms/protocol.ts";
 import type { Room } from "./rooms/room.ts";
@@ -472,6 +476,7 @@ function apiIndex(origin: string): Response {
 				"GET /api/rooms/new": "Create a watch-party room: returns its code and the creator's hostKey",
 				"GET /api/rooms/{code}": "Room state (what's playing, position, queue, members)",
 				"WS /api/rooms/{code}/ws": "Join a room: synced playback and shared queue",
+				"GET|PUT|DELETE /api/sync/{vaultId}": "End-to-end encrypted library sync (Bearer auth; the server only stores ciphertext). See docs/sync.md",
 				"GET /room/{code}": "VRChat players: 302 to what the room is playing right now",
 				"GET /api/auth/config": "Which sign-ins this server offers (Google, Spotify) and the public Spotify client ID",
 				"GET /auth/spotify/start?state=&code_challenge=": "Sign in with Spotify (PKCE): 302 to Spotify's consent page",
@@ -589,6 +594,17 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	}
 
 	// ---- JSON API ----
+	// BetterYTS Music self-update: built from the app's latest GitHub Release (src/lib/app-update.ts);
+	// the static public/app/update.json is the fallback when GitHub can't be reached.
+	if (path === "/app/update.json") {
+		return cached("app-update-v1", ctx, async () => {
+			const m = await appManifest(url.origin).catch(() => null);
+			if (m) return new Response(JSON.stringify(m, null, 1), { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=600" } });
+			const fallback = await env.ASSETS.fetch(new Request(url.toString()));
+			return new Response(fallback.body, { status: fallback.status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=120" } });
+		});
+	}
+	if (path === APK_PATH) return (await apkResponse().catch(() => null)) ?? errorJson("No release APK available right now", 503);
 	if (path === "/api" || path === "/api/") return apiIndex(url.origin);
 	if (path === "/api/health") return json({ ok: true, version: VERSION, build: BUILD });
 	if (path === "/api/ecosystem") return apiEcosystem(ctx);
@@ -666,6 +682,7 @@ async function route(req: Request, ctx: ExecutionContext): Promise<Response> {
 	}
 
 	if (path.startsWith("/api/rooms/")) return apiRooms(req, path);
+	if (path.startsWith("/api/sync/")) return syncRoutes(req, path, env.SYNC as unknown as DurableObjectNamespace<SyncVault>);
 	if (path.startsWith("/api/")) return errorJson("Unknown endpoint. See /api", 404);
 
 	const roomMatch = /^\/room\/([A-Za-z0-9]{6})$/.exec(path);

@@ -377,6 +377,7 @@
 					<button type="button" role="tab" class="tab" data-lib-tab="favorites">Favorites</button>
 					<button type="button" role="tab" class="tab" data-lib-tab="history">History</button>
 					<button type="button" role="tab" class="tab" data-lib-tab="playlists">Playlists</button>
+					<button type="button" role="tab" class="tab" data-lib-tab="smart">Smart</button>
 					<button type="button" role="tab" class="tab" data-lib-tab="party">Watch party</button>
 				</div>
 				<div id="library-body" class="library-body"></div>
@@ -547,6 +548,7 @@
 					</div>
 					<div class="watch-actions library-actions">
 						<button class="button small secondary" type="button" id="fav-btn" aria-pressed="false">♡ Favorite</button>
+						<button class="button small secondary" type="button" id="dislike-btn" aria-pressed="false" title="Never recommend this in BetterYTS Music; hide it from smart playlists">Dislike</button>
 						<button class="button small secondary" type="button" id="queue-btn">+ Queue</button>
 						<button class="button small secondary" type="button" id="save-btn" aria-expanded="false" aria-controls="save-menu">Save to playlist</button>
 						<button class="button small secondary" type="button" id="party-btn">Start watch party</button>
@@ -645,6 +647,23 @@
 					<label class="toggle"><input type="checkbox" data-setting="autoNext" /> Play the next video in your queue automatically</label>
 					<label class="select wide"><span>Watch-party name</span><input data-setting="partyName" type="text" maxlength="32" placeholder="Guest" /></label>
 					<p class="fine">Unchecked SponsorBlock categories still show on the timeline and in the segment list, where you can skip them by hand.</p>
+				</fieldset>
+				<fieldset>
+					<legend>Sync</legend>
+					<p class="fine">Keep favorites, playlists, subscriptions, dislikes, history and hidden lists the same in this browser, BetterYTS Music and your other browsers. End-to-end encrypted: the sync code never leaves your devices, and the server only stores data it can't read.</p>
+					<p id="sync-status" class="fine" role="status"></p>
+					<div class="backup-actions" id="sync-off">
+						<button type="button" class="button small primary" id="sync-create">Turn on sync</button>
+						<input type="text" id="sync-code-input" placeholder="BTS1-… code from another device" aria-label="Sync code from another device" autocomplete="off" spellcheck="false" />
+						<button type="button" class="button small secondary" id="sync-join">Join</button>
+					</div>
+					<div class="backup-actions" id="sync-on" hidden>
+						<button type="button" class="button small primary" id="sync-now">Sync now</button>
+						<button type="button" class="button small secondary" id="sync-show">Show code</button>
+						<button type="button" class="button small secondary" id="sync-leave">Turn off</button>
+					</div>
+					<p id="sync-code" class="fine sync-code" hidden></p>
+					<p id="sync-error" class="import-error" role="alert" hidden></p>
 				</fieldset>
 				<fieldset>
 					<legend>Backup</legend>
